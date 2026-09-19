@@ -1,0 +1,7 @@
+tags:
+  golden:
+    # Goldens are rasterised by the host platform, so a macOS-generated image
+    # will not match byte-for-byte on a Linux CI runner. They are excluded from
+    # the Linux job (see .github/workflows/ci.yaml) and remain a same-platform
+    # regression guard plus the artefact used for visual review.
+    description: Golden image comparisons; host-platform specific.

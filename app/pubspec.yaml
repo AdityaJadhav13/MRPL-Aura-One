@@ -19,6 +19,11 @@ dependencies:
   measurement:
     path: ../packages/measurement
 
+  # Role-based shells with redirect guards (worker / officer / admin) are
+  # awkward and error-prone with imperative Navigator. That is the whole
+  # justification; deep links are not a requirement. See ADR-0001.
+  go_router: ^18.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -26,3 +31,18 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Fonts are bundled, not fetched. The app must complete a reading offline, so
+  # a runtime font download (google_fonts) is not acceptable here. IBM Plex is
+  # OFL licensed; see assets/fonts/OFL.txt.
+  fonts:
+    - family: IBMPlexSans
+      fonts:
+        # Variable font: weight comes from the wght axis, set in typography.dart.
+        - asset: assets/fonts/IBMPlexSans-Variable.ttf
+    - family: IBMPlexMono
+      fonts:
+        - asset: assets/fonts/IBMPlexMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexMono-Medium.ttf
+          weight: 500

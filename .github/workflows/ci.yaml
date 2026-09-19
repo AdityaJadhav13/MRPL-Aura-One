@@ -48,7 +48,11 @@ jobs:
         run: flutter analyze --fatal-infos
         working-directory: app
       - name: Test
-        run: flutter test
+        # Goldens are excluded: they are rasterised by the host platform, so
+        # macOS-generated images do not match byte-for-byte on a Linux runner.
+        # They remain a same-platform regression guard and the artefact used for
+        # visual review. See app/dart_test.yaml.
+        run: flutter test --exclude-tags golden
         working-directory: app
 
   build:

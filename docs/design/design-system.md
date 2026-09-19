@@ -42,11 +42,13 @@ in a dark tank area alike. Every value is exactly neutral (R=G=B). No tinted nea
 | `neutral.80` | 20 | `#303030` |
 | `neutral.86` | 14 | `#242424` |
 | `neutral.91` | 9 | `#191919` |
+| `neutral.95` | 5 | `#111111` |
 | `neutral.100` | 0 | `#000000` |
 
 True black is reserved for the camera viewfinder, where it is the correct surround for
-judging a captured image. Dark-mode surfaces bottom out at L*9 — pure black on OLED smears
-during scroll and creates a contrast ratio that is fatiguing over a shift.
+judging a captured image. The dark-mode *scaffold* bottoms out at L*9 — pure black on OLED
+smears during scroll and creates a contrast ratio that is fatiguing over a shift. A recessed
+panel inside a card may go to L*5; it may never go to L*0. A test enforces this.
 
 ### Accent — instrument cyan
 
@@ -142,6 +144,10 @@ The dose is never a bare number. It is a point on a **printed scale that shows i
 limits** — the quantification limit at one end, saturation at the other, both drawn as hard
 stops. The instrument displays the boundaries of what it can know, on every single result.
 
+The axis is logarithmic, and intermediate ticks cull when their labels would collide. Both
+limit labels are reserved before any tick is placed, because a scale whose purpose is showing
+its own limits must never drop one. See ADR-0009.
+
 **Valid**
 
 ```
@@ -183,7 +189,7 @@ stops. The instrument displays the boundaries of what it can know, on every sing
 ```
   No reading                               ⊘
 
-  ——                                  ppm·h
+  - - -                               ppm·h
 
   ├──────────────────────────────────┤
 
@@ -194,9 +200,15 @@ stops. The instrument displays the boundaries of what it can know, on every sing
   scan again.
 ```
 
-Those em dashes are the point. The interface does not hide the readout when it fails, and it
+Those dashes are the point. The interface does not hide the readout when it fails, and it
 does not fill it with a zero. It shows you the empty slot where a number would have been.
 A worker who sees this knows something is missing; a worker who sees "0.0 ppm·h" does not.
+
+**Amended during implementation.** The placeholder was originally specified as two em dashes.
+At 60px an em dash fills its whole monospace cell, so consecutive ones tiled into a single
+solid bar that read as a redaction or a progress indicator. Separated short dashes are also
+what a laboratory balance or a multimeter shows when it has no value, so the meaning is
+already familiar. Found by looking at the rendered output, not by reading the code.
 
 Every non-valid state answers, in this order: **what happened · why it matters · what to do**
 (directive §30). Never an error code alone.

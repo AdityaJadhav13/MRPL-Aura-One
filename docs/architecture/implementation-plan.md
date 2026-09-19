@@ -16,19 +16,44 @@ Remaining, pending the five gate answers:
    `staging` / `prod` flavours.
 5. CI: format, analyze, test, build on every PR.
 
-## Phase 1 — Design system and navigation shell
-Semantic tokens (no literal colours in widgets), light and dark, typography including the
-measurement numeral style, spacing, motion, haptics. Core components: status chip, reason
-panel, primary action, measurement readout, evidence tile, simulation banner. Role shells and
-go_router guards with placeholder screens. Golden tests from the first component.
-**Gate:** every component passes the eight-point review of directive §39.
+## Phase 1 — Design system and navigation shell ✅ complete
+
+Delivered: semantic tokens in two `ThemeExtension`s (light and dark), IBM Plex bundled as
+assets, buttons, status treatment, measurement readout with the empty-slot state, the
+measurement scale, simulation and offline markers, surfaces, traceability rows, reason panel,
+result card, the worker shell on `StatefulShellRoute`, four placeholder destinations, and a
+development-only gallery. 63 tests, 26 goldens reviewed.
+
+Deferred out of Phase 1 deliberately: Riverpod (nothing to manage yet — ADR-0001 stands), the
+officer and administrator shells (Phase 9), and role redirect guards (need auth, Phase 7).
 
 ## Phase 2 — Simulation-mode worker workflow
-The full lifecycle against simulated data: badge assignment, verification, activation, active
-shift, closure, result, history. Persisted workflow state machine with interruption recovery.
-The result state machine and all refusal copy — written before the real pipeline exists,
-because the refusal states are the harder design problem and deserve the attention first.
-**Gate:** kill the app at each step and confirm it resumes correctly.
+
+**Recommended boundary.** In scope:
+
+- The persisted workflow state machine: assign → verify → activate → run → close → result →
+  history, every transition written to storage before the UI advances.
+- Interruption recovery: kill the app at each step and resume correctly.
+- Riverpod introduced here, because this is the first state worth managing.
+- Simulated badge specimens (blank, low, mid, high, saturated, expired, damaged) driving the
+  real result state machine, all in the `simulated` data domain and visibly marked.
+- Refusal copy for every reason code — what happened, why it matters, what to do.
+- Clock-integrity recording: wall clock, monotonic elapsed, divergence warning.
+
+Explicitly **out** of scope, to keep the boundary honest:
+
+- No camera and no image handling. A simulated scan picks a specimen; it does not photograph
+  anything. (Phase 3)
+- No Drift yet. Phase 2 persists through a single narrow storage interface so Phase 6 can
+  put SQLite behind it without touching the workflow. A simpler store is sufficient to prove
+  interruption recovery.
+- No Supabase, no auth, no sync. (Phases 7–8)
+- No dose inference, no calibration, no colour science. A simulated specimen carries its own
+  declared status and value; nothing is computed from an image.
+- No officer or admin surfaces. (Phase 9)
+
+**Gate:** kill the app at each step and confirm it resumes correctly; every refusal state
+reachable and explained; nothing in the `simulated` domain renders without its marker.
 
 ## Phase 3 — Camera scanner and deterministic CV
 Capture UI with live guidance overlay and auto-capture arming. Then, in
