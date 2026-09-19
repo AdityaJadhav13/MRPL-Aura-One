@@ -42,3 +42,7 @@ supabase/.branches/
 # Test output
 **/failures/
 coverage/
+
+# Workspace: the root lock file is authoritative
+app/pubspec.lock
+packages/*/pubspec.lock
