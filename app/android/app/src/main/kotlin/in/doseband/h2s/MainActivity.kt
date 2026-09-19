@@ -1,4 +1,4 @@
-package com.example.app
+package `in`.doseband.h2s
 
 import io.flutter.embedding.android.FlutterActivity
 

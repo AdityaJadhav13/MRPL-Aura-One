@@ -1,0 +1,22 @@
+name: measurement
+description: >-
+  The H2S DoseBand scientific core: image geometry, colour science, feature
+  extraction, calibration and the validity engine.
+
+  This package MUST NOT depend on Flutter. The absence of that dependency is
+  what makes it a compile error to turn a colour into a ppm-h value inside a
+  widget. See docs/decisions/0004-repository-layout.md.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  image: ^4.10.1
+  meta: ^1.16.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.26.0

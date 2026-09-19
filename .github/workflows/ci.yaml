@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  FLUTTER_VERSION: "3.47.5"
+
+jobs:
+  # The scientific core runs headless, without Flutter, in seconds.
+  # It is the blocking gate: if this fails, nothing else matters.
+  measurement:
+    name: Measurement core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+        working-directory: packages/measurement
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed .
+        working-directory: packages/measurement
+      - name: Analyze
+        run: dart analyze --fatal-infos
+        working-directory: packages/measurement
+      - name: Test
+        run: dart test
+        working-directory: packages/measurement
+
+  app:
+    name: Flutter app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed app packages
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+        working-directory: app
+      - name: Test
+        run: flutter test
+        working-directory: app
+
+  build:
+    name: Build Android bundle
+    runs-on: ubuntu-latest
+    needs: [measurement, app]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      # Debug-signed. This artefact is for verification that the build is not
+      # broken; it is never a release candidate. Release signing needs
+      # android/key.properties, which is not available to CI.
+      - name: Build (dev flavour)
+        run: flutter build appbundle --flavor dev -t lib/main_dev.dart --debug
+        working-directory: app
+
+  # Enabled from Phase 7, when supabase/migrations/ has content.
+  database:
+    name: Database constraints and RLS
+    runs-on: ubuntu-latest
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: pgTAP
+        run: echo "Phase 7. See docs/architecture/testing-strategy.md T3."
