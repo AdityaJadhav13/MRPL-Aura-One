@@ -34,7 +34,19 @@ measurement capability and makes no claim about chemistry.
 - `EnvironmentConfig`: simulation and experimental features are unavailable in `prod` by
   construction, not by a runtime flag.
 - CI: format, analyze, test, build on every PR. Database job stubbed for Phase 7.
-- 15 documents under `docs/`, 7 ADRs.
+- 17 documents under `docs/`, 8 ADRs.
+
+**Verified, not assumed**
+
+| Check | Result |
+|---|---|
+| `measurement` analyze / test | clean · 12/12 |
+| `app` analyze / test / format | clean · 3/3 · clean |
+| Android `dev` debug APK | builds; manifest confirms `in.doseband.h2s.dev`, minSdk 24, CAMERA+INTERNET only |
+| Android `prod` release APK | builds, 43.0 MB; R8 and resource shrinking active; keystore fallback evaluates |
+
+**Phase 1 started** — the design system is specified in `docs/design/design-system.md`.
+Implementation has not begun.
 
 **Pulled forward from Phase 5** — the `MeasurementResult` sealed union and `ResultStatus`,
 with their invariant tests. Only `Valid` carries a dose; `Refused` and `Censored` have no
@@ -55,12 +67,19 @@ rather than only asserted in a document, and so CI has something real to run.
    CID-encoded fonts and does not extract mechanically. The traceability matrix is built from
    the dossier's transcription and needs confirming against the source.
 5. **No Supabase projects exist yet.** Three are needed (dev / staging / prod) before Phase 7.
+6. **Toolchain deprecation pending.** Flutter warns that AGP 8.11.1 and Kotlin 2.2.20 support
+   will be dropped "soon". The migration was attempted and reverted — Flutter's own migrator
+   writes `android.newDsl=false`, so it is not yet ready for AGP 9. ADR-0008 records the
+   trigger to revisit.
+7. **Disk headroom is thin.** The machine sat at 152 MB free and broke a build. About 13 GB
+   of caches were cleared with approval; 12 GB free now. Android builds will eat into that.
 
 ## Next tasks
 
-**Phase 1 — design system and navigation shell.** Semantic tokens, light and dark, the
-measurement numeral style, core components (status chip, reason panel, measurement readout,
-simulation banner), role shells and go_router guards. Golden tests from the first component.
+**Phase 1, continued.** The design system is specified; next is implementing it: the token
+layer, light and dark themes, IBM Plex, the core components (status chip, reason panel,
+measurement scale, simulation banner), then the role shells and go_router guards. Golden
+tests from the first component.
 
 Full sequence in `docs/architecture/implementation-plan.md`.
 
@@ -75,3 +94,4 @@ Full sequence in `docs/architecture/implementation-plan.md`.
 | [0005](docs/decisions/0005-supabase-backend.md) | Supabase, separate project per environment |
 | [0006](docs/decisions/0006-data-domain-separation.md) | Data domain enforced in the schema |
 | [0007](docs/decisions/0007-toolchain-version.md) | Upgrade Flutter before Phase 1 |
+| [0008](docs/decisions/0008-defer-agp9-migration.md) | Defer the AGP 9 / Gradle 9 migration |
