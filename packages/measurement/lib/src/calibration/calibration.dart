@@ -36,6 +36,14 @@ final class CalibrationPackage {
     this.saturationBehaviour,
     this.evidenceReference,
     this.supersedes,
+    this.correctionMethod,
+    this.substrate,
+    this.diffusionArchitecture,
+    this.referenceDesign,
+    this.trainingDatasetReference,
+    this.validationDatasetReference,
+    this.validationStatus = CalibrationValidationStatus.none,
+    this.modelData,
   });
 
   final String calibrationId;
@@ -90,6 +98,29 @@ final class CalibrationPackage {
   /// rewrites results produced under the one it replaces. §51.
   final String? supersedes;
 
+  /// The colour correction the training features were produced under, e.g.
+  /// `affine3x4`. Features corrected one way are not comparable with features
+  /// corrected another, so a mismatch refuses. MEASUREMENT-INTEGRATION-02 §54.
+  final String? correctionMethod;
+
+  final String? substrate;
+  final String? diffusionArchitecture;
+
+  /// The reference-patch design the training captures used.
+  final String? referenceDesign;
+
+  /// Pointers to the datasets the model was fitted and validated on. The two
+  /// must be different sets, held out by physical badge, batch and exposure
+  /// run — not by photograph — or validation measures leakage. §92.
+  final String? trainingDatasetReference;
+  final String? validationDatasetReference;
+
+  final CalibrationValidationStatus validationStatus;
+
+  /// The model's parameters or lookup table, opaque to the application. The
+  /// app never reads this — §16 — only the implementing [Calibration] does.
+  final Map<String, Object?>? modelData;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'schema': 'doseband-calibration-package/1',
     'calibration_id': calibrationId,
@@ -109,8 +140,100 @@ final class CalibrationPackage {
     'saturation_behaviour': saturationBehaviour,
     'evidence_reference': evidenceReference,
     'supersedes': supersedes,
+    'correction_method': correctionMethod,
+    'substrate': substrate,
+    'diffusion_architecture': diffusionArchitecture,
+    'reference_design': referenceDesign,
+    'training_dataset_reference': trainingDatasetReference,
+    'validation_dataset_reference': validationDatasetReference,
+    'validation_status': validationStatus.name,
+    'model_data': modelData,
   };
 }
+
+/// How far a calibration package has been validated.
+enum CalibrationValidationStatus {
+  /// No validation has been performed.
+  none,
+
+  /// Fitted and internally checked, not yet validated on held-out badges.
+  development,
+
+  /// Validated on held-out physical badges across the declared domain.
+  validated,
+}
+
+/// What is known about the capture being interpreted, beyond its pixels.
+///
+/// Only validated, relevant inputs belong here. A calibration never reads
+/// application or UI state — §53 — and a field that is not established is
+/// null, never defaulted.
+@immutable
+final class MeasurementContext {
+  const MeasurementContext({
+    this.batchId,
+    this.formulationId,
+    this.correctionMethod,
+    this.monitoredDuration,
+  });
+
+  final String? batchId;
+  final String? formulationId;
+
+  /// The correction the observation was actually produced under.
+  final String? correctionMethod;
+
+  /// Null when the monitored window is unknown or untrusted — a clock anomaly
+  /// never becomes a duration.
+  final Duration? monitoredDuration;
+
+  static const MeasurementContext none = MeasurementContext();
+}
+
+/// Why [package] may not be made ACTIVE, or an empty list if it may.
+///
+/// A package does not become active because a file exists. §95. These are the
+/// requirements that can be checked before any chemistry is known; each one
+/// absent is a reason, and all of them are reported rather than the first.
+List<ReasonCode> calibrationActivationProblems(
+  CalibrationPackage package,
+) => <ReasonCode>[
+  if (package.dataDomain == DataDomain.simulated)
+    const ReasonCode(
+      'CALIBRATION_FROM_SIMULATED_DATA',
+      detail: 'a package fitted to simulated data is never production',
+    ),
+  if (package.validationStatus != CalibrationValidationStatus.validated)
+    ReasonCode(
+      'CALIBRATION_NOT_VALIDATED',
+      detail: 'validation status is ${package.validationStatus.name}',
+    ),
+  if (package.evidenceReference == null)
+    const ReasonCode('CALIBRATION_WITHOUT_EVIDENCE'),
+  if (package.formulationId == null)
+    const ReasonCode('CALIBRATION_FORMULATION_UNSPECIFIED'),
+  if (package.correctionMethod == null)
+    const ReasonCode('CALIBRATION_CORRECTION_METHOD_UNSPECIFIED'),
+  if (package.lowerQuantificationBound == null ||
+      package.upperQuantificationBound == null)
+    const ReasonCode(
+      'CALIBRATION_RANGE_UNDEFINED',
+      detail:
+          'without a quantification range, below-limit and '
+          'above-range cannot be distinguished from a value',
+    ),
+  if (package.batchApplicability.isEmpty)
+    const ReasonCode('CALIBRATION_BATCHES_UNSPECIFIED'),
+  if (package.trainingDatasetReference == null ||
+      package.validationDatasetReference == null)
+    const ReasonCode('CALIBRATION_DATASETS_UNSPECIFIED'),
+  if (package.trainingDatasetReference != null &&
+      package.trainingDatasetReference == package.validationDatasetReference)
+    const ReasonCode(
+      'CALIBRATION_VALIDATED_ON_TRAINING_DATA',
+      detail: 'training and validation datasets are the same',
+    ),
+];
 
 /// Turns an optical observation into a measurement result. §16.
 ///
@@ -142,6 +265,7 @@ abstract interface class Calibration {
     ResearchObservation observation, {
     required String appVersion,
     required String deviceModel,
+    MeasurementContext context = MeasurementContext.none,
   });
 }
 
@@ -161,6 +285,7 @@ final class NoCalibration implements Calibration {
     ResearchObservation observation, {
     required String appVersion,
     required String deviceModel,
+    MeasurementContext context = MeasurementContext.none,
   }) => refuseForLackOfCalibration(
     observation,
     appVersion: appVersion,
@@ -181,8 +306,9 @@ final class NoCalibration implements Calibration {
 /// * a calibration is bound to the feature definition it was trained on.
 ReasonCode? calibrationMismatch(
   CalibrationPackage package,
-  ResearchObservation observation,
-) {
+  ResearchObservation observation, {
+  MeasurementContext context = MeasurementContext.none,
+}) {
   if (package.dataDomain == DataDomain.simulated &&
       observation.dataDomain != DataDomain.simulated) {
     return ReasonCode(
@@ -209,5 +335,56 @@ ReasonCode? calibrationMismatch(
           'used ${observation.featureVector.definitionVersion}',
     );
   }
+  final pc = package.correctionMethod;
+  final oc =
+      context.correctionMethod ??
+      observation.correctionFit?.correction?.form.name;
+  if (pc != null && pc != oc) {
+    return ReasonCode(
+      'CALIBRATION_CORRECTION_METHOD_MISMATCH',
+      detail: 'package expects $pc, observation was corrected with $oc',
+    );
+  }
+  final pf = package.formulationId;
+  if (pf != null &&
+      context.formulationId != null &&
+      pf != context.formulationId) {
+    return ReasonCode(
+      'CALIBRATION_FORMULATION_MISMATCH',
+      detail: 'package is for $pf, badge is ${context.formulationId}',
+    );
+  }
+  // An unknown batch is not assumed to be a supported one, and the nearest
+  // batch is never substituted. §96.
+  final batch = context.batchId;
+  if (batch == null || !package.batchApplicability.contains(batch)) {
+    return ReasonCode(
+      'CALIBRATION_BATCH_UNSUPPORTED',
+      detail: batch == null
+          ? 'badge batch unknown'
+          : 'batch $batch is not in the package applicability list',
+    );
+  }
   return null;
+}
+
+/// The equivalent time-average concentration, from a validated cumulative
+/// exposure and a trusted monitored duration. §1, §65.
+///
+/// `C_avg = D / T`. It is **not** an instantaneous or current concentration,
+/// and a single endpoint photograph cannot recover one: the concentration
+/// history is integrated away. Null unless [result] is a `Valid` quantity and
+/// [monitored] is a positive, trusted duration.
+({double ppm, String label})? equivalentAverageConcentration(
+  MeasurementResult result,
+  Duration? monitored,
+) {
+  if (result is! Valid || monitored == null || monitored <= Duration.zero) {
+    return null;
+  }
+  final hours = monitored.inMicroseconds / Duration.microsecondsPerHour;
+  return (
+    ppm: result.dose.value / hours,
+    label: 'Equivalent time-average H₂S concentration',
+  );
 }

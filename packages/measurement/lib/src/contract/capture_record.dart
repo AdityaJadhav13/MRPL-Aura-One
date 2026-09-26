@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 import '../capture/capture_metadata.dart';
 import '../capture/guidance.dart';
 import '../geometry/geometry_validation.dart';
+import '../quality/acquisition_quality.dart';
 import '../quality/image_quality.dart';
 import 'data_domain.dart';
 import 'feature_vector.dart';
@@ -148,6 +149,8 @@ final class CaptureRecord {
     this.correctionMethod,
     this.homography,
     this.measurementStatus,
+    this.acquisitionQuality,
+    this.operationalContext,
   });
 
   final String captureId;
@@ -217,10 +220,22 @@ final class CaptureRecord {
   /// into an exposure. It is never a number, and never zero.
   final String? measurementStatus;
 
+  /// Every quality check on the still, kept separate. Null only on records
+  /// written before schema 3.
+  final AcquisitionQuality? acquisitionQuality;
+
+  /// Who, where and when, for a capture taken in the operational workflow:
+  /// badge, worker, site, shift, monitored window. Supplied by the caller and
+  /// stored as given — the engine does not know what a worker or a shift is,
+  /// and should not. Null for bench captures, which carry a [specimen].
+  final Map<String, Object?>? operationalContext;
+
   Map<String, Object?> toJson() => <String, Object?>{
     // Version 2 adds the specimen, the full observation and the correction
     // method. Version 1 records remain readable: every new field is optional.
-    'schema': 'doseband-capture-record/2',
+    // Version 3 adds the per-check acquisition quality report and an
+    // explicit acquisition verdict. Earlier records remain readable.
+    'schema': 'doseband-capture-record/3',
     'capture_id': captureId,
     'data_domain': dataDomain.name,
     'disclosure': dataDomain.disclosure,
@@ -234,6 +249,11 @@ final class CaptureRecord {
     'still_quality': stillQuality?.toJson(),
     'outcome': outcome,
     'measurement_status': measurementStatus,
+    // Stated outright so no reader has to infer it: an observation whose
+    // references failed was *made*, but is not a valid acquisition.
+    'acquisition_valid': acquisitionQuality?.acceptable,
+    'acquisition_quality': acquisitionQuality?.toJson(),
+    'operational_context': operationalContext,
     'refusal_code': refusalCode,
     'refusal_detail': refusalDetail,
     'original_image_file': originalImageFile,

@@ -108,7 +108,7 @@ class HomeScreen extends ConsumerWidget {
 
                       MonitoringStatusCard(
                         presentation: presentation,
-                        badgeId: session.badge?.badgeId,
+                        badgeId: session.assignedBadge?.badgeId,
                         startedAt: session.startedAt,
                         coverage: session.coverageAt(now),
                       ),

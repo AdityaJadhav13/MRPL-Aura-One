@@ -81,9 +81,14 @@ class MeasurementDetailScreen extends StatelessWidget {
                   title: 'Badge',
                   rows: {
                     'Badge': record.badge.badgeId,
-                    'Lot': record.badge.lot,
-                    'Formulation': record.badge.formulation,
-                    'Expiry': Fmt.date(record.badge.expiry),
+                    'Identity': record.badge.identityProvenance,
+                    'Lot': record.badge.batch ?? Fmt.noValue,
+                    'Formulation': record.badge.formulation ?? Fmt.noValue,
+                    // A physical badge typed by hand has no printed-expiry
+                    // record; absence is shown as absence, never as a date.
+                    'Expiry': record.badge.expiry == null
+                        ? Fmt.noValue
+                        : Fmt.date(record.badge.expiry!),
                   },
                 ),
                 _Section(

@@ -1,6 +1,7 @@
 import 'package:measurement/measurement.dart';
 
 import '../domain/badge_specimen.dart';
+import '../domain/physical_badge.dart';
 import '../domain/enterprise_value.dart';
 import '../domain/permit_context.dart';
 import '../domain/work_taxonomy.dart';
@@ -33,7 +34,13 @@ abstract final class SessionCodec {
   /// different schema is discarded, not migrated: until there is a released
   /// version to migrate *from*, a migration path would be speculative code
   /// guarding against a case that has never existed.
-  static const int schema = 2;
+  static const int schema = 3;
+
+  /// Schemas this build can read. Version 3 is a strict superset of 2 — it
+  /// adds `physical_badge` and `capture_id`, both optional — so a version-2
+  /// snapshot decodes unchanged. That is not speculative migration code; it
+  /// is the absence of any change to read.
+  static const Set<int> readable = <int>{2, 3};
 
   // ---------------------------------------------------------------- encoding
 
@@ -46,6 +53,11 @@ abstract final class SessionCodec {
     // outcome belong to the catalogue (later: the database); copying them into
     // the session snapshot would let a stale duplicate outlive the source.
     'badge_id': s.badge?.badgeId,
+    // A physical badge is stored in full. Unlike a catalogue specimen there is
+    // nothing to re-resolve it from: this session is its only record, and a
+    // restart mid-monitoring must not lose which badge is being worn.
+    'physical_badge': s.physicalBadge?.toJson(),
+    'capture_id': s.captureId,
     'started_at': s.startedAt?.toIso8601String(),
     'ended_at': s.endedAt?.toIso8601String(),
     'result': s.result == null ? null : _encodeResult(s.result!),
@@ -151,7 +163,7 @@ abstract final class SessionCodec {
 
   static ShiftSession? decode(Object? raw) {
     if (raw is! Map) return null;
-    if (raw['schema'] != schema) return null;
+    if (!readable.contains(raw['schema'])) return null;
 
     final stage = _enumByName(ShiftStage.values, raw['stage']);
     if (stage == null) return null;
@@ -161,6 +173,14 @@ abstract final class SessionCodec {
 
     final badge = _decodeBadge(raw['badge_id']);
     if (badge == null && raw['badge_id'] != null) return null;
+
+    final physical = PhysicalBadge.fromJson(raw['physical_badge']);
+    if (physical == null && raw['physical_badge'] != null) return null;
+    // Both at once is a state no transition produces.
+    if (badge != null && physical != null) return null;
+
+    final captureId = raw['capture_id'];
+    if (captureId != null && captureId is! String) return null;
 
     final startedAt = _decodeDate(raw['started_at']);
     if (startedAt == null && raw['started_at'] != null) return null;
@@ -175,9 +195,11 @@ abstract final class SessionCodec {
       stage: stage,
       context: context,
       badge: badge,
+      physicalBadge: physical,
       startedAt: startedAt,
       endedAt: endedAt,
       result: result,
+      captureId: captureId as String?,
     );
 
     // A snapshot can be well-formed JSON and still describe a session that the
@@ -196,7 +218,7 @@ abstract final class SessionCodec {
     final needsResult = s.stage == ShiftStage.complete;
 
     if (needsContext && s.context == null) return false;
-    if (needsBadge && s.badge == null) return false;
+    if (needsBadge && s.assignedBadge == null) return false;
     if (needsStart && s.startedAt == null) return false;
     if (needsEnd && s.endedAt == null) return false;
     if (needsResult && s.result == null) return false;

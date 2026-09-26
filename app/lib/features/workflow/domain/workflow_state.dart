@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:measurement/measurement.dart';
 
 import 'badge_specimen.dart';
+import 'physical_badge.dart';
 import 'work_context.dart';
 
 /// The stage a worker's monitored period has reached.
@@ -42,14 +43,35 @@ final class ShiftSession {
     this.stage = ShiftStage.noShift,
     this.context,
     this.badge,
+    this.physicalBadge,
     this.startedAt,
     this.endedAt,
     this.result,
-  });
+    this.captureId,
+  }) : assert(
+         badge == null || physicalBadge == null,
+         'a session holds a simulated specimen or a physical badge, never both',
+       );
 
   final ShiftStage stage;
   final WorkContext? context;
+
+  /// A simulated specimen, for presentation data. Its scan plays back a
+  /// declared outcome.
   final BadgeSpecimen? badge;
+
+  /// A real badge, identified by hand. Its scan opens the real camera and runs
+  /// the real pipeline. MEASUREMENT-INTEGRATION-02 §8.
+  final PhysicalBadge? physicalBadge;
+
+  /// Whichever badge is assigned.
+  BadgeIdentity? get assignedBadge => physicalBadge ?? badge;
+
+  /// Whether this session's final scan is a real capture.
+  bool get isPhysical => physicalBadge != null;
+
+  /// The archived capture that produced [result], for a physical scan.
+  final String? captureId;
   final DateTime? startedAt;
   final DateTime? endedAt;
 
@@ -99,17 +121,26 @@ final class ShiftSession {
     ShiftStage? stage,
     WorkContext? context,
     BadgeSpecimen? badge,
+    PhysicalBadge? physicalBadge,
     DateTime? startedAt,
     DateTime? endedAt,
     MeasurementResult? result,
+    String? captureId,
   }) {
+    // Assigning one kind of badge clears the other. A session carrying both
+    // would leave "which badge was exposed?" to whichever field a screen
+    // happened to read.
     return ShiftSession(
       stage: stage ?? this.stage,
       context: context ?? this.context,
-      badge: badge ?? this.badge,
+      badge: physicalBadge != null ? null : (badge ?? this.badge),
+      physicalBadge: badge != null
+          ? null
+          : (physicalBadge ?? this.physicalBadge),
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
       result: result ?? this.result,
+      captureId: captureId ?? this.captureId,
     );
   }
 }

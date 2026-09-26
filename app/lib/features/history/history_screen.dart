@@ -81,20 +81,27 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               _HistoryRow(record: records[i]),
                         ),
                 ),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Space.base,
-                    vertical: Space.sm,
-                  ),
-                  color: c.surfaceSunken,
-                  child: Text(
-                    'All records are simulated data.',
-                    style: context.type.caption.copyWith(
-                      color: c.statusSimulated,
+                // Stated from the records themselves. This used to read "All
+                // records are simulated data" unconditionally, which became
+                // false the moment a real scan could land here.
+                if (all.any((r) => r.domain == DataDomain.simulated))
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Space.base,
+                      vertical: Space.sm,
+                    ),
+                    color: c.surfaceSunken,
+                    child: Text(
+                      all.every((r) => r.domain == DataDomain.simulated)
+                          ? 'All records are simulated data.'
+                          : 'Records marked SIMULATED are simulated data. '
+                                'Others are real scans of a physical badge.',
+                      style: context.type.caption.copyWith(
+                        color: c.statusSimulated,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
     );
@@ -203,6 +210,24 @@ class _HistoryRow extends StatelessWidget {
                     style: t.caption.copyWith(color: c.textSecondary),
                   ),
                 ],
+              ),
+              const SizedBox(height: Space.xs),
+              // Local, per row. With real and simulated scans in one list, a
+              // simulated quantity must be identifiable where it is shown —
+              // a footer banner no longer covers it. Category A.
+              Text(
+                record.domain == DataDomain.simulated
+                    ? 'SIMULATED — not a real H₂S measurement'
+                    : '${record.badge.identityProvenance.split(' — ').first}'
+                          ' · real photograph',
+                style: t.caption.copyWith(
+                  color: record.domain == DataDomain.simulated
+                      ? c.statusSimulated
+                      : c.textSecondary,
+                  fontWeight: record.domain == DataDomain.simulated
+                      ? FontWeight.w600
+                      : null,
+                ),
               ),
             ],
           ),

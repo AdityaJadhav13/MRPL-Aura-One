@@ -58,7 +58,7 @@ class _ActiveMonitoringScreenState
     final session =
         ref.watch(shiftSessionProvider).dataOrNull ?? ShiftSession.none;
     final ctx = session.context;
-    final badge = session.badge;
+    final badge = session.assignedBadge;
     final start = session.startedAt;
     final elapsed = session.coverageAt(DateTime.now());
 

@@ -26,7 +26,7 @@ class EndMonitoringScreen extends ConsumerWidget {
     final t = context.type;
     final session =
         ref.watch(shiftSessionProvider).dataOrNull ?? ShiftSession.none;
-    final badge = session.badge;
+    final badge = session.assignedBadge;
     final elapsed = session.coverageAt(DateTime.now());
 
     return StepScaffold(

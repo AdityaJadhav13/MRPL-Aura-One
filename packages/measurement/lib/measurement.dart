@@ -10,6 +10,7 @@
 library;
 
 export 'src/calibration/calibration.dart';
+export 'src/calibration/calibration_row.dart';
 export 'src/capture/capture_metadata.dart';
 export 'src/capture/guidance.dart';
 export 'src/capture/stability.dart';
@@ -34,6 +35,7 @@ export 'src/imaging/rgb_image.dart';
 export 'src/linalg/matrix.dart';
 export 'src/geometry/fiducial_detector.dart';
 export 'src/geometry/geometry_validation.dart';
+export 'src/quality/acquisition_quality.dart';
 export 'src/quality/image_quality.dart';
 export 'src/research/monotonicity.dart';
 export 'src/validity/measurement_result.dart';

@@ -150,21 +150,27 @@ Uint8List _jpeg(RgbImage image) {
 }
 
 /// A still and its matching ¼-scale preview, as the real port produces them.
+///
+/// Lossless by default: an ideal camera, so the optics-valid branch — and the
+/// calibration behind it — is actually exercised. With [jpeg] the still goes
+/// through the lossy encoding a phone produces, and on that path the withheld
+/// REF-BLACK patch exceeds the provisional limit; see the test that records
+/// it. The fixture is not chosen to hide that — both are tested.
 ({Uint8List still, RgbImage preview}) _pair(
   BadgeGeometry geometry, {
   Map<String, List<int>> colours = badgeV1Colours,
+  bool jpeg = false,
 }) {
   const w = 1600, h = 1200;
+  final rendered = _render(
+    geometry,
+    pxPerMm: _stillPxPerMm,
+    width: w,
+    height: h,
+    colours: colours,
+  );
   return (
-    still: _jpeg(
-      _render(
-        geometry,
-        pxPerMm: _stillPxPerMm,
-        width: w,
-        height: h,
-        colours: colours,
-      ),
-    ),
+    still: jpeg ? _jpeg(rendered) : encodePng(rendered),
     preview: _render(
       geometry,
       pxPerMm: _stillPxPerMm / _downscale,
@@ -339,7 +345,7 @@ void main() {
         File('${dir.path}/record.json').readAsStringSync(),
       ) as Map<String, Object?>;
 
-      expect(record['schema'], 'doseband-capture-record/2');
+      expect(record['schema'], 'doseband-capture-record/3');
       expect(record['outcome'], 'observed');
       expect(record['measurement_status'], 'unsupportedCalibration');
       expect(record['data_domain'], 'lab');
@@ -360,7 +366,8 @@ void main() {
 
       // §10: the original, byte for byte.
       final original = File('${dir.path}/${record['original_image_file']}');
-      expect(record['original_image_file'], 'original.jpg');
+      // Exactly the bytes supplied — the name follows what they are.
+      expect(record['original_image_file'], 'original.png');
       expect(original.readAsBytesSync(), stillBytes);
 
       // The rectified evidence view.
@@ -511,6 +518,37 @@ void main() {
       );
     });
 
+    test('JPEG compression alone fails the withheld black patch', () async {
+      // A recorded pre-hardware finding. The same clean render, through the
+      // lossy encoding a phone produces, gives withheld REF-BLACK ΔE00 ≈ 2.06
+      // against a provisional limit of 2.0: the affine correction is fitted
+      // on REF-LIGHT and the chromatics, so black is an extrapolation. The
+      // capture is observed and archived, the acquisition is a reference
+      // failure, and no calibration is consulted.
+      //
+      // Expect the physical phone to hit this. The limit and the fit/holdout
+      // split are for M0C evidence to set — they are not tuned here.
+      final pair = _pair(geometry, jpeg: true);
+      final outcome = await runWith(pair.still, pair.preview);
+      expect(outcome, isA<CaptureObserved>());
+      final observed = outcome! as CaptureObserved;
+      expect(observed.quality.acceptable, isFalse);
+      expect(observed.quality.primaryFailure!.id, 'withheld_references');
+      final worst = observed.observation.referenceValidation!.residuals.reduce(
+        (a, b) => a.deltaE00 > b.deltaE00 ? a : b,
+      );
+      expect(worst.patchId, 'REF-BLACK');
+      expect(observed.result.status, ResultStatus.referencePatchFailure);
+      expect(observed.result, isNot(isA<Valid>()));
+
+      final saved = await ResearchRecorder(
+        archive: archive,
+        geometry: geometry,
+      ).save(observed, _settings);
+      expect(saved.record.toJson()['acquisition_valid'], isFalse);
+      expect(saved.record.originalImageFile, 'original.jpg');
+    });
+
     test('collapsed references are recorded as a failed fit', () async {
       // Every reference printed the same grey: the correction has nothing to
       // fit to. The optics can still be observed, but the record must say
@@ -553,8 +591,13 @@ final class _SimulatedDevelopmentCalibration implements Calibration {
     ResearchObservation observation, {
     required String appVersion,
     required String deviceModel,
+    MeasurementContext context = MeasurementContext.none,
   }) {
-    final mismatch = calibrationMismatch(package, observation);
+    final mismatch = calibrationMismatch(
+      package,
+      observation,
+      context: context,
+    );
     final provenance = Provenance(
       algorithmVersion: algorithmVersion,
       geometryVersion: observation.featureVector.geometryVersion,

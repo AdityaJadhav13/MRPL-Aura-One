@@ -73,8 +73,11 @@ final class CaptureController extends ChangeNotifier {
     this.autoCapture = true,
     this.previewDownscale = 1,
     this.calibration = const NoCalibration(),
+    MeasurementContext Function()? context,
+    this.dataDomain = DataDomain.lab,
     AutoCaptureGate? gate,
-  }) : _gate = gate ?? AutoCaptureGate(),
+  }) : _context = context ?? (() => MeasurementContext.none),
+       _gate = gate ?? AutoCaptureGate(),
        _previewLimits = _scaledForPreview(limits, previewDownscale);
 
   final CameraPort port;
@@ -105,6 +108,16 @@ final class CaptureController extends ChangeNotifier {
 
   /// What turns an observation into a result. Only [NoCalibration] exists.
   final Calibration calibration;
+
+  /// Where the photographs come from. `lab` for the bench workflow — printed
+  /// targets and coupons; `field` for a worker reading their worn badge.
+  /// Never `simulated`: a camera took these. Stated by the caller, because
+  /// the engine gives it no default.
+  final DataDomain dataDomain;
+
+  /// Read at capture time, because the badge or specimen can change between
+  /// captures in one session.
+  final MeasurementContext Function() _context;
 
   final AcquisitionLimits _previewLimits;
 
@@ -248,8 +261,20 @@ final class CaptureController extends ChangeNotifier {
       homography: homography,
     );
 
+    AcquisitionQuality qualityOf({
+      ResearchObservation? observation,
+      GeometryValidation? geometryValidation,
+    }) => assessAcquisition(
+      still: assessment,
+      limits: limits,
+      geometry: geometry,
+      observation: observation,
+      geometryValidation: geometryValidation,
+    );
+
     if (!assessment.state.isReady) {
       return CaptureRefused(
+        quality: qualityOf(),
         result: refusal(
           'STILL_FAILED_ACQUISITION_CHECKS',
           'the captured image did not meet acquisition requirements '
@@ -265,6 +290,7 @@ final class CaptureController extends ChangeNotifier {
     final detection = detectPrimaryFiducials(still.image, geometry);
     if (!detection.isOk) {
       return CaptureRefused(
+        quality: qualityOf(),
         result: refusal(
           'FIDUCIALS_NOT_FOUND_IN_STILL',
           detection.detail ?? detection.rejection!.name,
@@ -287,17 +313,14 @@ final class CaptureController extends ChangeNotifier {
         image: still.image,
         geometry: geometry,
         correspondences: correspondences,
-        // Photographs of physical targets and coupons are laboratory data:
-        // controlled and traceable. Never `field`, which is reserved for a
-        // badge worn by a worker, and never `simulated`, because a camera
-        // took them.
-        dataDomain: DataDomain.lab,
+        dataDomain: dataDomain,
         referenceTargets: referenceTargets,
         fitPatchIds: fitPatchIds,
         holdoutPatchIds: holdoutPatchIds,
       );
     } on ObservationFailure catch (e) {
       return CaptureRefused(
+        quality: qualityOf(),
         result: refusal(e.reason.code, e.reason.detail ?? ''),
         metadata: still.metadata,
         assessment: assessment,
@@ -320,19 +343,54 @@ final class CaptureController extends ChangeNotifier {
           )
         : null;
 
+    final acquisition = qualityOf(
+      observation: observation,
+      geometryValidation: geometryValidation,
+    );
+
+    // Optics first, calibration second. If a measurement-critical check
+    // failed, the features exist but cannot be trusted, and no calibration
+    // is consulted — a correction that failed its withheld references is
+    // not a basis for any number. MEASUREMENT-INTEGRATION-02 §38, §48.
+    final failure = acquisition.primaryFailure;
+    final MeasurementResult result;
+    if (failure != null) {
+      result = Refused(
+        status: acquisition.refusalStatus!,
+        reasons: <ReasonCode>[
+          ReasonCode(
+            'QUALITY_${failure.id.toUpperCase()}',
+            detail: failure.reason,
+          ),
+        ],
+        provenance: Provenance(
+          algorithmVersion: algorithmVersion,
+          geometryVersion: geometry.version,
+          calibrationModelId: null,
+          referenceProfileId: null,
+          appVersion: appVersion,
+          deviceModel: still.metadata.deviceModel,
+        ),
+      );
+    } else {
+      // Through the calibration interface rather than a direct call, so a
+      // real model plugs in here without this class changing. Today the
+      // only implementation is NoCalibration, which refuses. G-05, §16.
+      result = calibration.interpret(
+        observation,
+        appVersion: appVersion,
+        deviceModel: still.metadata.deviceModel,
+        context: _context(),
+      );
+    }
+
     return CaptureObserved(
       observation: observation,
       metadata: still.metadata,
       geometryValidation: geometryValidation,
-      // Through the calibration interface rather than a direct call, so a
-      // real model plugs in here without this class changing. Today the
-      // only implementation is NoCalibration, which refuses. G-05, §16.
-      result: calibration.interpret(
-        observation,
-        appVersion: appVersion,
-        deviceModel: still.metadata.deviceModel,
-      ),
+      result: result,
       evidence: evidence(homography: homography),
+      quality: acquisition,
     );
   }
 

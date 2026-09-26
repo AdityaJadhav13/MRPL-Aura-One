@@ -85,7 +85,7 @@ void main() {
       expect(records, hasLength(1));
 
       final record = records.single;
-      expect(record['schema'], 'doseband-capture-record/2');
+      expect(record['schema'], 'doseband-capture-record/3');
       expect(record['capture_id'], 'cap-001');
       expect(record['data_domain'], 'lab');
       expect(record['geometry_version'], 'badge-v1-research');

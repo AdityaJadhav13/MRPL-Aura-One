@@ -4,6 +4,7 @@ import 'package:measurement/measurement.dart';
 import '../data/simulation_catalog.dart';
 import '../data/workflow_store.dart';
 import '../domain/badge_specimen.dart';
+import '../domain/physical_badge.dart';
 import '../domain/work_context.dart';
 import '../domain/workflow_state.dart';
 
@@ -70,6 +71,18 @@ class ShiftSessionController extends AsyncNotifier<ShiftSession> {
     );
   }
 
+  /// Assigns a real badge, identified by hand. Rejected once monitoring has
+  /// begun. Clears any simulated specimen: a session has one badge.
+  Future<void> assignPhysicalBadge(PhysicalBadge badge) {
+    _refuseIfLocked('the assigned badge');
+    if (badge.badgeId.trim().isEmpty) {
+      throw ArgumentError('a physical badge needs an id');
+    }
+    return _commit(
+      _current.copyWith(stage: ShiftStage.badgeAssigned, physicalBadge: badge),
+    );
+  }
+
   Future<void> confirmPreWork() =>
       _commit(_current.copyWith(stage: ShiftStage.readyForDosimetry));
 
@@ -114,7 +127,7 @@ class ShiftSessionController extends AsyncNotifier<ShiftSession> {
         'never recorded.',
       );
     }
-    if (session.badge == null) {
+    if (session.assignedBadge == null) {
       throw StateError('startMonitoring called with no assigned badge');
     }
     return _commit(
@@ -130,6 +143,14 @@ class ShiftSessionController extends AsyncNotifier<ShiftSession> {
   /// state machine. Nothing is measured; the specimen already knows what it is.
   Future<MeasurementResult> completeScan() async {
     final session = _current;
+    if (session.isPhysical) {
+      // A physical badge's result comes from a photograph. Playing back a
+      // declared outcome for it would attach a simulation to a real badge.
+      throw StateError(
+        'completeScan is the simulation path; a physical badge is completed '
+        'by completePhysicalScan with a result from a real capture',
+      );
+    }
     final badge = session.badge;
     if (badge == null) {
       throw StateError('completeScan called with no assigned badge');
@@ -137,6 +158,34 @@ class ShiftSessionController extends AsyncNotifier<ShiftSession> {
     final result = _resultFor(badge, session);
     await _commit(session.copyWith(stage: ShiftStage.complete, result: result));
     return result;
+  }
+
+  /// Records the result of a real capture of the session's physical badge.
+  ///
+  /// [result] is whatever the real pipeline produced — today always a
+  /// refusal, because no calibration exists. [captureId] ties the session to
+  /// the archived photograph and record it came from. §76.
+  Future<void> completePhysicalScan({
+    required MeasurementResult result,
+    required String captureId,
+  }) async {
+    final session = _current;
+    if (!session.isPhysical) {
+      throw StateError('completePhysicalScan called without a physical badge');
+    }
+    if (session.stage != ShiftStage.awaitingScan) {
+      throw StateError(
+        'completePhysicalScan called at ${session.stage.name}; the monitored '
+        'period must have ended first',
+      );
+    }
+    await _commit(
+      session.copyWith(
+        stage: ShiftStage.complete,
+        result: result,
+        captureId: captureId,
+      ),
+    );
   }
 
   /// Ends the whole monitored period and returns to no-shift.

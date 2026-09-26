@@ -15,6 +15,7 @@ import '../../features/admin/presentation/admin_screens.dart';
 import '../../features/auth/data/site_repository.dart';
 import '../../features/capture/presentation/capture_host_screen.dart';
 import '../../features/research/presentation/physical_capture_screen.dart';
+import '../../features/scan/worker_capture_screen.dart';
 import '../../features/research/presentation/research_captures_screen.dart';
 import '../../features/hse/presentation/hse_detail_screens.dart';
 import '../../features/hse/presentation/hse_review_screens.dart';
@@ -120,7 +121,12 @@ GoRouter buildRouter(
         builder: (_, _) => const ActiveMonitoringScreen(),
       ),
       GoRoute(path: '/end', builder: (_, _) => const EndMonitoringScreen()),
-      GoRoute(path: '/read', builder: (_, _) => const GuidedScanScreen()),
+      // Real camera for a physical badge, labelled simulation for a
+      // presentation specimen — decided by the badge, not a mode flag.
+      GoRoute(
+        path: '/read',
+        builder: (_, _) => const ReadBadgeScreen(simulated: GuidedScanScreen()),
+      ),
       GoRoute(path: '/processing', builder: (_, _) => const ProcessingScreen()),
       GoRoute(
         path: '/result',

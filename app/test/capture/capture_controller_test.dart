@@ -138,7 +138,7 @@ void main() {
     test('a good still produces an observation and a refusal', () async {
       final port = FakeCameraPort(
         previewImages: <RgbImage>[_badgeImage()],
-        stillImage: _badgeImage(illuminant: Illuminant.warm),
+        stillImage: _badgeImage(),
       );
       final controller = _controller(port, autoCapture: false);
       await controller.start();
@@ -152,12 +152,43 @@ void main() {
         observed.observation.featureVector.definitionVersion,
         featureDefinitionVersion,
       );
+      expect(observed.quality.acceptable, isTrue);
       expect(observed.result, isA<Refused>());
       expect(observed.result.status, ResultStatus.unsupportedCalibration);
       expect(observed.result.status.carriesDose, isFalse);
       expect(observed.result.provenance.calibrationModelId, isNull);
       await controller.dispose();
     });
+
+    test(
+      'under warm light the withheld black patch fails the provisional limit',
+      () async {
+        // A recorded finding, not a target. Under the synthetic warm
+        // illuminant the affine correction — fitted on REF-LIGHT and the
+        // chromatics — extrapolates to REF-BLACK with ΔE00 ≈ 2.1, over the
+        // provisional 2.0 limit. The capture is observed, the acquisition is
+        // refused as a reference failure, and no calibration is consulted.
+        // Physical M0C evidence decides the limit and the fit/holdout split;
+        // they are not tuned here to make this pass.
+        final port = FakeCameraPort(
+          previewImages: <RgbImage>[_badgeImage()],
+          stillImage: _badgeImage(illuminant: Illuminant.warm),
+        );
+        final controller = _controller(port, autoCapture: false);
+        await controller.start();
+        await controller.capture();
+
+        final observed = controller.state.outcome! as CaptureObserved;
+        expect(observed.quality.acceptable, isFalse);
+        expect(observed.quality.primaryFailure!.id, 'withheld_references');
+        final worst = observed.observation.referenceValidation!.residuals
+            .reduce((a, b) => a.deltaE00 > b.deltaE00 ? a : b);
+        expect(worst.patchId, 'REF-BLACK');
+        expect(observed.result.status, ResultStatus.referencePatchFailure);
+        expect(observed.result.status.carriesDose, isFalse);
+        await controller.dispose();
+      },
+    );
 
     test(
       'deformation is reported because badge v1 has withheld markers',

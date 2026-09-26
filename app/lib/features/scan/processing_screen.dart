@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:measurement/measurement.dart' show DataDomain;
 
 import '../../core/components/markers.dart';
 import '../../core/design/theme.dart';
@@ -33,7 +34,9 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     'Reference patches detected',
     'Colour normalization checked',
     'Sensing region measured',
-    'Calibration applied',
+    // Not "Calibration applied": several specimens play out a no-calibration
+    // outcome, and for them that stage never happened. §75.
+    'Result state determined',
     'Validity checks completed',
   ];
 
@@ -76,6 +79,9 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
       startedAt: session.startedAt ?? now,
       endedAt: session.endedAt ?? now,
       scannedAt: now,
+      // Stated, not defaulted: this path replays a simulated specimen's
+      // declared outcome. A physical badge never reaches this screen.
+      domain: DataDomain.simulated,
     );
     ref.read(historyProvider.notifier).add(record);
     if (mounted) context.pushReplacement('/result', extra: record);

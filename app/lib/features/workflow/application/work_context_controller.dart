@@ -197,5 +197,5 @@ class WorkContextDraftController extends Notifier<WorkContextDraft> {
 final workContextReadinessProvider = Provider<WorkContextReadiness>((ref) {
   final draft = ref.watch(workContextDraftProvider);
   final session = ref.watch(shiftSessionProvider).value ?? ShiftSession.none;
-  return WorkContextValidator.assess(draft, badge: session.badge);
+  return WorkContextValidator.assess(draft, badge: session.assignedBadge);
 });

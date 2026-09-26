@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/components/surfaces.dart';
 import '../../../../core/design/theme.dart';
 import '../../../../core/design/tokens.dart';
+import '../../../../core/util/format.dart';
+import '../../domain/badge_specimen.dart';
 import '../../domain/work_context.dart';
 import '../../domain/worker_identity.dart';
 import '../../domain/workflow_state.dart';
@@ -37,7 +39,7 @@ class WorkContextSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctx = session.context;
-    final badge = session.badge;
+    final badge = session.assignedBadge;
     if (ctx == null && badge == null) return const SizedBox.shrink();
 
     return Column(
@@ -98,12 +100,16 @@ class WorkContextSummary extends StatelessWidget {
             title: 'DoseBand',
             children: [
               TraceabilityRow(label: 'Badge', value: badge.badgeId),
-              TraceabilityRow(label: 'Lot', value: badge.lot),
+              TraceabilityRow(label: 'Lot', value: badge.batch ?? Fmt.noValue),
               TraceabilityRow(
                 label: 'Status',
-                value: badge.validity.eligible
-                    ? 'Assigned'
-                    : 'Not usable — see verification',
+                value: switch (badge) {
+                  BadgeSpecimen(:final validity) =>
+                    validity.eligible
+                        ? 'Assigned'
+                        : 'Not usable — see verification',
+                  _ => 'Assigned · ${badge.identityProvenance}',
+                },
               ),
             ],
           ),

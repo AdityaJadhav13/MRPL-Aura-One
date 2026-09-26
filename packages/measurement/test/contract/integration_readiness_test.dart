@@ -156,7 +156,7 @@ void main() {
         correctionMethod: observation.correctionFit?.correction?.form.name,
       );
       final json = record.toJson();
-      expect(json['schema'], 'doseband-capture-record/2');
+      expect(json['schema'], 'doseband-capture-record/3');
       expect((json['specimen']! as Map)['specimen_id'], 'P0-X2-01');
       expect(json['correction_method'], isNotNull);
       // §50: the near-raw ROI statistics survive, not just derived features.
@@ -267,7 +267,100 @@ void main() {
     });
 
     test('a compatible package passes the compatibility check', () {
-      expect(calibrationMismatch(_package(), _observeV1()), isNull);
+      final package = CalibrationPackage(
+        calibrationId: 'TEST-ONLY',
+        version: '0',
+        dataDomain: DataDomain.lab,
+        geometryVersion: 'badge-v1-research',
+        featureDefinitionVersion: featureDefinitionVersion,
+        modelType: 'test-only',
+        createdAt: DateTime.utc(2026, 9, 26),
+        batchApplicability: const <String>['B-1'],
+      );
+      expect(
+        calibrationMismatch(
+          package,
+          _observeV1(),
+          context: const MeasurementContext(batchId: 'B-1'),
+        ),
+        isNull,
+      );
+    });
+
+    test('an unknown batch is refused, never assumed supported', () {
+      // §96: no nearest-batch substitution, and no default.
+      expect(
+        calibrationMismatch(_package(), _observeV1())?.code,
+        'CALIBRATION_BATCH_UNSUPPORTED',
+      );
+    });
+
+    test('a batch outside the applicability list is refused', () {
+      final package = CalibrationPackage(
+        calibrationId: 'TEST-ONLY',
+        version: '0',
+        dataDomain: DataDomain.lab,
+        geometryVersion: 'badge-v1-research',
+        featureDefinitionVersion: featureDefinitionVersion,
+        modelType: 'test-only',
+        createdAt: DateTime.utc(2026, 9, 26),
+        batchApplicability: const <String>['B-1'],
+      );
+      expect(
+        calibrationMismatch(
+          package,
+          _observeV1(),
+          context: const MeasurementContext(batchId: 'B-2'),
+        )?.code,
+        'CALIBRATION_BATCH_UNSUPPORTED',
+      );
+    });
+
+    test('a correction-method mismatch is refused', () {
+      final package = CalibrationPackage(
+        calibrationId: 'TEST-ONLY',
+        version: '0',
+        dataDomain: DataDomain.lab,
+        geometryVersion: 'badge-v1-research',
+        featureDefinitionVersion: featureDefinitionVersion,
+        modelType: 'test-only',
+        createdAt: DateTime.utc(2026, 9, 26),
+        correctionMethod: 'some-other-method',
+        batchApplicability: const <String>['B-1'],
+      );
+      expect(
+        calibrationMismatch(
+          package,
+          _observeV1(),
+          context: const MeasurementContext(batchId: 'B-1'),
+        )?.code,
+        'CALIBRATION_CORRECTION_METHOD_MISMATCH',
+      );
+    });
+
+    test('a formulation mismatch is refused', () {
+      final package = CalibrationPackage(
+        calibrationId: 'TEST-ONLY',
+        version: '0',
+        dataDomain: DataDomain.lab,
+        geometryVersion: 'badge-v1-research',
+        featureDefinitionVersion: featureDefinitionVersion,
+        modelType: 'test-only',
+        createdAt: DateTime.utc(2026, 9, 26),
+        formulationId: 'F-1',
+        batchApplicability: const <String>['B-1'],
+      );
+      expect(
+        calibrationMismatch(
+          package,
+          _observeV1(),
+          context: const MeasurementContext(
+            batchId: 'B-1',
+            formulationId: 'F-2',
+          ),
+        )?.code,
+        'CALIBRATION_FORMULATION_MISMATCH',
+      );
     });
 
     test('an unestablished bound serialises as null, never zero', () {

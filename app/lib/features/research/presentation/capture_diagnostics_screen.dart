@@ -173,8 +173,11 @@ class _CaptureDiagnosticsScreenState extends State<CaptureDiagnosticsScreen> {
           ],
 
           _Section(
-            title: 'Image quality — still',
-            child: _JsonBlock(value: evidence.stillQuality.toJson()),
+            title: 'Quality checks — still',
+            subtitle:
+                'Each check separately. NOT VALIDATED means measured with no '
+                'established threshold — never a pass.',
+            child: _QualityTable(quality: outcome.quality),
           ),
           _Section(
             title: 'Guidance — preview versus still',
@@ -250,7 +253,17 @@ class _Verdict extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // The verdict comes from the quality checks, not from the outcome type:
+    // an observation can be made and still fail — withheld references not
+    // predicted, say — and calling that "valid" would be false.
+    final failure = outcome.quality.primaryFailure;
     final (String title, String detail, IconData icon) = switch (outcome) {
+      CaptureObserved() when failure != null => (
+        'Acquisition not valid',
+        '${failure.id}: ${failure.reason}. Features were extracted and are '
+            'kept as evidence, but are not a basis for any result.',
+        Icons.error_outline,
+      ),
       CaptureObserved(:final result) => (
         'Optical acquisition valid',
         result is Refused
@@ -669,4 +682,53 @@ class _JsonBlock extends StatelessWidget {
   }
 
   static String _fmt(Object? v) => v is double ? _n(v) : '$v';
+}
+
+class _QualityTable extends StatelessWidget {
+  const _QualityTable({required this.quality});
+
+  final AcquisitionQuality quality;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mono = theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace');
+    String label(CheckState s) => switch (s) {
+      CheckState.pass => 'PASS',
+      CheckState.warn => 'WARN',
+      CheckState.fail => 'FAIL',
+      CheckState.unavailable => 'N/A',
+      CheckState.notValidated => 'NOT VALIDATED',
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (final c in quality.checks)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  '${label(c.state).padRight(13)} ${c.id}'
+                  '${c.blocksMeasurement ? '' : '  (recorded, not gating)'}',
+                  style: mono?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  '  ${c.reason}'
+                  '${c.threshold == null ? '' : ' · ${c.threshold} '
+                            '[${c.thresholdStatus.name}]'}',
+                  style: mono,
+                ),
+                if (c.metrics.isNotEmpty)
+                  Text(
+                    '  ${c.metrics.entries.map((e) => '${e.key}=${_n(e.value)}').join('  ')}',
+                    style: mono,
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 }

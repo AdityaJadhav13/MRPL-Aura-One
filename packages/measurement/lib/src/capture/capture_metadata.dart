@@ -74,6 +74,7 @@ final class CameraCapabilities {
     required this.sensorMetadataAvailable,
     this.lensDescription,
     this.maximumResolution,
+    this.platformDetails = const <String, String>{},
   });
 
   /// Nothing known yet — the state before a camera has been opened.
@@ -87,7 +88,8 @@ final class CameraCapabilities {
       torchSupported = false,
       sensorMetadataAvailable = false,
       lensDescription = null,
-      maximumResolution = null;
+      maximumResolution = null,
+      platformDetails = const <String, String>{};
 
   final bool focusLockSupported;
   final bool exposureLockSupported;
@@ -105,6 +107,12 @@ final class CameraCapabilities {
 
   final String? lensDescription;
   final String? maximumResolution;
+
+  /// Facts the platform reported that have no dedicated field: the cameras it
+  /// listed, the one chosen and why, exposure-offset and zoom ranges, preview
+  /// size. Strings, recorded as reported — the value of this map is that
+  /// nothing in it was interpreted. MEASUREMENT-INTEGRATION-02 §12.
+  final Map<String, String> platformDetails;
 
   /// The controls that most directly affect reproducibility between two
   /// photographs of the same badge.
@@ -125,6 +133,7 @@ final class CameraCapabilities {
     'lens_description': lensDescription,
     'maximum_resolution': maximumResolution,
     'lock_score': lockScore,
+    'platform_details': platformDetails,
   };
 }
 

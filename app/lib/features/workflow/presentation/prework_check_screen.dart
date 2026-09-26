@@ -14,6 +14,7 @@ import '../../../core/util/async_value_x.dart';
 import '../../../core/util/format.dart';
 import '../application/workflow_controller.dart';
 import '../domain/badge_specimen.dart';
+import '../domain/physical_badge.dart';
 import '../application/work_context_controller.dart';
 import '../domain/work_context_validator.dart';
 import '../domain/worker_identity.dart';
@@ -36,7 +37,7 @@ class PreWorkCheckScreen extends ConsumerWidget {
         ref.watch(shiftSessionProvider).dataOrNull ?? ShiftSession.none;
 
     final readiness = ref.watch(workContextReadinessProvider);
-    final badge = session.badge;
+    final badge = session.assignedBadge;
 
     // The checklist is rendered from the single validation policy, not from
     // its own null checks. A requirement added to WorkContextValidator appears
@@ -125,7 +126,7 @@ class PreWorkCheckScreen extends ConsumerWidget {
   /// recorded rather than only that something was.
   static String? _detailFor(WorkContextRequirement r, WidgetRef ref) {
     final draft = ref.read(workContextDraftProvider);
-    final badge = ref.read(shiftSessionProvider).dataOrNull?.badge;
+    final badge = ref.read(shiftSessionProvider).dataOrNull?.assignedBadge;
     return switch (r) {
       WorkContextRequirement.workerIdentity => draft.worker?.displayName,
       WorkContextRequirement.contractorCompany =>
@@ -140,14 +141,21 @@ class PreWorkCheckScreen extends ConsumerWidget {
       WorkContextRequirement.toolboxTalk =>
         draft.toolboxTalk == null ? null : 'Acknowledged on this device',
       WorkContextRequirement.badgeAssigned => badge?.badgeId,
-      WorkContextRequirement.badgeUsable => badge?.calibrationModelId,
+      WorkContextRequirement.badgeUsable => switch (badge) {
+        BadgeSpecimen(:final calibrationModelId) => calibrationModelId,
+        // Said plainly: nothing about a hand-typed badge could be checked.
+        PhysicalBadge() =>
+          'Not verified — manual entry. Batch, calibration, prior use and '
+              'expiry cannot be checked without an inventory.',
+        _ => null,
+      },
     };
   }
 
   Future<void> _confirmStart(
     BuildContext context,
     WidgetRef ref,
-    BadgeSpecimen? badge,
+    BadgeIdentity? badge,
   ) async {
     final c = context.colours;
     final t = context.type;

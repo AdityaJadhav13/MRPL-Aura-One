@@ -242,11 +242,18 @@ class BadgeTraceabilityScreen extends ConsumerWidget {
       title: 'Badge traceability',
       simulated: false,
       children: badge == null
-          ? const [
+          ? [
               InfoCard(
-                child: Text(
-                  'No DoseBand is assigned to this monitored period.',
-                ),
+                child: Text(switch (session.physicalBadge) {
+                  // A real badge typed by hand has no supply-chain record
+                  // to show, and none is invented for it.
+                  final physical? =>
+                    'Badge ${physical.badgeId} was identified by '
+                        '${physical.identityProvenance.toLowerCase()}. No '
+                        'manufacture, batch-release or inventory record '
+                        'exists for it.',
+                  null => 'No DoseBand is assigned to this monitored period.',
+                }),
               ),
             ]
           : [

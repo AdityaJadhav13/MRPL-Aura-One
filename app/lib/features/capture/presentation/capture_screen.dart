@@ -15,9 +15,25 @@ import 'guidance_copy.dart';
 /// makes it a compile error to turn a colour into a reading in a widget
 /// (ADR-0004).
 class CaptureScreen extends StatefulWidget {
-  const CaptureScreen({required this.controller, this.preview, super.key});
+  const CaptureScreen({
+    required this.controller,
+    this.preview,
+    this.requireReady = false,
+    super.key,
+  });
 
   final CaptureController controller;
+
+  /// Worker mode: the capture button is enabled only while the preview is
+  /// ready *and* stable. MEASUREMENT-INTEGRATION-02 §16–§17.
+  ///
+  /// Off in research mode, where the shutter is always available: the M0C
+  /// dataset needs deliberately blurred, glared and cropped captures, and a
+  /// shutter that refused them would make refusal impossible to study.
+  ///
+  /// Either way the still is re-checked after capture. An enabled button
+  /// means the preview looked acceptable, never that the photograph will be.
+  final bool requireReady;
 
   /// The live preview widget, supplied by the caller so this screen can be
   /// rendered in tests without a camera.
@@ -73,6 +89,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
                     colours?.measurementAccent ??
                     Theme.of(context).colorScheme.primary,
                 onShutter: widget.controller.capture,
+                requireReady: widget.requireReady,
               ),
             ),
 
@@ -116,16 +133,21 @@ class _GuidancePanel extends StatelessWidget {
     required this.state,
     required this.accent,
     required this.onShutter,
+    required this.requireReady,
   });
 
   final CaptureUiState state;
   final Color accent;
   final Future<void> Function() onShutter;
+  final bool requireReady;
 
   @override
   Widget build(BuildContext context) {
     final guidance = state.state;
     final detail = guidance.detail;
+    // Ready AND stable over consecutive frames — the existing arming gate,
+    // used here to enable the button rather than to fire it.
+    final armed = state.arming?.isArmed ?? false;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
@@ -155,20 +177,31 @@ class _GuidancePanel extends StatelessWidget {
           if (state.outcome != null) _OutcomeLine(outcome: state.outcome!),
           const SizedBox(height: 12),
           FilledButton(
-            onPressed: state.isCapturing ? null : onShutter,
+            onPressed: state.isCapturing || (requireReady && !(armed))
+                ? null
+                : onShutter,
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(kMinTouchTarget),
             ),
-            child: Text(state.isCapturing ? 'Working…' : 'Take photo'),
+            child: Text(
+              state.isCapturing
+                  ? 'Analysing the photograph…'
+                  : (requireReady ? 'Capture' : 'Take photo'),
+            ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            // The shutter is always available, and it never overrides the
-            // measurement standard. Directive §10.
-            'You can take the photo at any time. It is still checked before '
-            'it is used.',
+          Text(
+            // The shutter never overrides the measurement standard: the
+            // still is checked after it is taken, in either mode. §10, §52.
+            requireReady
+                ? (armed
+                      ? 'Ready. The photo is checked again after you capture.'
+                      : 'Capture becomes available when the badge is in '
+                            'position and steady.')
+                : 'You can take the photo at any time. It is still checked '
+                      'before it is used.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white54, fontSize: 12),
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ],
       ),

@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:measurement/measurement.dart';
 
+import 'physical_badge.dart';
+
 /// A simulated badge.
 ///
 /// In production a badge is a physical object whose reacted sensor window is
@@ -13,7 +15,7 @@ import 'package:measurement/measurement.dart';
 /// Every specimen lives in the `simulated` data domain and is rendered with the
 /// magenta simulation marker. It can never become a production record.
 @immutable
-final class BadgeSpecimen {
+final class BadgeSpecimen implements BadgeIdentity {
   const BadgeSpecimen({
     required this.badgeId,
     required this.lot,
@@ -27,11 +29,14 @@ final class BadgeSpecimen {
     required this.description,
   });
 
+  @override
   final String badgeId;
   final String lot;
+  @override
   final String formulation;
   final String calibrationModelId;
   final String geometryVersion;
+  @override
   final DateTime expiry;
 
   /// The result of the pre-scan validation checks (batch supported, calibration
@@ -47,6 +52,15 @@ final class BadgeSpecimen {
 
   /// One line explaining what this specimen demonstrates.
   final String description;
+
+  @override
+  String? get batch => lot;
+
+  @override
+  bool get isSimulated => true;
+
+  @override
+  String get identityProvenance => 'Simulated specimen';
 }
 
 /// The verification verdict for a specimen, and why.

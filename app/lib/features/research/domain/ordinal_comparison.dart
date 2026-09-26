@@ -136,6 +136,13 @@ OrdinalComparison compareBySeriesLevel(
       excluded[id] = 'acquisition refused';
       continue;
     }
+    // Observed but failed a measurement-critical check — e.g. the withheld
+    // references were not predicted. The features exist and are archived,
+    // but they are not a basis for comparison.
+    if (r['acquisition_valid'] == false) {
+      excluded[id] = 'acquisition not valid';
+      continue;
+    }
     final specimen = r['specimen'] as Map<String, Object?>?;
     final level = specimen?['series_level'] as String?;
     if (level == null || !order.contains(level)) {

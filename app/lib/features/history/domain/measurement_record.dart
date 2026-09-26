@@ -1,13 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:measurement/measurement.dart';
 
-import '../../workflow/domain/badge_specimen.dart';
+import '../../workflow/domain/physical_badge.dart';
 import '../../workflow/domain/work_context.dart';
 
 /// A completed measurement, kept for history and traceability.
 ///
-/// Carries its data domain explicitly. Everything produced in this phase is
-/// [DataDomain.simulated] and can never be shown as production evidence.
+/// ## The data domain is required
+///
+/// It used to default to `simulated`, through a private copy of the engine's
+/// `DataDomain` enum. The engine forbids exactly that default — "a default is
+/// how a simulated observation eventually gets treated as a real one" — and a
+/// second enum is a second definition waiting to drift. Both are gone: every
+/// construction states its domain, using the engine's own type. G-26.
 @immutable
 final class MeasurementRecord {
   const MeasurementRecord({
@@ -18,21 +23,26 @@ final class MeasurementRecord {
     required this.startedAt,
     required this.endedAt,
     required this.scannedAt,
-    this.domain = DataDomain.simulated,
+    required this.domain,
+    this.captureId,
   });
 
   final String id;
   final MeasurementResult result;
-  final BadgeSpecimen badge;
+
+  /// The badge this measurement belongs to — a real [PhysicalBadge] or a
+  /// simulated specimen. [BadgeIdentity.isSimulated] says which.
+  final BadgeIdentity badge;
+
   final WorkContext context;
   final DateTime startedAt;
   final DateTime endedAt;
   final DateTime scannedAt;
   final DataDomain domain;
 
+  /// The archived capture — original photograph, features, quality report —
+  /// behind a real scan. Null for a simulated one, which has no photograph.
+  final String? captureId;
+
   Duration get coverage => endedAt.difference(startedAt);
 }
-
-/// Which body of data a record belongs to. These must never be visually
-/// confused (directive §65). Field/production is not producible in this phase.
-enum DataDomain { simulated, lab, field }

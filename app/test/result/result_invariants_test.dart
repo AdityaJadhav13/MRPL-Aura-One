@@ -26,6 +26,7 @@ MeasurementRecord _record(MeasurementResult result) {
     startedAt: now.subtract(const Duration(hours: 7, minutes: 52)),
     endedAt: now,
     scannedAt: now,
+    domain: DataDomain.simulated,
   );
 }
 

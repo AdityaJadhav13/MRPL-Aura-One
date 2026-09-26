@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:camera/camera.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -58,10 +59,7 @@ final class CameraPortImpl implements CameraPort {
 
     _device = await _readDevice();
 
-    final back = cameras.firstWhere(
-      (c) => c.lensDirection == CameraLensDirection.back,
-      orElse: () => cameras.first,
-    );
+    final back = selectMeasurementCamera(cameras);
     _description = back;
 
     final controller = CameraController(
@@ -120,8 +118,24 @@ final class CameraPortImpl implements CameraPort {
       manualExposureDurationSupported: false,
       torchSupported: torch,
       sensorMetadataAvailable: false,
-      lensDescription: '${back.name} (${back.lensDirection.name})',
+      lensDescription:
+          '${back.name} (${back.lensDirection.name}, ${back.lensType.name})',
       maximumResolution: resolution.name,
+      platformDetails: <String, String>{
+        // Every camera the platform listed, so a later reader can see what
+        // was available and confirm which one was used. §13.
+        'cameras_available': [
+          for (final c in cameras)
+            '${c.name}:${c.lensDirection.name}:${c.lensType.name}',
+        ].join(', '),
+        'camera_selected': back.name,
+        'camera_selection_rule':
+            'rear; lens wide, else unknown, else any; ties by name',
+        'sensor_orientation_degrees': '${back.sensorOrientation}',
+        if (controller.value.previewSize case final size?)
+          'preview_size': '${size.width.round()}x${size.height.round()}',
+        ...await _ranges(controller),
+      },
     );
   }
 
@@ -217,7 +231,11 @@ final class CameraPortImpl implements CameraPort {
     // future algorithm version would be re-run against.
     final RgbImage image;
     try {
-      image = decodeStill(bytes);
+      // Off the UI isolate. A full-resolution JPEG decode is hundreds of
+      // milliseconds on a phone, and the worker is looking at a frozen
+      // screen for all of it. The function is pure, so nothing but the bytes
+      // crosses the boundary.
+      image = await Isolate.run(() => decodeStill(bytes));
     } on FormatException catch (e) {
       throw CameraUnavailable('captured image could not be decoded: $e');
     }
@@ -384,4 +402,54 @@ Future<_DeviceIdentity?> _readDevice() async {
     return null;
   }
   return null;
+}
+
+/// The rear camera to measure with, chosen the same way every time. §13.
+///
+/// A phone may list several rear cameras. An ultrawide distorts badly towards
+/// the edge of frame and a telephoto has a long minimum focus distance, so
+/// either is a poor choice for a 60 mm badge held close. Preference: a lens
+/// the platform calls `wide`; then `unknown`, which on Android is usually the
+/// main logical camera; then anything rear-facing; then anything at all.
+/// Within a preference, the lowest name — so "camera 0" is never assumed to
+/// mean anything, but the choice is still reproducible.
+@visibleForTesting
+CameraDescription selectMeasurementCamera(List<CameraDescription> cameras) {
+  int rank(CameraDescription c) {
+    if (c.lensDirection != CameraLensDirection.back) return 4;
+    return switch (c.lensType) {
+      CameraLensType.wide => 0,
+      CameraLensType.unknown => 1,
+      CameraLensType.telephoto || CameraLensType.ultraWide => 2,
+    };
+  }
+
+  final sorted = List<CameraDescription>.of(cameras)
+    ..sort((a, b) {
+      final byRank = rank(a).compareTo(rank(b));
+      return byRank != 0 ? byRank : a.name.compareTo(b.name);
+    });
+  return sorted.first;
+}
+
+/// Exposure-offset and zoom ranges, where the platform reports them.
+///
+/// Recorded, never inferred: a range the plugin will not report is left out
+/// rather than filled with a typical value.
+Future<Map<String, String>> _ranges(CameraController controller) async {
+  final out = <String, String>{};
+  Future<void> read(String key, Future<double> Function() get) async {
+    try {
+      out[key] = (await get()).toString();
+    } on Object {
+      // Not reported on this device. Absent, not guessed.
+    }
+  }
+
+  await read('exposure_offset_min_ev', controller.getMinExposureOffset);
+  await read('exposure_offset_max_ev', controller.getMaxExposureOffset);
+  await read('exposure_offset_step_ev', controller.getExposureOffsetStepSize);
+  await read('zoom_min', controller.getMinZoomLevel);
+  await read('zoom_max', controller.getMaxZoomLevel);
+  return out;
 }

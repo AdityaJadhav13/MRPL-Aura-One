@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'badge_specimen.dart';
+import 'physical_badge.dart';
 import 'work_context.dart';
 
 /// One thing DoseBand needs before a monitored period can begin.
@@ -102,7 +103,7 @@ abstract final class WorkContextValidator {
   /// requirement for starting, so readiness has to account for it.
   static WorkContextReadiness assess(
     WorkContextDraft draft, {
-    required BadgeSpecimen? badge,
+    required BadgeIdentity? badge,
   }) {
     final missing = <WorkContextRequirement>[];
     final warnings = <WorkContextWarning>[];
@@ -135,12 +136,24 @@ abstract final class WorkContextValidator {
       missing.add(WorkContextRequirement.toolboxTalk);
     }
 
-    if (badge == null) {
-      missing.add(WorkContextRequirement.badgeAssigned);
-    } else if (!badge.validity.eligible) {
-      // "Usable by the current demo rules" — the specimen's own verification
-      // checks. Not a claim that the badge is fit for a real measurement.
-      missing.add(WorkContextRequirement.badgeUsable);
+    switch (badge) {
+      case null:
+        missing.add(WorkContextRequirement.badgeAssigned);
+      case BadgeSpecimen(:final validity) when !validity.eligible:
+        // "Usable by the current demo rules" — the specimen's own
+        // verification checks. Not a claim that the badge is fit for a real
+        // measurement.
+        missing.add(WorkContextRequirement.badgeUsable);
+      case PhysicalBadge():
+        // Assigned, and deliberately not failed on checks that cannot be
+        // made: with no inventory, batch registry or QR, a hand-typed badge's
+        // batch, calibration, prior use and expiry are unknowable. Blocking
+        // on them would mean no real badge could ever be monitored. They are
+        // shown as NOT VERIFIED on the pre-work screen instead, and the scan
+        // refuses at calibration, where the gap actually bites.
+        break;
+      default:
+        break;
     }
 
     final site = draft.site;

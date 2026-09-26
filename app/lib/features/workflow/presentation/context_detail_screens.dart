@@ -191,6 +191,8 @@ class ShiftScreen extends ConsumerWidget {
 
           const SectionHeader(title: 'DoseBand'),
           InfoCard(
+            // The traceability screen describes a simulated specimen's
+            // supply chain, so only a specimen links to it.
             onTap: session.badge == null
                 ? null
                 : () => context.push('/traceability'),
@@ -198,14 +200,19 @@ class ShiftScreen extends ConsumerWidget {
               children: [
                 RecordRow(
                   label: 'Badge',
-                  value: session.badge?.badgeId ?? 'Not assigned',
-                  mono: session.badge != null,
+                  value: session.assignedBadge?.badgeId ?? 'Not assigned',
+                  mono: session.assignedBadge != null,
                 ),
                 RecordRow(
                   label: 'Lot',
-                  value: session.badge?.lot ?? Fmt.noValue,
-                  mono: session.badge != null,
+                  value: session.assignedBadge?.batch ?? Fmt.noValue,
+                  mono: session.assignedBadge?.batch != null,
                 ),
+                if (session.physicalBadge case final physical?)
+                  RecordRow(
+                    label: 'Identity',
+                    value: physical.identityProvenance,
+                  ),
               ],
             ),
           ),

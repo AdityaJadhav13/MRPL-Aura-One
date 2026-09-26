@@ -45,9 +45,16 @@ final class CaptureEvidence {
 /// not be one in M0B. A capture produces either an observation — optical
 /// features, with the conditions they were measured under — or a refusal.
 sealed class CaptureOutcome {
-  const CaptureOutcome({required this.evidence});
+  const CaptureOutcome({required this.evidence, required this.quality});
 
   final CaptureEvidence evidence;
+
+  /// Every quality check on the still, kept separate. The acquisition verdict
+  /// is [AcquisitionQuality.acceptable] — not the outcome's type.
+  ///
+  /// An observation can be *made* and still not be a valid acquisition: if
+  /// the withheld references fail, features exist but cannot be trusted.
+  final AcquisitionQuality quality;
 }
 
 /// The still passed every acquisition check and features were extracted.
@@ -62,6 +69,7 @@ final class CaptureObserved extends CaptureOutcome {
     required this.geometryValidation,
     required this.result,
     required super.evidence,
+    required super.quality,
   });
 
   final ResearchObservation observation;
@@ -85,6 +93,7 @@ final class CaptureRefused extends CaptureOutcome {
     required this.result,
     required this.metadata,
     required super.evidence,
+    required super.quality,
     this.assessment,
   });
 

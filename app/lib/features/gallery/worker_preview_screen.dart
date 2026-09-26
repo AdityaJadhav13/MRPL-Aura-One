@@ -275,6 +275,8 @@ class WorkerPreviewScreen extends ConsumerWidget {
       startedAt: started,
       endedAt: now,
       scannedAt: now,
+      // Stated, not defaulted: a preview replays a simulated specimen.
+      domain: DataDomain.simulated,
     );
   }
 }
