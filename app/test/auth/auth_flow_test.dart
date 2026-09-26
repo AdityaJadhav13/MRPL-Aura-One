@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:h2s_doseband/core/components/product_navigation.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/features/auth/data/demo_account.dart';
@@ -367,7 +368,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byType(FloatingNavigationBar), findsOneWidget);
     });
 
     testWidgets('an unbuilt role reaches an honest placeholder, not the '
@@ -384,7 +385,7 @@ void main() {
         find.textContaining('Interface under development'),
         findsOneWidget,
       );
-      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byType(FloatingNavigationBar), findsNothing);
     });
   });
 
@@ -410,7 +411,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byType(FloatingNavigationBar), findsOneWidget);
 
       final session = authState.session!;
       expect(session.userId, DemoAccount.workerId);

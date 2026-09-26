@@ -80,7 +80,7 @@ class HomeScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: Space.base),
                   child: WorkerIdentityCard(
                     worker: workContext?.worker,
-                    onOpenProfile: () => context.push('/profile'),
+                    onOpenProfile: () => context.go('/profile'),
                   ),
                 ),
                 Padding(
@@ -171,8 +171,10 @@ class _PrimaryAction extends StatelessWidget {
       child: FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: corporate.accent,
-          foregroundColor: corporate.textOnAccent,
+          // Brand green, not orange: white on the orange is 2.88:1, and this
+          // is the one button a gloved worker must read in sunlight.
+          backgroundColor: corporate.primary,
+          foregroundColor: corporate.textOnPrimary,
           // The token, not a literal: 56 exists because this is the
           // button a gloved worker taps, and 54 quietly undercut it.
           minimumSize: const Size.fromHeight(kMinTouchTarget),

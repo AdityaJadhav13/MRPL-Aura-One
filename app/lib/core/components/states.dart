@@ -24,27 +24,42 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colours;
     final t = context.type;
-    return Center(
-      child: Padding(
+    // Scrolls when it does not fit, rather than overflowing: at 200% text on
+    // a 320-point phone the message alone is taller than the space left under
+    // the navigation bar. Centred while it does fit.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
         padding: const EdgeInsets.all(Space.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 40, color: c.textSecondary),
-            const SizedBox(height: Space.base),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: t.heading.copyWith(color: c.textPrimary),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: constraints.hasBoundedHeight
+                ? (constraints.maxHeight - Space.xl * 2).clamp(0, 1e9)
+                : 0,
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 40, color: c.textSecondary),
+                const SizedBox(height: Space.base),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: t.heading.copyWith(color: c.textPrimary),
+                ),
+                const SizedBox(height: Space.sm),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: t.body.copyWith(color: c.textSecondary),
+                ),
+                if (action != null) ...[
+                  const SizedBox(height: Space.lg),
+                  action!,
+                ],
+              ],
             ),
-            const SizedBox(height: Space.sm),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: t.body.copyWith(color: c.textSecondary),
-            ),
-            if (action != null) ...[const SizedBox(height: Space.lg), action!],
-          ],
+          ),
         ),
       ),
     );

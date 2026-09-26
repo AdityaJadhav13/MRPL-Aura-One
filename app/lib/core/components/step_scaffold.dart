@@ -12,8 +12,8 @@ import 'markers.dart';
 /// adaptation act on whoever is judging the capture, and a green frame is a
 /// measurement error dressed as branding.
 enum StepRegister {
-  /// Corporate workflow: MRPL green, off-white ground, white cards. Work
-  /// context, badge assignment, pre-work, monitoring.
+  /// Corporate workflow: white ground, white cards, brand-green primary
+  /// action. Work context, badge assignment, pre-work, monitoring.
   corporate,
 
   /// Measurement instrument: chromatically neutral. Capture review, result,
@@ -23,8 +23,8 @@ enum StepRegister {
 
 /// Publishes the current [StepRegister] to descendants.
 ///
-/// Buttons need it: a primary action on a corporate workflow screen is MRPL
-/// orange, and the same widget on a measurement screen is the instrument
+/// Buttons need it: a primary action on a corporate workflow screen is the
+/// brand green, and the same widget on a measurement screen is the instrument
 /// accent. Passing it down through every call site would mean every new
 /// screen gets one more chance to forget.
 class StepRegisterScope extends InheritedWidget {
@@ -89,11 +89,13 @@ class StepScaffold extends StatelessWidget {
     final isCorporate = register == StepRegister.corporate;
     final hasActions = primaryAction != null || secondaryAction != null;
 
-    final background = isCorporate ? corporate.surfaceMuted : c.surfacePrimary;
+    // White-first (APP-PRODUCT-01 §11): both registers sit on white. Cards
+    // separate from the page by a hairline, not by a grey ground.
+    final background = isCorporate ? corporate.surface : c.surfacePrimary;
     final bar = isCorporate ? corporate.surface : c.surfacePrimary;
     final border = isCorporate ? corporate.border : c.border;
 
-    return StepRegisterScope(
+    final scaffold = StepRegisterScope(
       register: register,
       child: Scaffold(
         backgroundColor: background,
@@ -143,5 +145,8 @@ class StepScaffold extends StatelessWidget {
         ),
       ),
     );
+
+    // A measurement step must not inherit the product's green defaults.
+    return isCorporate ? scaffold : InstrumentTheme(child: scaffold);
   }
 }

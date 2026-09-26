@@ -8,6 +8,9 @@ import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/auth/presentation/screens/site_selection_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../components/states.dart';
+import '../design/theme.dart';
+import '../../features/dev/component_catalog_screen.dart';
+import '../../features/dev/developer_tools_screen.dart';
 import '../env/app_version.dart';
 import '../../features/admin/data/admin_demo_catalog.dart';
 import '../../features/admin/presentation/admin_governance_screens.dart';
@@ -54,13 +57,16 @@ import '../../features/workflow/presentation/work_context_screen.dart';
 import '../env/environment.dart';
 import 'worker_shell.dart';
 
-/// The worker shell's four destinations, per the approved information
-/// architecture in docs/architecture/overview.md.
+/// The worker shell's five destinations — Home · History · Scan · Safety ·
+/// Profile — per APP-PRODUCT-01 §6.
 ///
 /// "Current shift" is deliberately not a tab: it is what Home *is* when a shift
 /// is active. The worker journey screens (assignment → monitoring → scan →
 /// result) are pushed over the shell as full-screen steps, outside the bottom
 /// navigation, so a step's primary action is never competing with a tab bar.
+///
+/// Developer and research tools live under `/dev`, outside every workspace,
+/// and exist only where simulation is available (APP-PRODUCT-01 §91).
 ///
 /// The officer and administrator shells are Phase 9; role redirect guards need
 /// auth, which is Phase 7. Launch → login is a linear intro with no real auth
@@ -125,9 +131,14 @@ GoRouter buildRouter(
       // presentation specimen — decided by the badge, not a mode flag.
       GoRoute(
         path: '/read',
-        builder: (_, _) => const ReadBadgeScreen(simulated: GuidedScanScreen()),
+        builder: (_, _) => const InstrumentTheme(
+          child: ReadBadgeScreen(simulated: GuidedScanScreen()),
+        ),
       ),
-      GoRoute(path: '/processing', builder: (_, _) => const ProcessingScreen()),
+      GoRoute(
+        path: '/processing',
+        builder: (_, _) => const InstrumentTheme(child: ProcessingScreen()),
+      ),
       GoRoute(
         path: '/result',
         builder: (_, state) => _needs<MeasurementRecord>(
@@ -145,16 +156,26 @@ GoRouter buildRouter(
           what: 'one measurement in detail',
           returnLabel: 'Go to history',
           returnRoute: '/history',
-          build: (record) => MeasurementDetailScreen(record: record),
+          build: (record) =>
+              InstrumentTheme(child: MeasurementDetailScreen(record: record)),
         ),
       ),
 
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => WorkerShell(shell: shell),
+        // Order is the bar's order: Home · History · Scan · Safety · Profile.
         branches: [
           StatefulShellBranch(
             routes: [
               GoRoute(path: '/home', builder: (_, _) => const HomeScreen()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/history',
+                builder: (_, _) => const HistoryScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(
@@ -173,67 +194,68 @@ GoRouter buildRouter(
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/history',
-                builder: (_, _) => const HistoryScreen(),
+                path: '/profile',
+                builder: (_, _) => ProfileScreen(config: config),
               ),
             ],
           ),
         ],
       ),
 
-      // Account sits behind the header avatar rather than taking a quarter of
-      // the bottom bar: the worker's four destinations stay Home, Scan,
-      // Safety and History. Pushed over the shell, so the bar stays visible
-      // underneath and returning lands back where they were.
-      GoRoute(
-        path: '/profile',
-        builder: (_, _) => ProfileScreen(config: config),
-        routes: [
-          // Development only. Guarded by the same flag that compiles
-          // simulation out of production builds.
-          if (config.simulationAvailable)
+      // ---------------------------------------------- developer / research
+      //
+      // Outside every workspace, and compiled out of production by the same
+      // flag that removes simulation. Moved here from under `/profile` in
+      // APP-PRODUCT-01 §91 so research tooling is not a child of the worker's
+      // own profile. Old path → new path is recorded in
+      // docs/product/screen-rationalization-inventory.md.
+      if (config.simulationAvailable)
+        GoRoute(
+          path: '/dev',
+          builder: (_, _) => const DeveloperToolsScreen(),
+          routes: [
+            GoRoute(
+              path: 'components',
+              builder: (_, _) => const ComponentCatalogScreen(),
+            ),
+            // The instrument components: readouts, scale, markers, results.
             GoRoute(path: 'gallery', builder: (_, _) => const GalleryScreen()),
-
-          // Worker screen previews. Development only, behind the same guard:
-          // it seeds the workflow store directly, which is the last thing a
-          // worker should be able to do.
-          if (config.simulationAvailable)
+            // Seeds the workflow store directly — the last thing a worker
+            // should be able to do.
             GoRoute(
               path: 'worker-previews',
               builder: (_, _) => const WorkerPreviewScreen(),
             ),
-
-          // Dossier V0 capture. Development only, behind the same guard: it
-          // talks to a real camera and produces research images, never a
-          // worker-facing record.
-          if (config.simulationAvailable)
+            // Dossier V0 capture: a real camera producing research images,
+            // never a worker-facing record.
             GoRoute(
               path: 'capture',
-              builder: (_, _) =>
-                  const CaptureHostScreen(appVersion: appVersion),
+              builder: (_, _) => const InstrumentTheme(
+                child: CaptureHostScreen(appVersion: appVersion),
+              ),
             ),
-
-          // Physical Capture Test — the M0C bench workflow. Development only,
-          // behind the same guard: it produces research records, never a
-          // worker-facing measurement. APP-INTEGRATION-01 §40.
-          if (config.simulationAvailable)
+            // Physical Capture Test — the M0C bench workflow. Research records
+            // only. APP-INTEGRATION-01 §40.
             GoRoute(
               path: 'physical-capture',
-              builder: (_, _) => const PhysicalCaptureSetupScreen(),
+              builder: (_, _) =>
+                  const InstrumentTheme(child: PhysicalCaptureSetupScreen()),
               routes: <RouteBase>[
                 GoRoute(
                   path: 'camera',
-                  builder: (_, _) => const PhysicalCaptureSessionScreen(),
+                  builder: (_, _) => const InstrumentTheme(
+                    child: PhysicalCaptureSessionScreen(),
+                  ),
                 ),
               ],
             ),
-          if (config.simulationAvailable)
             GoRoute(
               path: 'research-captures',
-              builder: (_, _) => const ResearchCapturesScreen(),
+              builder: (_, _) =>
+                  const InstrumentTheme(child: ResearchCapturesScreen()),
             ),
-        ],
-      ),
+          ],
+        ),
 
       // ------------------------------------------- worker context detail
       GoRoute(path: '/shift', builder: (_, _) => const ShiftScreen()),

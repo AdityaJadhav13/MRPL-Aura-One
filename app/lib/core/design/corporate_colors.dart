@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'tokens.dart';
+
 /// MRPL-inspired corporate palette for the authentication and identity shell.
 ///
 /// **This is a second, deliberately separate theme extension.** The measurement
@@ -47,7 +49,8 @@ final class MrplCorporateColors extends ThemeExtension<MrplCorporateColors> {
   /// Deep refinery green. Primary actions, headers, the corporate footer.
   final Color primary;
 
-  /// A darker green for gradients and pressed states.
+  /// The pressed state of [primary]. Formerly also a gradient stop; the
+  /// product has no gradients (APP-PRODUCT-01 §8).
   final Color primaryDeep;
 
   /// Very pale green, for tinted backgrounds that must not compete.
@@ -84,23 +87,30 @@ final class MrplCorporateColors extends ThemeExtension<MrplCorporateColors> {
   final Color textOnPrimary;
   final Color textOnAccent;
 
+  /// Light — the production theme (APP-PRODUCT-01 §50).
+  ///
+  /// Repointed in APP-PRODUCT-01 at the design-system-v2 primitives, so every
+  /// legacy screen that reads this extension becomes white-first with the
+  /// logo-derived green without being rewritten. The previous values (a
+  /// `#0E4634` forest green and white-on-orange primary actions at 2.88:1)
+  /// are recorded in docs/design/design-system-v2.md.
   static const MrplCorporateColors light = MrplCorporateColors(
-    primary: Color(0xFF0E4634),
-    primaryDeep: Color(0xFF082B20),
-    primaryMuted: Color(0xFFEAF3EE),
-    accent: Color(0xFFE87B1E),
+    primary: Brand.green46,
+    primaryDeep: Brand.green38,
+    primaryMuted: Brand.green94,
+    accent: Brand.orangeMark,
     accentMuted: Color(0xFFFDF1E4),
-    surface: Color(0xFFFFFFFF),
-    surfaceMuted: Color(0xFFF4F6F5),
-    surfaceElevated: Color(0xFFFFFFFF),
-    selectedFill: Color(0xFFE3F4EA),
-    selectedBorder: Color(0xFF177A4F),
-    emphasisBorder: Color(0xFF3E4A45),
-    border: Color(0xFFE3E7E5),
-    textPrimary: Color(0xFF16201C),
-    textSecondary: Color(0xFF63706B),
-    textOnPrimary: Color(0xFFFFFFFF),
-    textOnAccent: Color(0xFFFFFFFF),
+    surface: Neutral.l100,
+    surfaceMuted: Neutral.l96,
+    surfaceElevated: Neutral.l100,
+    selectedFill: Brand.green94,
+    selectedBorder: Brand.green46,
+    emphasisBorder: Neutral.l30,
+    border: Neutral.l92,
+    textPrimary: Neutral.l14,
+    textSecondary: Neutral.l42,
+    textOnPrimary: Neutral.l100,
+    textOnAccent: Neutral.l100,
   );
 
   /// Dark mode keeps the same identity but lowers surface luminance, so the
@@ -192,22 +202,22 @@ final class MrplCorporateColors extends ThemeExtension<MrplCorporateColors> {
   }
 }
 
-/// Corner radii for the corporate shell.
+/// Corner radii for the corporate shell — **legacy aliases**.
 ///
-/// Separate from [Radii] on purpose. The instrument uses square corners
-/// because an instrument face has square corners; the corporate shell is
-/// ordinary application chrome and reads as stiff and dated without a moderate
-/// radius. Two registers, two scales.
+/// APP-PRODUCT-01 §14 put the whole product on one radius scale, [Radii].
+/// These names are kept so existing call sites compile unchanged; new code
+/// reads [Radii] directly. `xl` (22) was retired: nothing in the product is
+/// rounder than a floating sheet.
 abstract final class CorporateRadii {
   /// Chips, small badges, segment thumbs.
-  static const double sm = 8;
+  static const double sm = Radii.sm;
 
   /// Buttons and fields.
-  static const double md = 12;
+  static const double md = Radii.md;
 
   /// Cards and the sign-in panel.
-  static const double lg = 16;
+  static const double lg = Radii.lg;
 
-  /// The large brand plate.
-  static const double xl = 22;
+  /// Formerly 22, the large brand plate. Now the floating radius.
+  static const double xl = Radii.lg;
 }

@@ -95,44 +95,16 @@ class ProfileScreen extends StatelessWidget {
           ),
           if (config.simulationAvailable) ...[
             const SizedBox(height: Space.lg),
-            // First, because it is the reason this build exists: the bench
-            // workflow for photographing physical specimens. §40.
+            // One entry, not four. The research and development tools used to
+            // be listed here individually, which put the M0C bench workflow
+            // one tap from a worker's own profile. They now live behind
+            // `/dev`, outside every workspace, and this row exists only in a
+            // build where simulation is available (APP-PRODUCT-01 §91).
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                Icons.photo_camera_outlined,
-                color: c.textSecondary,
-              ),
+              leading: Icon(Icons.build_outlined, color: c.textSecondary),
               title: Text(
-                'Physical capture test',
-                style: t.body.copyWith(color: c.textPrimary),
-              ),
-              subtitle: Text(
-                'Research · real camera, full pipeline, archived evidence',
-                style: t.caption.copyWith(color: c.textSecondary),
-              ),
-              trailing: Icon(Icons.chevron_right, color: c.textSecondary),
-              onTap: () => context.go('/profile/physical-capture'),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.folder_open_outlined, color: c.textSecondary),
-              title: Text(
-                'Research captures',
-                style: t.body.copyWith(color: c.textPrimary),
-              ),
-              subtitle: Text(
-                'Saved captures, export, X0–X3 comparison',
-                style: t.caption.copyWith(color: c.textSecondary),
-              ),
-              trailing: Icon(Icons.chevron_right, color: c.textSecondary),
-              onTap: () => context.go('/profile/research-captures'),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.palette_outlined, color: c.textSecondary),
-              title: Text(
-                'Design system gallery',
+                'Developer and research tools',
                 style: t.body.copyWith(color: c.textPrimary),
               ),
               subtitle: Text(
@@ -140,21 +112,7 @@ class ProfileScreen extends StatelessWidget {
                 style: t.caption.copyWith(color: c.textSecondary),
               ),
               trailing: Icon(Icons.chevron_right, color: c.textSecondary),
-              onTap: () => context.go('/profile/gallery'),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.preview_outlined, color: c.textSecondary),
-              title: Text(
-                'Worker screen previews',
-                style: t.body.copyWith(color: c.textPrimary),
-              ),
-              subtitle: Text(
-                'Development builds only',
-                style: t.caption.copyWith(color: c.textSecondary),
-              ),
-              trailing: Icon(Icons.chevron_right, color: c.textSecondary),
-              onTap: () => context.go('/profile/worker-previews'),
+              onTap: () => context.push('/dev'),
             ),
           ],
         ],

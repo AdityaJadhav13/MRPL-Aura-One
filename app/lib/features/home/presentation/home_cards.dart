@@ -37,32 +37,23 @@ class HomeHero extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 176),
       child: Stack(
         children: [
-          // Solid corporate ground under the photograph, so white type still
-          // lands on dark green if the asset is missing or slow to decode.
-          Positioned.fill(child: ColoredBox(color: corporate.primaryDeep)),
+          // A solid neutral ground under the photograph, so white type still
+          // lands on a dark field if the asset is missing or slow to decode.
+          Positioned.fill(child: ColoredBox(color: Neutral.l20)),
           Positioned.fill(
             child: Image.asset(
               BrandAssets.refineryBackdrop,
               fit: BoxFit.cover,
               alignment: Alignment.center,
+              // Decoded at display size, not at the file's full resolution.
+              cacheWidth: 1080,
             ),
           ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    corporate.primaryDeep.withValues(alpha: 0.88),
-                    corporate.primaryDeep.withValues(alpha: 0.62),
-                    corporate.primaryDeep.withValues(alpha: 0.94),
-                  ],
-                  stops: const [0, 0.48, 1],
-                ),
-              ),
-            ),
-          ),
+          // A solid translucent scrim, not a gradient (APP-PRODUCT-01 §8,
+          // §29), and neutral rather than dark green: the photograph provides
+          // the context, and a green wash over it made Home read as a green
+          // screen.
+          Positioned.fill(child: ColoredBox(color: context.product.scrim)),
           SafeArea(
             bottom: false,
             child: Padding(
@@ -537,11 +528,10 @@ class MonitoringStatusCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(Space.base),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [corporate.primary, corporate.primaryDeep],
-        ),
+        // One solid brand fill, no gradient (APP-PRODUCT-01 §8). Home is
+        // rebuilt in P3; until then this card keeps its role and loses only
+        // the gradient.
+        color: corporate.primaryDeep,
         borderRadius: BorderRadius.circular(CorporateRadii.lg),
       ),
       child: Column(

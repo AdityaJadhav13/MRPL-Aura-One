@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:h2s_doseband/core/design/brand_assets.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/main.dart';
@@ -17,7 +18,7 @@ const _dev = EnvironmentConfig(
 /// Goldens for the corporate authentication shell.
 ///
 /// These are the visual review artefact for the flow: four screens that have
-/// to read as one product. Rendered at the design target and in both themes.
+/// to read as one product. Rendered at the design target, light theme.
 void main() {
   Future<void> pumpAt(
     WidgetTester tester,
@@ -41,6 +42,17 @@ void main() {
         ),
       ),
     );
+    // Decode the brand photographs for real before capturing. Asset decoding
+    // is real IO, so without this a golden shows whatever had finished —
+    // which used to depend on test order (the dark splash ran first and
+    // warmed the cache until the dark variants were removed).
+    final context = tester.element(find.byType(Scaffold).first);
+    await tester.runAsync(
+      () => Future.wait([
+        precacheImage(const AssetImage(BrandAssets.refineryBackdrop), context),
+        precacheImage(const AssetImage(BrandAssets.mrplLogo), context),
+      ]),
+    );
     // Pump rather than settle: the splash holds a repeating progress
     // indicator, and settling would wait for an animation that never ends.
     await tester.pump(const Duration(milliseconds: 700));
@@ -53,7 +65,10 @@ void main() {
     'select-role': '/select-role',
   };
 
-  for (final brightness in Brightness.values) {
+  // Light only. The product ships the light theme whatever the phone's
+  // setting (APP-PRODUCT-01 §50), so an app-level "dark" render is the light
+  // screen again and would review nothing. The dark goldens were removed.
+  for (final brightness in const [Brightness.light]) {
     for (final entry in screens.entries) {
       testWidgets('${entry.key} · ${brightness.name}', (tester) async {
         await pumpAt(tester, entry.value, brightness: brightness);

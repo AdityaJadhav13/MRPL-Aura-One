@@ -189,8 +189,8 @@ class _HseDispositionScreenState extends State<HseDispositionScreen> {
             // a closing decision — is visible and reviewable.
             onPressed: null,
             style: FilledButton.styleFrom(
-              backgroundColor: corporate.accent,
-              foregroundColor: corporate.textOnAccent,
+              backgroundColor: corporate.primary,
+              foregroundColor: corporate.textOnPrimary,
               minimumSize: const Size.fromHeight(kMinTouchTarget),
             ),
             child: const Text('Record decision'),

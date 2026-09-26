@@ -93,10 +93,10 @@ class AuthTextField extends StatelessWidget {
                     ),
               border: _border(corporate.border),
               enabledBorder: _border(
-                hasError ? corporate.accent : corporate.border,
+                hasError ? context.product.critical : corporate.border,
               ),
               focusedBorder: _border(
-                hasError ? corporate.accent : corporate.primary,
+                hasError ? context.product.critical : corporate.primary,
                 width: 1.6,
               ),
             ),
@@ -107,7 +107,7 @@ class AuthTextField extends StatelessWidget {
             padding: const EdgeInsets.only(top: Space.xs, left: Space.xs),
             child: Text(
               errorText!,
-              style: t.caption.copyWith(color: corporate.accent),
+              style: t.caption.copyWith(color: context.product.critical),
             ),
           ),
       ],
@@ -164,11 +164,14 @@ class EmployeeContractorToggle extends StatelessWidget {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 160),
                     curve: Curves.easeOut,
-                    height: 44,
+                    // 48, the interactive floor (§17). It was 44.
+                    height: kMinInteractive,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
+                      // Green with white, not orange: white on the orange is
+                      // 2.88:1 and this label must be read.
                       color: i == selectedIndex
-                          ? corporate.accent
+                          ? corporate.primary
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(CorporateRadii.sm),
                     ),
@@ -176,7 +179,7 @@ class EmployeeContractorToggle extends StatelessWidget {
                       options[i],
                       style: t.bodyStrong.copyWith(
                         color: i == selectedIndex
-                            ? corporate.textOnAccent
+                            ? corporate.textOnPrimary
                             : corporate.textSecondary,
                       ),
                     ),

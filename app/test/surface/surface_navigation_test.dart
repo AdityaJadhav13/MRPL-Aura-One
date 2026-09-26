@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:h2s_doseband/core/components/product_navigation.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/core/util/format.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
@@ -70,22 +71,37 @@ void main() {
     });
   });
 
-  group('worker navigation stays at four destinations', () {
-    testWidgets('Home, Scan, Safety and History — and nothing else', (
+  group('worker navigation is the approved five destinations', () {
+    // APP-PRODUCT-01 §6 superseded UI-SURFACE-01's four-tab rule: Profile is
+    // now a destination, and Scan is the centre, primary action.
+    testWidgets('Home, History, Scan, Safety, Profile — and nothing else', (
       tester,
     ) async {
       await pumpAt(tester, '/home', size: const Size(390, 844));
-      final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-      expect(bar.destinations, hasLength(4));
-
-      for (final label in ['Home', 'Scan', 'Safety', 'History']) {
-        expect(find.text(label), findsWidgets, reason: label);
-      }
+      final bar = tester.widget<FloatingNavigationBar>(
+        find.byType(FloatingNavigationBar),
+      );
+      expect(bar.destinations.map((d) => d.label), [
+        'Home',
+        'History',
+        'Scan',
+        'Safety',
+        'Profile',
+      ]);
+      // Scan, and only Scan, is the primary action — and it is the centre.
+      expect(
+        bar.destinations.where((d) => d.isPrimaryAction).map((d) => d.label),
+        ['Scan'],
+      );
+      expect(bar.destinations[2].isPrimaryAction, isTrue);
       // These are reached from the work they belong to, never promoted to
       // a tab.
-      for (final absent in ['PTW', 'JSA', 'Badge', 'Profile', 'Reports']) {
+      for (final absent in ['PTW', 'JSA', 'Badge', 'Reports']) {
         expect(
-          find.widgetWithText(NavigationBar, absent),
+          find.descendant(
+            of: find.byType(FloatingNavigationBar),
+            matching: find.text(absent),
+          ),
           findsNothing,
           reason: absent,
         );

@@ -998,7 +998,7 @@ class DemoDataControlsScreen extends StatelessWidget {
                 icon: Icons.preview_outlined,
                 title: 'Worker screen previews',
                 subtitle: 'Seed any Home or workflow state',
-                onTap: () => context.go('/profile/worker-previews'),
+                onTap: () => context.go('/dev/worker-previews'),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Space.md),
@@ -1007,7 +1007,7 @@ class DemoDataControlsScreen extends StatelessWidget {
               NavigationRow(
                 icon: Icons.palette_outlined,
                 title: 'Design system gallery',
-                onTap: () => context.go('/profile/gallery'),
+                onTap: () => context.go('/dev/gallery'),
               ),
             ],
           ),

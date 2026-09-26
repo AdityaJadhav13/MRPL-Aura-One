@@ -89,10 +89,11 @@ class _DoseBandAppState extends State<DoseBandApp> {
     return MaterialApp.router(
       title: 'H2S DoseBand',
       debugShowCheckedModeBanner: false,
-      // Both themes are supplied and the system chooses. Industrial
-      // environments need both: a sunlit yard and a dark tank interior.
+      // White-first: the light theme is the production theme, whatever the
+      // phone's system setting (APP-PRODUCT-01 §50). The dark variant is not
+      // offered; see docs/design/design-system-v2.md for why.
       theme: buildDoseBandTheme(brightness: Brightness.light),
-      darkTheme: buildDoseBandTheme(brightness: Brightness.dark),
+      themeMode: ThemeMode.light,
       routerConfig: _router,
     );
   }

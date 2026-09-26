@@ -90,7 +90,7 @@ class _PhysicalCaptureSetupScreenState
           IconButton(
             tooltip: 'Saved captures',
             icon: const Icon(Icons.folder_open_outlined),
-            onPressed: () => context.push('/profile/research-captures'),
+            onPressed: () => context.push('/dev/research-captures'),
           ),
         ],
       ),
@@ -228,7 +228,7 @@ class _PhysicalCaptureSetupScreenState
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: FilledButton.icon(
             onPressed: settings.isComplete
-                ? () => context.push('/profile/physical-capture/camera')
+                ? () => context.push('/dev/physical-capture/camera')
                 : null,
             icon: const Icon(Icons.photo_camera_outlined),
             style: FilledButton.styleFrom(

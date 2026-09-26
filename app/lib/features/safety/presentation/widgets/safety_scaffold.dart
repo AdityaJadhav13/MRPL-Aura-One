@@ -180,14 +180,20 @@ class _Header extends StatelessWidget {
         // land on dark green rather than on whatever the surface happens to
         // be — white-on-grey is unreadable, and a header that disappears is
         // worse than one without a picture.
-        color: corporate.primaryDeep,
+        color: Neutral.l20,
         image: DecorationImage(
-          image: const AssetImage(BrandAssets.refineryBackdrop),
+          image: const ResizeImage(
+            AssetImage(BrandAssets.refineryBackdrop),
+            width: 1080,
+            policy: ResizeImagePolicy.fit,
+          ),
           fit: BoxFit.cover,
-          // A deep corporate scrim. Without it the photograph's highlights
-          // sit under white type at around 2:1 contrast in places.
+          // A solid neutral scrim. Without it the photograph's highlights sit
+          // under white type at around 2:1 contrast in places. Neutral, not
+          // the former 82% dark green: a full-width green band made every
+          // Safety screen read as a green screen (APP-PRODUCT-01 §7, §11).
           colorFilter: ColorFilter.mode(
-            corporate.primaryDeep.withValues(alpha: 0.82),
+            context.product.scrim,
             BlendMode.srcOver,
           ),
         ),

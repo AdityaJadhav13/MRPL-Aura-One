@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:h2s_doseband/core/components/product_navigation.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/capture/presentation/capture_host_screen.dart';
+import 'package:h2s_doseband/features/dev/component_catalog_screen.dart';
+import 'package:h2s_doseband/features/dev/developer_tools_screen.dart';
 import 'package:h2s_doseband/features/gallery/gallery_screen.dart';
-import 'package:h2s_doseband/features/home/presentation/home_cards.dart';
 import 'package:h2s_doseband/features/research/presentation/physical_capture_screen.dart';
 import 'package:h2s_doseband/features/research/presentation/research_captures_screen.dart';
 import 'package:h2s_doseband/main.dart';
@@ -24,7 +26,13 @@ const _prod = EnvironmentConfig(
 
 /// Pumps the app already on the shell, skipping the launch splash (whose
 /// indeterminate progress animation never settles) and the demo login.
+///
+/// On a phone-sized view: the default 800-wide test window is past the rail
+/// breakpoint, where the shell correctly shows a navigation rail instead.
 Future<void> pumpShell(WidgetTester tester, EnvironmentConfig config) async {
+  tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+  tester.view.devicePixelRatio = 3;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
       child: DoseBandApp(
@@ -39,20 +47,24 @@ Future<void> pumpShell(WidgetTester tester, EnvironmentConfig config) async {
 
 Future<void> tapDestination(WidgetTester tester, String label) async {
   await tester.tap(
-    find.descendant(of: find.byType(NavigationBar), matching: find.text(label)),
+    find.descendant(
+      of: find.byType(FloatingNavigationBar),
+      matching: find.text(label),
+    ),
   );
   await tester.pumpAndSettle();
 }
 
-/// Opens the account screen from the Home header.
-///
-/// Profile left the bottom bar when Safety took its place: a worker's four
-/// destinations are Home, Scan, Safety and History, and account sits behind
-/// the header avatar.
+/// Opens Profile — a worker destination since APP-PRODUCT-01 §6.
 Future<void> openAccount(WidgetTester tester) async {
-  // Tapped by the worker's own identity card, which is where the account
-  // affordance now lives — there is no icon in a bar to press.
-  await tester.tap(find.byType(WorkerIdentityCard));
+  await tapDestination(tester, 'Profile');
+  await _scrollToEnd(tester);
+}
+
+/// Opens the developer hub from Profile's single development-only row.
+Future<void> openDevTools(WidgetTester tester) async {
+  await openAccount(tester);
+  await tester.tap(find.text('Developer and research tools'));
   await tester.pumpAndSettle();
   await _scrollToEnd(tester);
 }
@@ -78,13 +90,13 @@ Future<void> _scrollToEnd(WidgetTester tester) async {
 
 void main() {
   group('worker shell', () {
-    testWidgets('opens on Home with the four approved destinations', (
+    testWidgets('opens on Home with the five approved destinations', (
       tester,
     ) async {
       await pumpShell(tester, _dev);
 
-      expect(find.byType(NavigationBar), findsOneWidget);
-      for (final label in ['Home', 'Scan', 'Safety', 'History']) {
+      expect(find.byType(FloatingNavigationBar), findsOneWidget);
+      for (final label in ['Home', 'History', 'Scan', 'Safety', 'Profile']) {
         expect(find.text(label), findsWidgets, reason: '$label is missing');
       }
       // No shift and no history yet: the honest empty state, not a fake shift.
@@ -106,6 +118,9 @@ void main() {
         findsOneWidget,
       );
 
+      await tapDestination(tester, 'Profile');
+      expect(find.text('Environment'), findsOneWidget);
+
       await tapDestination(tester, 'Home');
       expect(find.text('DOSEBAND MONITORING'), findsOneWidget);
     });
@@ -118,13 +133,13 @@ void main() {
     testWidgets('it exists in a development build', (tester) async {
       await pumpShell(tester, _dev);
       final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
-      expect(() => router.go('/profile/capture'), returnsNormally);
+      expect(() => router.go('/dev/capture'), returnsNormally);
     });
 
     testWidgets('it is absent from a production build', (tester) async {
       await pumpShell(tester, _prod);
       final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
-      router.go('/profile/capture');
+      router.go('/dev/capture');
       await tester.pumpAndSettle();
       // go_router renders its error page for an unknown route rather than
       // navigating; what matters is that no capture screen appears.
@@ -137,7 +152,7 @@ void main() {
     // §71: research diagnostics are not worker functionality.
     testWidgets('offered in a development build', (tester) async {
       await pumpShell(tester, _dev);
-      await openAccount(tester);
+      await openDevTools(tester);
       expect(find.text('Physical capture test'), findsOneWidget);
       expect(find.text('Research captures'), findsOneWidget);
     });
@@ -155,9 +170,10 @@ void main() {
       await pumpShell(tester, _prod);
       final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
       for (final route in const [
-        '/profile/physical-capture',
-        '/profile/physical-capture/camera',
-        '/profile/research-captures',
+        '/dev',
+        '/dev/physical-capture',
+        '/dev/physical-capture/camera',
+        '/dev/research-captures',
       ]) {
         router.go(route);
         await tester.pumpAndSettle();
@@ -173,7 +189,7 @@ void main() {
     // be able to do to their own exposure record.
     testWidgets('offered in a development build', (tester) async {
       await pumpShell(tester, _dev);
-      await openAccount(tester);
+      await openDevTools(tester);
       expect(find.text('Worker screen previews'), findsOneWidget);
     });
 
@@ -186,29 +202,60 @@ void main() {
     testWidgets('the route itself is absent from production', (tester) async {
       await pumpShell(tester, _prod);
       final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
-      router.go('/profile/worker-previews');
+      router.go('/dev/worker-previews');
       await tester.pumpAndSettle();
       expect(find.text('Worker screen previews'), findsNothing);
     });
   });
 
-  group('the gallery cannot reach production', () {
-    testWidgets('it is offered in a development build', (tester) async {
+  group('the gallery and component catalog cannot reach production', () {
+    testWidgets('they are offered in a development build', (tester) async {
       await pumpShell(tester, _dev);
-      await openAccount(tester);
+      await openDevTools(tester);
+      expect(find.byType(DeveloperToolsScreen), findsOneWidget);
 
-      expect(find.text('Design system gallery'), findsOneWidget);
-
-      await tester.tap(find.text('Design system gallery'));
+      await tester.tap(find.text('Instrument components'));
       await tester.pumpAndSettle();
       expect(find.byType(GalleryScreen), findsOneWidget);
     });
 
-    testWidgets('it is absent from a production build', (tester) async {
+    testWidgets('the catalog opens from the developer hub', (tester) async {
+      await pumpShell(tester, _dev);
+      await openDevTools(tester);
+      await tester.tap(find.text('Component catalog'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ComponentCatalogScreen), findsOneWidget);
+    });
+
+    testWidgets('they are absent from a production build', (tester) async {
       await pumpShell(tester, _prod);
       await openAccount(tester);
+      // Not even the single entry row exists in production.
+      expect(find.text('Developer and research tools'), findsNothing);
 
-      expect(find.text('Design system gallery'), findsNothing);
+      final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+      for (final route in const ['/dev', '/dev/components', '/dev/gallery']) {
+        router.go(route);
+        await tester.pumpAndSettle();
+        expect(find.byType(DeveloperToolsScreen), findsNothing, reason: route);
+        expect(find.byType(ComponentCatalogScreen), findsNothing);
+        expect(find.byType(GalleryScreen), findsNothing);
+      }
+    });
+
+    testWidgets('research tools are not in worker navigation', (tester) async {
+      await pumpShell(tester, _dev);
+      for (final label in [
+        'Physical capture test',
+        'Research captures',
+        'Component catalog',
+      ]) {
+        expect(find.text(label), findsNothing, reason: label);
+      }
+      // One tap into Profile shows one development row, not the tools.
+      await openAccount(tester);
+      expect(find.text('Physical capture test'), findsNothing);
+      expect(find.text('Developer and research tools'), findsOneWidget);
     });
 
     test('simulation availability is decided by environment, not a flag', () {
