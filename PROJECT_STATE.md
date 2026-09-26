@@ -28,8 +28,9 @@ Branch `app-product-01`, from checkpoint `75bb983` (MEASUREMENT-INTEGRATION-02).
   `screen-rationalization-inventory.md`; `docs/engineering/ui-foundation-debt.md`.
 - **Guards:** gradients, literal colours, Material hues, wall-clock reads,
   mandatory route `extra`, presentation names — all ratchets.
-- Tests: 909 app (baseline 714), 312 measurement, 394 parity. 27 foundation
-  goldens; 49 legacy goldens updated after visual review.
+- Tests: 1,063 app (baseline 714), 312 measurement, 394 parity. 27 foundation
+  goldens; 49 legacy goldens updated after visual review. A new sweep renders
+  every parameterless route at 320×568 at 100% and 200% text.
 - `packages/measurement` unchanged. M0C, S1, S2, S3 remain **OPEN**.
 
 Earlier phase notes follow.
