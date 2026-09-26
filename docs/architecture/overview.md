@@ -176,6 +176,15 @@ coverage warning rather than being silently accepted.
 
 ## Offline-first and synchronisation
 
+> **Superseded in part by APP-PRODUCT-01** (see "Layer boundaries" below and
+> `docs/product/online-offline-matrix.md`). The approved architecture is
+> **server-authoritative and offline-capable**: the central server owns
+> identity, DoseBand claiming, uniqueness and organisational records; the
+> device owns the in-progress monitoring period, the final scan and the
+> measurement until they sync. The outbox and immutability design below still
+> describes the target sync mechanism. None of it is implemented yet (P10), and
+> ADR-0005's backend choice is to be re-decided deliberately in P10.
+
 Local SQLite is the source of truth. The app never waits on the network to complete a
 worker-facing action.
 
@@ -229,6 +238,12 @@ lot, never carried on the badge — a QR code is user-modifiable input and must 
 source of measurement parameters.
 
 ## Navigation
+
+> **Superseded by APP-PRODUCT-01 §6, §30.** Worker: `Home` · `History` ·
+> **`Scan`** · `Safety` · `Profile` (floating bar, Scan in the centre; rail at
+> ≥720). Target sets for Supervisor, HSE, Management and Admin are held in
+> `WorkspaceDestinations`. See `docs/design/design-system-v2.md` §14. The text
+> below is the original Phase 0 intent.
 
 Role-shaped, not a shared template with hidden tabs.
 
@@ -307,3 +322,46 @@ Before Phase 1 begins, five decisions need the team, not the architect:
    directory? The workspace is recommended; the single package is the cheaper answer if the
    team would rather not manage a workspace.
 5. Android-only validation target, or iOS too? (U6)
+
+## Layer boundaries (APP-PRODUCT-01)
+
+What each layer may depend on. Improved only where coupling blocked later
+phases; this is not a clean-architecture rewrite (§79).
+
+```
+PRESENTATION   lib/features/*/presentation, lib/core/components
+    │  reads tokens (core/design), asks policies, renders domain types
+    ▼
+APPLICATION    lib/features/*/application (Riverpod controllers)
+    │  orchestrates; owns no layout, no hex
+    ▼
+DOMAIN         lib/core/domain (DoseBand, MonitoringSession, RecordProvenance,
+    │          SyncState, DoseBandRegistry contract)
+    │          lib/features/*/domain (workflow state, work context, access policy)
+    ▼
+DATA           lib/features/*/data (FileWorkflowStore, demo catalogs,
+    │          NotConnectedDoseBandRegistry)
+    ▼
+FUTURE SERVER BOUNDARY  (TARGET, P10)
+               authenticated API → central server → relational database.
+               Replaces: NotConnectedDoseBandRegistry, the demo catalogs,
+               DesignContractAccessPolicy (server-enforced), localOnly sync.
+
+MEASUREMENT ENGINE  packages/measurement — pure Dart, no Flutter.
+               Called by application/data; never reads app or UI state.
+               Phase 0 changed no file in it.
+```
+
+Rules:
+
+- Screens do not compare role names; they ask `AccessPolicy`.
+- Screens do not write lifecycle states; they ask `DoseBandLifecyclePolicy` /
+  `MonitoringSessionPolicy`.
+- Presentation data and simulated measurements are separate sources
+  (`UiDemoCatalog` et al. vs `SimulationCatalog`) and separate types; a
+  simulated quantity cannot be constructed as a real `Dose`.
+- Repository contracts exist only where a phase needs them. Today:
+  `WorkflowStore` (monitoring persistence), `WorkContextRepository`,
+  `SiteRepository`, `CameraPort`, `DoseBandRegistry`. Worker, measurement
+  history and auth repositories arrive with P1, P5 and P10.
+

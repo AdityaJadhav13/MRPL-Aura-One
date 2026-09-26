@@ -182,11 +182,7 @@ class _Header extends StatelessWidget {
         // worse than one without a picture.
         color: Neutral.l20,
         image: DecorationImage(
-          image: const ResizeImage(
-            AssetImage(BrandAssets.refineryBackdrop),
-            width: 1080,
-            policy: ResizeImagePolicy.fit,
-          ),
+          image: const AssetImage(BrandAssets.refineryBackdrop),
           fit: BoxFit.cover,
           // A solid neutral scrim. Without it the photograph's highlights sit
           // under white type at around 2:1 contrast in places. Neutral, not

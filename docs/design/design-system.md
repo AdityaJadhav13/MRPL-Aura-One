@@ -1,5 +1,11 @@
 # Design system
 
+> **v2 exists: [design-system-v2.md](design-system-v2.md) (APP-PRODUCT-01).** It
+> supersedes this document's corporate palette (`#0E4634`, orange primary
+> actions), the corporate radius scale and the role-navigation table. The
+> instrument register, measurement scale, monospace, placeholder and
+> provenance rules below still hold.
+
 Status: specification. Phase 1 implements it.
 
 ## The governing idea
@@ -394,6 +400,9 @@ It means *not known*. It is never replaced by `0`:
 opened. The distinction between *zero* and *unknown* is the product.
 
 ## Role navigation
+
+> **Superseded by design-system-v2 §14:** the worker bar is five destinations —
+> Home · History · Scan · Safety · Profile — with Scan as the centre action.
 
 | Role | Pattern | Destinations |
 |---|---|---|

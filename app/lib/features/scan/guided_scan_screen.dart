@@ -71,73 +71,90 @@ class _GuidedScanScreenState extends State<GuidedScanScreen> {
     return Scaffold(
       backgroundColor: Neutral.l0,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Simulated marker on the dark surround.
-            Container(
-              width: double.infinity,
-              color: context.colours.statusSimulated,
-              padding: const EdgeInsets.symmetric(
-                horizontal: Space.base,
-                vertical: Space.sm,
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.science_outlined,
-                    size: 16,
-                    color: Neutral.l100,
-                  ),
-                  const SizedBox(width: Space.sm),
-                  Expanded(
-                    child: Text(
-                      'Simulated scan — not a real capture',
-                      style: t.label.copyWith(color: Neutral.l100),
+        // At 200% text on a short phone the instructions alone outgrow the
+        // screen. The page then scrolls; while it fits, the frame keeps the
+        // flexible share of the height exactly as before.
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    // Simulated marker on the dark surround.
+                    Container(
+                      width: double.infinity,
+                      color: context.colours.statusSimulated,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Space.base,
+                        vertical: Space.sm,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.science_outlined,
+                            size: 16,
+                            color: Neutral.l100,
+                          ),
+                          const SizedBox(width: Space.sm),
+                          Expanded(
+                            child: Text(
+                              'Simulated scan — not a real capture',
+                              style: t.label.copyWith(color: Neutral.l100),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Center(child: _BadgeFrame(ready: ready)),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(Space.lg),
-              child: Column(
-                children: [
-                  // The instruction is this screen's heading, and it is also
-                  // the thing that changes when the state does, so it carries
-                  // liveRegion as well: a screen-reader user is holding a
-                  // phone over a badge and cannot be watching the text.
-                  Semantics(
-                    header: true,
-                    liveRegion: true,
-                    child: Text(
-                      ready ? 'Ready — hold steady' : 'Line up the badge',
-                      style: t.heading.copyWith(color: onDark),
+                    Expanded(
+                      child: Center(child: _BadgeFrame(ready: ready)),
                     ),
-                  ),
-                  const SizedBox(height: Space.base),
-                  Wrap(
-                    spacing: Space.sm,
-                    runSpacing: Space.sm,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      for (var i = 0; i < _checks.length; i++)
-                        _QualityChip(label: _checks[i], locked: i < _locked),
-                    ],
-                  ),
-                  const SizedBox(height: Space.lg),
-                  Text(
-                    ready
-                        ? 'Capturing…'
-                        : 'Auto-capture when every check is met',
-                    style: t.caption.copyWith(color: onDarkMuted),
-                  ),
-                ],
+                    Padding(
+                      padding: const EdgeInsets.all(Space.lg),
+                      child: Column(
+                        children: [
+                          // The instruction is this screen's heading, and it is also
+                          // the thing that changes when the state does, so it carries
+                          // liveRegion as well: a screen-reader user is holding a
+                          // phone over a badge and cannot be watching the text.
+                          Semantics(
+                            header: true,
+                            liveRegion: true,
+                            child: Text(
+                              ready
+                                  ? 'Ready — hold steady'
+                                  : 'Line up the badge',
+                              style: t.heading.copyWith(color: onDark),
+                            ),
+                          ),
+                          const SizedBox(height: Space.base),
+                          Wrap(
+                            spacing: Space.sm,
+                            runSpacing: Space.sm,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              for (var i = 0; i < _checks.length; i++)
+                                _QualityChip(
+                                  label: _checks[i],
+                                  locked: i < _locked,
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: Space.lg),
+                          Text(
+                            ready
+                                ? 'Capturing…'
+                                : 'Auto-capture when every check is met',
+                            style: t.caption.copyWith(color: onDarkMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

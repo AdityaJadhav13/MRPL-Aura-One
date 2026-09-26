@@ -129,6 +129,9 @@ const allRoutes = <String>[
   '/scan',
   '/history',
   '/profile',
+  // Development-only (APP-PRODUCT-01): the tools hub and component catalog.
+  '/dev',
+  '/dev/components',
   '/shift',
   '/worker-identity',
   '/work-context',

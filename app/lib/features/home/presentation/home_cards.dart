@@ -45,8 +45,6 @@ class HomeHero extends StatelessWidget {
               BrandAssets.refineryBackdrop,
               fit: BoxFit.cover,
               alignment: Alignment.center,
-              // Decoded at display size, not at the file's full resolution.
-              cacheWidth: 1080,
             ),
           ),
           // A solid translucent scrim, not a gradient (APP-PRODUCT-01 §8,

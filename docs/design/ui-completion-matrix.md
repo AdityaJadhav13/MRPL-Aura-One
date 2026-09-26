@@ -50,7 +50,7 @@ and no real measurement.
 | Scan | `/scan` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL |
 | Safety hub | `/safety` | ✅ | ✅ | — | — | — | — | — | ✅ | FUNCTIONAL (static content) |
 | History | `/history` | ✅ | ✅ | ✅ | — | needed | — | — | ✅ | PARTIAL — no history database |
-| Account | `/profile` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL — reached from the identity card |
+| Profile | `/profile` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL — worker destination (APP-PRODUCT-01) |
 | Work context | `/work-context` | ✅ | ✅ | ✅ | — | — | — | PTW/JSA | ✅ | FUNCTIONAL |
 | Badge assignment | `/assign` | ✅ | ✅ | ✅ | simulation specimens | — | — | — | ✅ | PARTIAL — picker, no QR |
 | Scan badge QR | `/scan-badge` | ✅ | ✅ | — | — | — | — | badge registry | ✅ | NOT CONNECTED — camera honestly absent |
@@ -61,7 +61,7 @@ and no real measurement.
 | JSA reference | `/jsa` | ✅ | ✅ | ✅ | — | — | — | JSA | ✅ | FUNCTIONAL |
 | Toolbox acknowledgement | `/toolbox` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL |
 | Badge traceability | `/traceability` | ✅ | ✅ | ✅ partial | — | needed | — | supply chain | ✅ | PARTIAL — only observed stages are real |
-| Worker previews (dev) | `/profile/worker-previews` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL — dev only |
+| Worker previews (dev) | `/dev/worker-previews` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL — dev only |
 | Badge verification | `/verify` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL |
 | Pre-work check | `/prework` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL |
 | Active monitoring | `/active` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL |
@@ -70,8 +70,8 @@ and no real measurement.
 | Processing | `/processing` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL |
 | Result | `/result` | ✅ | ✅ | ✅ | — | — | calibration | — | ✅ | PARTIAL — no dose exists |
 | Measurement detail | `/measurement` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL |
-| Dossier capture (dev) | `/profile/capture` | ✅ | ✅ | ✅ | — | — | M0B engine | — | ✅ | FUNCTIONAL — real camera |
-| Design gallery (dev) | `/profile/gallery` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL |
+| Dossier capture (dev) | `/dev/capture` | ✅ | ✅ | ✅ | — | — | M0B engine | — | ✅ | FUNCTIONAL — real camera |
+| Design gallery (dev) | `/dev/gallery` | ✅ | ✅ | ✅ | — | — | — | — | ✅ | FUNCTIONAL |
 
 ## Safety
 

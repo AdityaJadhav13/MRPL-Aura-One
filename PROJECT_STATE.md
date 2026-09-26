@@ -2,9 +2,37 @@
 
 **Product:** H₂S DoseBand — passive colorimetric cumulative H₂S exposure badge + phone reader
 **Programme:** SIH 2026 / PS 26118 (MRPL) · Idea deadline 30 Sep 2026
-**Updated:** 2026-09-25 (WORK-CONTEXT-01)
+**Updated:** 2026-09-27 (APP-PRODUCT-01 Phase 0)
 
 ## Current phase
+
+**APP-PRODUCT-01 Phase 0 — product foundation — complete, awaiting review.**
+Branch `app-product-01`, from checkpoint `75bb983` (MEASUREMENT-INTEGRATION-02).
+
+- **Design system v2** (`docs/design/design-system-v2.md`): white-first light
+  theme; brand green derived from the logo asset (`#5C822D` → primary
+  `#527823`); one token source, one radius scale, breakpoints, elevation. The
+  primary action was white on orange at 2.88:1 and is now brand green at
+  5.16:1. Brand is never a status colour — tested.
+- **Worker navigation:** Home · History · **Scan** · Safety · Profile, a
+  floating bar with a centre Scan action; a rail at ≥720. Research and
+  developer tools moved from `/profile/*` to `/dev/*` (dev builds only), with
+  a component catalog at `/dev/components`.
+- **Domain foundation:** DoseBand + lifecycle policy, MonitoringSession +
+  policy, one provenance vocabulary mapped from every existing type,
+  connectivity/sync states, role/scope/permission/data-class policy (design
+  contract — server enforcement pending), a DoseBand registry contract with
+  typed claim outcomes and only a not-connected implementation.
+- **Product documents:** `docs/product/product-foundation-v1.md`,
+  `role-permission-matrix.md`, `online-offline-matrix.md`,
+  `screen-rationalization-inventory.md`; `docs/engineering/ui-foundation-debt.md`.
+- **Guards:** gradients, literal colours, Material hues, wall-clock reads,
+  mandatory route `extra`, presentation names — all ratchets.
+- Tests: 909 app (baseline 714), 312 measurement, 394 parity. 27 foundation
+  goldens; 49 legacy goldens updated after visual review.
+- `packages/measurement` unchanged. M0C, S1, S2, S3 remain **OPEN**.
+
+Earlier phase notes follow.
 
 **Phase 1 complete. Phase 2 in progress.** Design system implemented, worker navigation
 shell built. The simulated worker workflow now runs **end to end** (Section 81): launch →

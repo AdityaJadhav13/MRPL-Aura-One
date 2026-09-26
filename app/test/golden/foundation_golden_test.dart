@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:h2s_doseband/core/components/product_navigation.dart';
 import 'package:h2s_doseband/core/components/product_page.dart';
+import 'package:h2s_doseband/core/design/brand_assets.dart';
 import 'package:h2s_doseband/core/components/product_states.dart';
 import 'package:h2s_doseband/core/design/theme.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
@@ -48,6 +49,16 @@ void main() {
           config: _dev,
           initialLocation: at,
         ),
+      ),
+    );
+    // Decode the brand photograph for real before capturing. Asset decoding
+    // is real IO; without this a golden shows whichever frame decoding had
+    // reached, which varies from run to run.
+    final context = tester.element(find.byType(Scaffold).first);
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage(BrandAssets.refineryBackdrop),
+        context,
       ),
     );
     await tester.pumpAndSettle();

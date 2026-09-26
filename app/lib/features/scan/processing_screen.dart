@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:measurement/measurement.dart' show DataDomain;
 
 import '../../core/components/markers.dart';
+import '../../core/components/states.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
 import '../../core/util/async_value_x.dart';
@@ -63,13 +64,16 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     _navigated = true;
     final session =
         ref.read(shiftSessionProvider).dataOrNull ?? ShiftSession.none;
-    final result = await ref.read(shiftSessionProvider.notifier).completeScan();
     final badge = session.badge;
     final ctx = session.context;
+    // Checked *before* completing the scan. Reached by a deep link or a cold
+    // restore there is no scan to complete, and completing one threw
+    // (APP-PRODUCT-01 hostile review, §33).
     if (badge == null || ctx == null) {
       if (mounted) context.go('/home');
       return;
     }
+    final result = await ref.read(shiftSessionProvider.notifier).completeScan();
     final now = DateTime.now();
     final record = MeasurementRecord(
       id: 'M-${now.microsecondsSinceEpoch}',
@@ -97,6 +101,19 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
   Widget build(BuildContext context) {
     final c = context.colours;
     final t = context.type;
+
+    // Nothing to process: say so, rather than animating a pipeline for a
+    // badge that is not there.
+    final session = ref.watch(shiftSessionProvider).dataOrNull;
+    if (session != null && (session.badge == null || session.context == null)) {
+      _timer?.cancel();
+      return MissingRouteContextScreen(
+        what: 'the processing of a badge scan',
+        returnLabel: 'Go to Home',
+        onReturn: () => context.go('/home'),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Processing'),
@@ -169,10 +186,13 @@ class _StageRow extends StatelessWidget {
         children: [
           leading,
           const SizedBox(width: Space.md),
-          Text(
-            label,
-            style: t.body.copyWith(
-              color: done || active ? c.textPrimary : c.textSecondary,
+          // Wraps at large text sizes instead of running off a small phone.
+          Expanded(
+            child: Text(
+              label,
+              style: t.body.copyWith(
+                color: done || active ? c.textPrimary : c.textSecondary,
+              ),
             ),
           ),
         ],

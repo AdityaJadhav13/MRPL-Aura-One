@@ -45,12 +45,14 @@ class DemoAccessCard extends StatelessWidget {
                 color: corporate.textSecondary,
               ),
               const SizedBox(width: Space.xs),
-              Text(
-                'DEMO ACCESS',
-                style: t.caption.copyWith(
-                  color: corporate.textSecondary,
-                  letterSpacing: 1.1,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  'DEMO ACCESS',
+                  style: t.caption.copyWith(
+                    color: corporate.textSecondary,
+                    letterSpacing: 1.1,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],

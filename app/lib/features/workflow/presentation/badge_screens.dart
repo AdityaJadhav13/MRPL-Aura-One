@@ -47,9 +47,12 @@ class ScanBadgeQrScreen extends StatelessWidget {
         onPressed: () => context.pushReplacement('/assign'),
       ),
       children: [
-        AspectRatio(
-          aspectRatio: 1,
-          child: Container(
+        // Square, and at least as tall as it is wide rather than exactly so:
+        // at 200% text on a 320-point phone the explanation is taller than
+        // the square, and the viewfinder grows instead of clipping it.
+        LayoutBuilder(
+          builder: (context, constraints) => Container(
+            constraints: BoxConstraints(minHeight: constraints.maxWidth),
             decoration: BoxDecoration(
               color: c.surfaceViewfinder,
               borderRadius: BorderRadius.circular(Radii.control),
@@ -57,9 +60,10 @@ class ScanBadgeQrScreen extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                CustomPaint(
-                  size: Size.infinite,
-                  painter: _QrFramePainter(colour: Neutral.l58),
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _QrFramePainter(colour: Neutral.l58),
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: Space.xl),

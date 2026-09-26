@@ -30,7 +30,7 @@ nothing.
 
 ## Path B — the development capture route
 
-`/profile/capture` (gated on `EnvironmentConfig.simulationAvailable`)
+`/dev/capture` (gated on `EnvironmentConfig.simulationAvailable`)
 
 | # | Step | Implementation | State | Input → Output | Failure states |
 |---|---|---|---|---|---|
@@ -78,7 +78,7 @@ Path B, re-traced. Path A (the worker's Scan) is unchanged and still simulated
 
 | # | Step | Implementation | State |
 |---|---|---|---|
-| 0 | Entry | Profile → **Physical capture test** (`/profile/physical-capture`) | Real, dev-gated, absent from production |
+| 0 | Entry | Profile → Developer and research tools → **Physical capture test** (`/dev/physical-capture`) | Real, dev-gated, absent from production |
 | 1 | Specimen | `ResearchSettings` → `ResearchSpecimen` | Specimen required; series level ordinal only |
 | 2 | Geometry | `GeometryAssets().load('badge-v1-research')` | Real, checksum-verified, no fallback |
 | 3 | Camera | `CameraPortImpl` | Real; device identity from the platform (G-02) |

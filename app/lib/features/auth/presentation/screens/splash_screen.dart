@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -117,68 +119,90 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           SafeArea(
             child: FadeTransition(
               opacity: fade,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Space.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const Spacer(flex: 52),
-
-                    Center(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) => MrplBrandmark(
-                          // A third of the width, as in the approved design.
-                          size: constraints.maxWidth * 0.345,
-                          cornerRadius: 8,
-                        ),
-                      ),
+              // Proportional spacers while the composition fits; a scroll
+              // instead of an overflow when it cannot — at 200% text on a
+              // 320×568 phone the lockup alone is taller than the screen.
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-
-                    const SizedBox(height: Space.base),
-                    const _IdentityBlock(),
-
-                    const Spacer(flex: 168),
-
-                    // Left-aligned, unlike everything else on the screen: the
-                    // safety message is a statement, not a label.
-                    const _SafetyMessage(),
-
-                    const Spacer(flex: 50),
-
-                    const _ProductLockup(),
-
-                    const SizedBox(height: Space.lg),
-                    Center(
-                      child: SizedBox(
-                        width: 190,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(3),
-                          child: LinearProgressIndicator(
-                            minHeight: 5,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.32,
-                            ),
-                            color: corporate.accent,
-                          ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Space.lg,
                         ),
-                      ),
-                    ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const Spacer(flex: 52),
 
-                    const SizedBox(height: Space.sm),
-                    SizedBox(
-                      height: 44,
-                      child: allowSkip
-                          ? Align(
-                              alignment: Alignment.centerRight,
-                              child: AuthSkipButton(
-                                onDark: true,
-                                onPressed: _skip,
+                            Center(
+                              child: MrplBrandmark(
+                                // A third of the content width, as in the
+                                // approved design. From the screen width, not
+                                // a LayoutBuilder: the scroll-safe column
+                                // measures its children intrinsically.
+                                size: math.max(
+                                  0,
+                                  (MediaQuery.sizeOf(context).width -
+                                          Space.lg * 2) *
+                                      0.345,
+                                ),
+                                cornerRadius: 8,
                               ),
-                            )
-                          : null,
+                            ),
+
+                            const SizedBox(height: Space.base),
+                            const _IdentityBlock(),
+
+                            const Spacer(flex: 168),
+
+                            // Left-aligned, unlike everything else on the screen: the
+                            // safety message is a statement, not a label.
+                            const _SafetyMessage(),
+
+                            const Spacer(flex: 50),
+
+                            const _ProductLockup(),
+
+                            const SizedBox(height: Space.lg),
+                            Center(
+                              child: SizedBox(
+                                width: 190,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(3),
+                                  child: LinearProgressIndicator(
+                                    minHeight: 5,
+                                    backgroundColor: Colors.white.withValues(
+                                      alpha: 0.32,
+                                    ),
+                                    color: corporate.accent,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: Space.sm),
+                            SizedBox(
+                              height: 44,
+                              child: allowSkip
+                                  ? Align(
+                                      alignment: Alignment.centerRight,
+                                      child: AuthSkipButton(
+                                        onDark: true,
+                                        onPressed: _skip,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const Spacer(flex: 10),
+                          ],
+                        ),
+                      ),
                     ),
-                    const Spacer(flex: 10),
-                  ],
+                  ),
                 ),
               ),
             ),
