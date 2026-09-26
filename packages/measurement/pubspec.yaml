@@ -14,8 +14,14 @@ environment:
   sdk: ^3.13.0
 
 dependencies:
+  # Decode only. Every measurement afterwards runs on our own arithmetic.
   image: ^4.10.1
   meta: ^1.16.0
+
+  # SHA-256 for the geometry manifest, so the app can refuse a packaged
+  # geometry that does not match the canonical definition. Already resolved
+  # transitively, so this costs nothing in download size.
+  crypto: ^3.0.0
 
 dev_dependencies:
   lints: ^6.0.0

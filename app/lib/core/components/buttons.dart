@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../design/theme.dart';
+import 'step_scaffold.dart';
 import '../design/tokens.dart';
 
 enum _Kind { primary, secondary, destructive }
@@ -49,8 +50,19 @@ class DoseBandButton extends StatelessWidget {
     final c = context.colours;
     final enabled = onPressed != null;
 
+    // On a corporate workflow screen the primary action is MRPL orange, the
+    // same control Home uses. On a measurement screen it stays the instrument
+    // accent — the badge is on that screen, and a saturated orange field next
+    // to a colour measurement is the mistake the register split exists to
+    // prevent.
+    final corporate = context.corporate;
+    final onCorporate = StepRegisterScope.of(context) == StepRegister.corporate;
+
     final (Color bg, Color fg, Color? border) = switch (_kind) {
-      _Kind.primary => (c.measurementAccent, c.textOnAccent, null),
+      _Kind.primary =>
+        onCorporate
+            ? (corporate.accent, corporate.textOnAccent, null)
+            : (c.measurementAccent, c.textOnAccent, null),
       _Kind.secondary => (Colors.transparent, c.textPrimary, c.borderStrong),
       _Kind.destructive => (
         Colors.transparent,

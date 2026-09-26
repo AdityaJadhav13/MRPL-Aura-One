@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../design/theme.dart';
 import '../design/tokens.dart';
+import '../util/format.dart';
 
 /// The hero readout.
 ///
@@ -38,7 +39,7 @@ class MeasurementReadout extends StatelessWidget {
   /// a redaction or a progress bar. Separated short dashes are also what a
   /// balance or a multimeter shows when it has no value, so the meaning is
   /// already familiar to anyone who has used one.
-  static const String noReading = '- - -';
+  static const String noReading = Fmt.noValue;
 
   @override
   Widget build(BuildContext context) {

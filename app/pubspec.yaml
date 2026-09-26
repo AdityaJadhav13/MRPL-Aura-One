@@ -6,7 +6,7 @@ publish_to: none
 resolution: workspace
 
 # versionName+versionCode. Bump versionCode on every upload to Play.
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.13.0
@@ -23,14 +23,42 @@ dependencies:
   # awkward and error-prone with imperative Navigator. That is the whole
   # justification; deep links are not a requirement. See ADR-0001.
   go_router: ^18.0.1
+  flutter_riverpod: ^3.0.0
+
+  # First-party. Gives the frame stream the guidance overlay needs, and the
+  # capability/metadata surface that directive s6 and s7 require. The camera is
+  # part of the instrument, so what it can and cannot do is measurement
+  # metadata, not a UI detail.
+  camera: ^0.12.1
+
+  # Verifies the packaged geometry against its manifest before it is parsed.
+  crypto: ^3.0.0
+
+  # Somewhere to write dossier V0 captures. Without durable storage the
+  # physical session produces nothing that survives closing the app.
+  path_provider: ^2.1.0
+  device_info_plus: ^13.2.0
+  share_plus: ^13.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  image: ^4.10.1
 
 flutter:
   uses-material-design: true
+
+  assets:
+    # GENERATED. Do not edit by hand and do not add a second copy of a
+    # geometry here. The canonical source is packages/measurement/geometry/;
+    # `dart run tool/export_geometry.dart` regenerates this directory and CI
+    # fails if it has drifted.
+    - assets/geometry/
+
+    # Corporate brand assets, supplied by the project owner. Bundled, never
+    # fetched: the authentication flow must work with no connectivity.
+    - assets/images/
 
   # Fonts are bundled, not fetched. The app must complete a reading offline, so
   # a runtime font download (google_fonts) is not acceptable here. IBM Plex is

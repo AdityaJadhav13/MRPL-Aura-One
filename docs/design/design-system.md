@@ -259,6 +259,179 @@ without looking.
 - Sunlight: the light theme's primary surface is `neutral.00` with `neutral.80` ink, which
   holds up at maximum brightness outdoors.
 
+## The two registers (UI-SURFACE-01)
+
+The product has five role surfaces — Worker, Safety, HSE, Reporting, Admin —
+and they are **one application**. But they are not all the same kind of
+surface, and the split matters scientifically rather than aesthetically.
+
+### Corporate shell
+
+Everything that frames the work: authentication, home, work context, safety,
+HSE, reporting, administration.
+
+| Token family | Source | Use |
+|---|---|---|
+| `primary` `primaryDeep` `primaryMuted` | `MrplCorporateColors` | Headers, navigation, primary actions |
+| `accent` `accentMuted` | `MrplCorporateColors` | One emphasis per screen, never status |
+| `surface` `surfaceMuted` `surfaceElevated` | `MrplCorporateColors` | Cards and page grounds |
+| `CorporateRadii` sm 8 / md 12 / lg 16 / xl 22 | — | Chips, buttons, cards, sheets |
+
+### Measurement instrument
+
+The scanner, capture review, result and refusal surfaces, and the badge image
+anywhere it appears.
+
+These stay **chromatically neutral** and keep the `DoseBandColors` palette.
+DoseBand measures colour; a saturated green or orange field next to a
+colorimetric badge introduces simultaneous-contrast and chromatic-adaptation
+effects in the eye of whoever is judging the capture. The rule is not a style
+preference and is not negotiable for branding reasons.
+
+`CorporateNavigationTheme` exists to hold this line in the one place the two
+registers meet: it recolours navigation chrome for the corporate shells and
+touches nothing else.
+
+## Green does not mean safe
+
+Restated here because this phase added five dashboards, which is exactly where
+the rule erodes.
+
+* Corporate green is **brand identity**. It appears in headers, navigation and
+  primary actions.
+* It must never encode *status*. A valid measurement means the instrument
+  trusts the reading. It does **not** mean the exposure was safe.
+* HSE metric tiles are deliberately uncoloured. A count of monitored workers is
+  neither good news nor bad news, and a green dashboard invites "all clear,
+  nothing to do" — the single most dangerous reading of a monitoring product.
+* Attention is drawn by **ordering** and by the single accent edge on the one
+  card that matters, not by a traffic-light palette.
+* Red stays destructive-only.
+
+## The register is carried, not remembered
+
+`StepScaffold` takes a `StepRegister` — `corporate` or `instrument` — and
+publishes it through `StepRegisterScope`. `DoseBandButton` reads it, so a
+primary action is MRPL orange on a workflow screen and the instrument accent on
+a measurement screen without any call site having to remember.
+
+The default is `instrument`, because the measurement surfaces are where getting
+this wrong costs more than looking untidy.
+
+### Why the pre-work ticks stay teal
+
+The pre-work checklist's ticks are the **instrument accent, deliberately not
+green**, on an otherwise corporate screen.
+
+A column of green ticks above a button, on the last screen before a worker
+walks into a unit, is the single most likely place in this product for "all
+green" to be read as "safe to work". The ticks mean *this requirement is
+recorded*; they are not a verdict, and they are coloured so as not to look like
+one.
+
+## Data origin
+
+Every corporate surface declares where its data came from, via `DataOrigin`:
+
+| Origin | Chip | Meaning |
+|---|---|---|
+| `real` | Live | Real workflow, session or local store |
+| `uiDemo` | Demo | `UiDemoCatalog` rows. No real worker, no real measurement |
+| `notConnected` | Not connected | A future integration. No data exists |
+
+Rendered by `OriginChip`, `DemoDataBanner` and `NotConnectedState`. All three
+are neutral — there is deliberately no green "Live" chip, because the origin of
+a number says nothing about whether the number is reassuring.
+
+Provenance *within* a value (a PTW reference typed by hand versus confirmed by
+a system) is a different concern and is carried by `EnterpriseValue` and
+`ProvenanceChip`. See `docs/product/work-context.md`.
+
+## Safety content has its own provenance
+
+`DataOrigin` answers "is this row real?". `SafetyContentSource` answers a
+sharper question for text a worker may act on: **who is telling me this?**
+
+| Source | Chip | Meaning |
+|---|---|---|
+| `general` | General information | Widely published, not site-specific |
+| `product` | DoseBand | A statement about this product |
+| `organisation` | Organisation | Issued by the organisation. **Never authored here** |
+| `publicStandard` | Public standard | Cited, not reproduced |
+| `demo` | Demo | Demonstration content |
+| `notConfigured` | Not configured | Not supplied, and not invented |
+
+Rendered by `ContentSourceChip` in the *heading* of a `SafetySection`, so the
+author is read before the content rather than after. Every chip is neutral,
+including `organisation` — a green badge there would read as endorsement, and
+the question being answered is authorship, not reassurance.
+
+A test asserts nothing DoseBand authors is ever marked `organisation`. That is
+the failure this model exists to prevent: generated placeholder copy wearing
+the authority of a site procedure.
+
+## Monospace, extended
+
+The existing rule holds: monospace **means** the value is measured or
+traceable, and is not a decorative choice. In the corporate surfaces that
+covers identifiers and quantities — record IDs, badge and batch IDs,
+calibration IDs, PTW and JSA references, doses, durations, timestamps and
+version strings — and nothing else. A department name is not monospace.
+
+## The absent-value placeholder
+
+`Fmt.noValue` is `- - -`. One constant, used by the measurement readout, the
+traceability rows, the workflow screens, the HSE register and the report
+previews.
+
+It means *not known*. It is never replaced by `0`:
+
+* an unknown exposure window prints `- - -`, not `0 h 00 min`;
+* a refused measurement prints `- - -`, not `0.0 ppm·h`;
+* a record with no calibration prints `- - -`, not an estimate.
+
+`0 min` is a legitimate value and means a window that has genuinely just
+opened. The distinction between *zero* and *unknown* is the product.
+
+## Role navigation
+
+| Role | Pattern | Destinations |
+|---|---|---|
+| Worker | Bottom bar, always four | Home · Scan · Safety · History |
+| HSE | Bottom bar, rail at ≥720 px | Overview · Monitoring · Exposures · Review |
+| Reporting | Reached from HSE, sectioned index | — |
+| Admin | Sectioned index | — |
+
+The worker's four are a hard limit. PTW, JSA, badge, occupational health and
+account are reached from the work they belong to: they are steps in a task, and
+a task step promoted to a global destination loses its place in the sequence.
+Account sits behind the header avatar.
+
+Ten admin modules do not go in a bottom bar, so Admin and Reporting are
+sectioned indexes rather than tabbed shells.
+
+## Responsive and accessibility floor for the corporate surfaces
+
+* Tested at 360, 390 and 430 logical pixels wide, and at a wide layout for the
+  rail.
+* Every surface renders at **200% text** with no overflow. The hero header
+  sizes to its content for this reason — a fixed band clipped its own title.
+* The hero keeps a solid corporate ground *under* the photograph, so white
+  type still lands on dark green if the asset is missing or slow.
+* Selection is never carried by colour alone: chips carry a check mark, cards
+  carry a border and an indicator.
+* Origin chips carry a full sentence in `Semantics`, so a screen-reader user
+  gets the meaning rather than a word whose significance depends on having seen
+  the legend.
+
+## Imagery
+
+`BrandAssets.refineryBackdrop` appears on landing surfaces only — splash,
+sign-in header, Safety, HSE, Reporting and Admin heroes. Never behind a dense
+table, where it costs legibility and buys nothing, and never on every screen,
+which turns a strong image into wallpaper. Nothing is loaded from the network.
+
+
 ## What this system refuses to do
 
 Recorded so it is not re-litigated at each screen: no purple or gradient washes, no
@@ -266,3 +439,68 @@ glassmorphism, no identical rounded cards, no decorative charts, no dashboard va
 metrics, no medical-app visual language, no hazard stripes or alarm iconography, no
 colour-only status, no green for valid, no red except for destructive actions, no all-caps
 labels, no monospace for anything that is not a measured or traceable value.
+
+---
+
+## Decisions from UI-SURFACE-01-FINAL-AUDIT
+
+Recorded here because they changed shared components, not single screens.
+
+### Emphasis is neutral, never green
+
+`InfoCard(emphasis: true)` draws `MrplCorporateColors.emphasisBorder` — neutral
+ink at `Borders.emphasis` width — and never the corporate green.
+
+It previously reused `selectedBorder`. The audit found that three of the four
+emphasised cards in the product state an *absence*: "No production H₂S
+calibration available", "No production calibration available", and a device's
+untested validation state. In a safety product green conventionally means safe,
+cleared or approved, so a green edge around those sentences read as an
+endorsement of them.
+
+`selectedBorder` keeps its green, because selection is a state the user put a
+card into and carries no valence. Emphasis is the author saying *read this
+first*, and in this product what must be read first is usually bad news. Weight
+and contrast carry that; colour would editorialise it.
+
+There is deliberately no new warning colour. Introducing one would replace a
+false positive with a false alarm.
+
+### The three absence words are distinct, and stay distinct
+
+| Word | Meaning |
+|---|---|
+| **Not connected** | The integration or service exists conceptually; there is no live connection. |
+| **Not configured** | A configuration value is expected and the organisation has not supplied one. |
+| **Unavailable** | Data, evidence or a function cannot currently be provided. |
+
+They are not synonyms and must not be normalised into one another. A single
+outlier ("Not available") was folded into **Unavailable** during the audit; the
+three-way distinction itself was left intact because it encodes more than a
+uniform word would.
+
+### DEMO and SIMULATED are different claims
+
+- **DEMO** — fictional *organisational* data: a worker, a site, a department.
+  Carried by `OriginChip(DataOrigin.uiDemo)` and `DemoDataBanner`.
+- **SIMULATED** — a *quantity* that is not a real H₂S measurement. Carried by
+  `SimulationMarker` and the magenta `statusSimulated`.
+
+The magenta is reserved for the second meaning alone. A build-mode banner that
+had borrowed it was re-styled during the audit: it is about which build is
+running, not about measurement provenance, and letting the colour mean two
+things would cost it the one meaning that matters.
+
+### Titles carry the heading flag
+
+The three shared scaffolds — `SafetyScaffold`, `StepScaffold`, `AuthScaffold` —
+wrap their title in `Semantics(header: true)`. A title styled large is a heading
+only to someone who can see it; the flag is what lets a screen-reader user reach
+it. `/splash` is the one documented exemption.
+
+### Flexible beside flexible in a header row
+
+`Row(Expanded(name), StatusPill(...))` overflows at large text scales, because a
+rigid child has no width to give back. Record-card headers make both children
+flexible so the status label wraps. Labels wrap; they are never truncated — a
+half-shown measurement state is worse than a two-line one.

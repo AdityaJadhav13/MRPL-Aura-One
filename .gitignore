@@ -46,3 +46,8 @@ coverage/
 # Workspace: the root lock file is authoritative
 app/pubspec.lock
 packages/*/pubspec.lock
+__pycache__/
+*.pyc
+
+# Built APKs: large, reproducible, and identified by dist/SHA256SUMS.
+dist/*.apk

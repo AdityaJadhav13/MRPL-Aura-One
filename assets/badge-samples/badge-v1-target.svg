@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="60.0mm" height="40.0mm" viewBox="0 0 60.0 40.0">
+<!-- badge-v1-research. Print at 100%, no scaling. -->
+<!-- Reference patch values here are DESIGN-SPACE values and
+     are NOT physical colour ground truth. Measure the actual
+     print with a spectrophotometer before using them as
+     correction targets. See research/dossier-v0.md. -->
+<rect x="0" y="0" width="60.0" height="40.0" fill="#e1dfdb"/>
+<rect x="11.0" y="11.0" width="11.0" height="9.0" fill="#965aa0"/>
+<rect x="24.0" y="11.0" width="8.0" height="9.0" fill="#985c9e"/>
+<rect x="34.0" y="11.0" width="6.0" height="6.0" fill="#78aa78"/>
+<rect x="42.0" y="11.0" width="6.0" height="6.0" fill="#1c1c1c"/>
+<rect x="9.3" y="24.0" width="3.6" height="4.0" fill="#181818"/>
+<rect x="13.5" y="24.0" width="3.6" height="4.0" fill="#484848"/>
+<rect x="17.7" y="24.0" width="3.6" height="4.0" fill="#808080"/>
+<rect x="21.9" y="24.0" width="3.6" height="4.0" fill="#cdcdcd"/>
+<rect x="26.1" y="24.0" width="3.6" height="4.0" fill="#c43e34"/>
+<rect x="30.3" y="24.0" width="3.6" height="4.0" fill="#3e9e52"/>
+<rect x="34.5" y="24.0" width="3.6" height="4.0" fill="#3a4eba"/>
+<rect x="38.7" y="24.0" width="3.6" height="4.0" fill="#3ca0aa"/>
+<rect x="42.9" y="24.0" width="3.6" height="4.0" fill="#aa428c"/>
+<rect x="47.1" y="24.0" width="3.6" height="4.0" fill="#c8b43c"/>
+<rect x="5.5" y="5.5" width="5.0" height="5.0" fill="#101010"/>
+<rect x="50.0" y="6.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="50.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="6.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="28.75" y="6.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="28.75" y="30.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="6.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="50.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="15.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="43.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="0.1" y="0.1" width="59.8" height="39.8" fill="none" stroke="#999999" stroke-width="0.2" stroke-dasharray="1 1"/>
+<rect x="38.0" y="36.8" width="20" height="0.6" fill="#111111"/>
+<text x="38.0" y="38.6" font-family="monospace" font-size="1.6" fill="#111111">20 mm - verify with a ruler</text>
+</svg>

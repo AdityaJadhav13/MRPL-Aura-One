@@ -1,0 +1,33 @@
+{
+  "schema": "doseband-geometry-manifest/1",
+  "generated_by": "packages/measurement/tool/export_geometry.dart",
+  "note": "Generated. Do not edit. The canonical source is packages/measurement/geometry/; see its README.",
+  "geometries": [
+    {
+      "version": "badge-v1-research",
+      "asset": "assets/geometry/badge-v1-research.json",
+      "source": "geometry/badge-v1.geometry.json",
+      "sha256": "7e3f00e61166be2e036e8d3b3f4ba451ddf7e1e2a4bdd7518a646593cbd2b235",
+      "bytes": 7361,
+      "width_mm": 60.0,
+      "height_mm": 40.0,
+      "primary_fiducials": 4,
+      "secondary_fiducials": 6,
+      "supports_deformation_validation": true,
+      "reference_patches": 10
+    },
+    {
+      "version": "demo-badge-v0",
+      "asset": "assets/geometry/demo-badge-v0.json",
+      "source": "geometry/demo-badge-v0.geometry.json",
+      "sha256": "b56b2f093318def8c0b0e7a2983c487ede1061995d50fd8f28a42e4f20085bce",
+      "bytes": 2678,
+      "width_mm": 40.0,
+      "height_mm": 25.0,
+      "primary_fiducials": 4,
+      "secondary_fiducials": 0,
+      "supports_deformation_validation": false,
+      "reference_patches": 6
+    }
+  ]
+}

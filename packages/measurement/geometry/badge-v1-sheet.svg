@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="210.0mm" height="297.0mm" viewBox="0 0 210.0 297.0">
+<!-- badge-v1-research print sheet.
+     PRINT AT 100% / ACTUAL SIZE.
+     Disable: fit to page, shrink to fit, scale to margins.
+     Then MEASURE the 100 mm bar before photographing.
+
+     Reference patch values are DESIGN-SPACE values and are NOT
+     physical colour ground truth. A print is not a measured
+     colour. See research/dossier-v0-results.md. -->
+<rect x="0" y="0" width="210.0" height="297.0" fill="#ffffff"/>
+<text x="12.0" y="16.0" font-family="monospace" font-size="4.2" font-weight="bold" fill="#111111">DoseBand badge-v1-research — M0C print sheet</text>
+<text x="12.0" y="21.0" font-family="monospace" font-size="2.8" fill="#111111">PRINT AT 100%. Disable fit-to-page. Measure the 100 mm bar below before photographing.</text>
+<text x="12.0" y="25.0" font-family="monospace" font-size="2.8" fill="#444444">Badge is 60.0 x 40.0 mm. A colour printer is required: 6 of 10 reference patches are chromatic.</text>
+<rect x="12.0" y="32.0" width="100" height="0.8" fill="#111111"/>
+<rect x="11.85" y="29.0" width="0.3" height="3.0" fill="#111111"/>
+<text x="12.0" y="28.2" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">0</text>
+<rect x="21.85" y="30.2" width="0.3" height="1.8" fill="#111111"/>
+<text x="22.0" y="29.4" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">10</text>
+<rect x="31.85" y="30.2" width="0.3" height="1.8" fill="#111111"/>
+<text x="32.0" y="29.4" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">20</text>
+<rect x="41.85" y="30.2" width="0.3" height="1.8" fill="#111111"/>
+<text x="42.0" y="29.4" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">30</text>
+<rect x="51.85" y="30.2" width="0.3" height="1.8" fill="#111111"/>
+<text x="52.0" y="29.4" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">40</text>
+<rect x="61.85" y="29.0" width="0.3" height="3.0" fill="#111111"/>
+<text x="62.0" y="28.2" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">50</text>
+<rect x="71.85" y="30.2" width="0.3" height="1.8" fill="#111111"/>
+<text x="72.0" y="29.4" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">60</text>
+<rect x="81.85" y="30.2" width="0.3" height="1.8" fill="#111111"/>
+<text x="82.0" y="29.4" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">70</text>
+<rect x="91.85" y="30.2" width="0.3" height="1.8" fill="#111111"/>
+<text x="92.0" y="29.4" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">80</text>
+<rect x="101.85" y="30.2" width="0.3" height="1.8" fill="#111111"/>
+<text x="102.0" y="29.4" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">90</text>
+<rect x="111.85" y="29.0" width="0.3" height="3.0" fill="#111111"/>
+<text x="112.0" y="28.2" font-family="monospace" font-size="2.2" text-anchor="middle" fill="#111111">100</text>
+<text x="116.0" y="33.0" font-family="monospace" font-size="2.6" fill="#111111">100 mm — if this measures otherwise, the print is rescaled</text>
+<g transform="translate(12.0, 46.0)">
+<rect x="0" y="0" width="60.0" height="40.0" fill="#e1dfdb"/>
+<rect x="11.0" y="11.0" width="11.0" height="9.0" fill="#965aa0"/>
+<rect x="24.0" y="11.0" width="8.0" height="9.0" fill="#985c9e"/>
+<rect x="34.0" y="11.0" width="6.0" height="6.0" fill="#78aa78"/>
+<rect x="42.0" y="11.0" width="6.0" height="6.0" fill="#1c1c1c"/>
+<rect x="9.3" y="24.0" width="3.6" height="4.0" fill="#181818"/>
+<rect x="13.5" y="24.0" width="3.6" height="4.0" fill="#484848"/>
+<rect x="17.7" y="24.0" width="3.6" height="4.0" fill="#808080"/>
+<rect x="21.9" y="24.0" width="3.6" height="4.0" fill="#cdcdcd"/>
+<rect x="26.1" y="24.0" width="3.6" height="4.0" fill="#c43e34"/>
+<rect x="30.3" y="24.0" width="3.6" height="4.0" fill="#3e9e52"/>
+<rect x="34.5" y="24.0" width="3.6" height="4.0" fill="#3a4eba"/>
+<rect x="38.7" y="24.0" width="3.6" height="4.0" fill="#3ca0aa"/>
+<rect x="42.9" y="24.0" width="3.6" height="4.0" fill="#aa428c"/>
+<rect x="47.1" y="24.0" width="3.6" height="4.0" fill="#c8b43c"/>
+<rect x="5.5" y="5.5" width="5.0" height="5.0" fill="#101010"/>
+<rect x="50.0" y="6.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="50.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="6.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="28.75" y="6.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="28.75" y="30.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="6.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="50.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="15.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="43.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="-0.4" y="-0.4" width="60.8" height="40.8" fill="none" stroke="#bbbbbb" stroke-width="0.2" stroke-dasharray="1 1"/>
+<text x="0" y="44.0" font-family="monospace" font-size="2.4" fill="#111111">S1  badge-v1-research</text>
+</g>
+<g transform="translate(80.0, 46.0)">
+<rect x="0" y="0" width="60.0" height="40.0" fill="#e1dfdb"/>
+<rect x="11.0" y="11.0" width="11.0" height="9.0" fill="#965aa0"/>
+<rect x="24.0" y="11.0" width="8.0" height="9.0" fill="#985c9e"/>
+<rect x="34.0" y="11.0" width="6.0" height="6.0" fill="#78aa78"/>
+<rect x="42.0" y="11.0" width="6.0" height="6.0" fill="#1c1c1c"/>
+<rect x="9.3" y="24.0" width="3.6" height="4.0" fill="#181818"/>
+<rect x="13.5" y="24.0" width="3.6" height="4.0" fill="#484848"/>
+<rect x="17.7" y="24.0" width="3.6" height="4.0" fill="#808080"/>
+<rect x="21.9" y="24.0" width="3.6" height="4.0" fill="#cdcdcd"/>
+<rect x="26.1" y="24.0" width="3.6" height="4.0" fill="#c43e34"/>
+<rect x="30.3" y="24.0" width="3.6" height="4.0" fill="#3e9e52"/>
+<rect x="34.5" y="24.0" width="3.6" height="4.0" fill="#3a4eba"/>
+<rect x="38.7" y="24.0" width="3.6" height="4.0" fill="#3ca0aa"/>
+<rect x="42.9" y="24.0" width="3.6" height="4.0" fill="#aa428c"/>
+<rect x="47.1" y="24.0" width="3.6" height="4.0" fill="#c8b43c"/>
+<rect x="5.5" y="5.5" width="5.0" height="5.0" fill="#101010"/>
+<rect x="50.0" y="6.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="50.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="6.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="28.75" y="6.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="28.75" y="30.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="6.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="50.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="15.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="43.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="-0.4" y="-0.4" width="60.8" height="40.8" fill="none" stroke="#bbbbbb" stroke-width="0.2" stroke-dasharray="1 1"/>
+<text x="0" y="44.0" font-family="monospace" font-size="2.4" fill="#111111">S2  badge-v1-research</text>
+</g>
+<g transform="translate(12.0, 100.0)">
+<rect x="0" y="0" width="60.0" height="40.0" fill="#e1dfdb"/>
+<rect x="11.0" y="11.0" width="11.0" height="9.0" fill="#965aa0"/>
+<rect x="24.0" y="11.0" width="8.0" height="9.0" fill="#985c9e"/>
+<rect x="34.0" y="11.0" width="6.0" height="6.0" fill="#78aa78"/>
+<rect x="42.0" y="11.0" width="6.0" height="6.0" fill="#1c1c1c"/>
+<rect x="9.3" y="24.0" width="3.6" height="4.0" fill="#181818"/>
+<rect x="13.5" y="24.0" width="3.6" height="4.0" fill="#484848"/>
+<rect x="17.7" y="24.0" width="3.6" height="4.0" fill="#808080"/>
+<rect x="21.9" y="24.0" width="3.6" height="4.0" fill="#cdcdcd"/>
+<rect x="26.1" y="24.0" width="3.6" height="4.0" fill="#c43e34"/>
+<rect x="30.3" y="24.0" width="3.6" height="4.0" fill="#3e9e52"/>
+<rect x="34.5" y="24.0" width="3.6" height="4.0" fill="#3a4eba"/>
+<rect x="38.7" y="24.0" width="3.6" height="4.0" fill="#3ca0aa"/>
+<rect x="42.9" y="24.0" width="3.6" height="4.0" fill="#aa428c"/>
+<rect x="47.1" y="24.0" width="3.6" height="4.0" fill="#c8b43c"/>
+<rect x="5.5" y="5.5" width="5.0" height="5.0" fill="#101010"/>
+<rect x="50.0" y="6.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="50.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="6.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="28.75" y="6.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="28.75" y="30.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="6.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="50.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="15.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="43.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="-0.4" y="-0.4" width="60.8" height="40.8" fill="none" stroke="#bbbbbb" stroke-width="0.2" stroke-dasharray="1 1"/>
+<text x="0" y="44.0" font-family="monospace" font-size="2.4" fill="#111111">S3  badge-v1-research</text>
+</g>
+<g transform="translate(80.0, 100.0)">
+<rect x="0" y="0" width="60.0" height="40.0" fill="#e1dfdb"/>
+<rect x="11.0" y="11.0" width="11.0" height="9.0" fill="#965aa0"/>
+<rect x="24.0" y="11.0" width="8.0" height="9.0" fill="#985c9e"/>
+<rect x="34.0" y="11.0" width="6.0" height="6.0" fill="#78aa78"/>
+<rect x="42.0" y="11.0" width="6.0" height="6.0" fill="#1c1c1c"/>
+<rect x="9.3" y="24.0" width="3.6" height="4.0" fill="#181818"/>
+<rect x="13.5" y="24.0" width="3.6" height="4.0" fill="#484848"/>
+<rect x="17.7" y="24.0" width="3.6" height="4.0" fill="#808080"/>
+<rect x="21.9" y="24.0" width="3.6" height="4.0" fill="#cdcdcd"/>
+<rect x="26.1" y="24.0" width="3.6" height="4.0" fill="#c43e34"/>
+<rect x="30.3" y="24.0" width="3.6" height="4.0" fill="#3e9e52"/>
+<rect x="34.5" y="24.0" width="3.6" height="4.0" fill="#3a4eba"/>
+<rect x="38.7" y="24.0" width="3.6" height="4.0" fill="#3ca0aa"/>
+<rect x="42.9" y="24.0" width="3.6" height="4.0" fill="#aa428c"/>
+<rect x="47.1" y="24.0" width="3.6" height="4.0" fill="#c8b43c"/>
+<rect x="5.5" y="5.5" width="5.0" height="5.0" fill="#101010"/>
+<rect x="50.0" y="6.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="50.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="6.0" y="30.0" width="4.0" height="4.0" fill="#101010"/>
+<rect x="28.75" y="6.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="28.75" y="30.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="6.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="50.75" y="18.75" width="2.5" height="2.5" fill="#101010"/>
+<rect x="15.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="43.0" y="21.0" width="2.0" height="2.0" fill="#101010"/>
+<rect x="-0.4" y="-0.4" width="60.8" height="40.8" fill="none" stroke="#bbbbbb" stroke-width="0.2" stroke-dasharray="1 1"/>
+<text x="0" y="44.0" font-family="monospace" font-size="2.4" fill="#111111">S4  badge-v1-research</text>
+</g>
+<text x="12.0" y="160.0" font-family="monospace" font-size="3.2" font-weight="bold" fill="#111111">PRINT RECORD — complete by hand before capture</text>
+<text x="12.0" y="166.5" font-family="monospace" font-size="2.6" fill="#111111">Printer make / model</text>
+<rect x="84.0" y="167.3" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="171.9" font-family="monospace" font-size="2.6" fill="#111111">Printer technology (laser / inkjet)</text>
+<rect x="84.0" y="172.70000000000002" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="177.3" font-family="monospace" font-size="2.6" fill="#111111">Colour or monochrome</text>
+<rect x="84.0" y="178.10000000000002" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="182.7" font-family="monospace" font-size="2.6" fill="#111111">Paper type and finish</text>
+<rect x="84.0" y="183.5" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="188.1" font-family="monospace" font-size="2.6" fill="#111111">Print quality mode</text>
+<rect x="84.0" y="188.9" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="193.5" font-family="monospace" font-size="2.6" fill="#111111">Colour mode / ICC profile</text>
+<rect x="84.0" y="194.3" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="198.9" font-family="monospace" font-size="2.6" fill="#111111">Software used to print</text>
+<rect x="84.0" y="199.70000000000002" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="204.3" font-family="monospace" font-size="2.6" fill="#111111">Requested scale (must be 100%)</text>
+<rect x="84.0" y="205.10000000000002" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="209.7" font-family="monospace" font-size="2.6" fill="#111111">Date printed</text>
+<rect x="84.0" y="210.5" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="215.1" font-family="monospace" font-size="2.6" fill="#111111">MEASURED length of the 100 mm bar</text>
+<rect x="84.0" y="215.9" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="220.5" font-family="monospace" font-size="2.6" fill="#111111">MEASURED badge width (expected 60.0 mm)</text>
+<rect x="84.0" y="221.3" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="225.9" font-family="monospace" font-size="2.6" fill="#111111">MEASURED badge height (expected 40.0 mm)</text>
+<rect x="84.0" y="226.70000000000002" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="231.3" font-family="monospace" font-size="2.6" fill="#111111">Scale error (measured / expected)</text>
+<rect x="84.0" y="232.10000000000002" width="114.0" height="0.2" fill="#999999"/>
+<text x="12.0" y="236.7" font-family="monospace" font-size="2.6" fill="#111111">Operator</text>
+<rect x="84.0" y="237.5" width="114.0" height="0.2" fill="#999999"/>
+</svg>

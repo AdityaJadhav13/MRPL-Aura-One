@@ -1,0 +1,286 @@
+{
+  "version": "badge-v1-research",
+  "_comment": [
+    "RESEARCH BADGE GEOMETRY V1. Not a product badge. Its layout carries no",
+    "chemical meaning and its reference values are NOT frozen. It exists to be",
+    "printed as a flat optical target for dossier V0, which is an experiment",
+    "about the PHONE READER, not about H2S. See research/dossier-v0.md.",
+    "",
+    "DESIGN RULES. Each comes from a finding, not a preference.",
+    "",
+    "R1 - Redundant geometric control. Four primary corner fiducials fit the",
+    "     pose; six secondary markers are withheld from the fit and exist only",
+    "     to measure residual, deformation and print distortion. Four points",
+    "     fit a homography exactly, so a four-point residual is zero by",
+    "     construction and says nothing about flatness.",
+    "     See docs/computer-vision/pipeline.md section 2.1.",
+    "",
+    "R2 - Orientation by size. FID-TL is 5 mm where the other primaries are",
+    "     4 mm. A square of identical markers has a four-fold rotational",
+    "     ambiguity and a size difference is the cheapest unambiguous break.",
+    "     Superseded if the fiducial benchmark selects ArUco or AprilTag,",
+    "     which carry orientation in the marker itself.",
+    "",
+    "R3 - The light neutral reference has HEADROOM (205, not 245). A near",
+    "     white patch clips its red channel under a warm illuminant before",
+    "     anything else on the badge is in trouble, costing the colour",
+    "     correction its brightest anchor exactly when it is most needed.",
+    "     Found by test - finding M0A-3.",
+    "",
+    "R4 - The reference set is NOT all-neutral. Neutrals are collinear in RGB:",
+    "     they constrain gain and say nothing about how the channels mix,",
+    "     which is what an illuminant change does. Six chromatic patches give",
+    "     the correction adequate rank. Found by test - finding M0A-4.",
+    "",
+    "R5 - Every printed feature lies inside the quadrilateral formed by the",
+    "     four primary fiducial CENTRES. Detection identifies corners as the",
+    "     four candidates enclosing the largest quadrilateral, so ink that",
+    "     extends beyond a corner marker's centre can displace it. An earlier",
+    "     draft overhung by 2 mm and the detector picked a reference patch as",
+    "     a corner. Finding M0B-2.",
+    "",
+    "R6 - QUIET ZONE. Every printed feature sits at least one fiducial width",
+    "     from the badge edge. Adaptive thresholding against a dark background",
+    "     creates a spurious dark rim just inside the badge boundary; without",
+    "     this margin the rim merges with the corner markers and the whole",
+    "     badge becomes one connected component that the size filter then",
+    "     discards. Detection failed completely at 45 degrees of rotation",
+    "     before this rule existed. Finding M0B-3.",
+    "",
+    "Reference patch COLOURS live in the renderer, not here: this file is",
+    "geometry. Measured values for a real print lot belong in",
+    "reference_profiles.patch_values and must be measured, not assumed."
+  ],
+  "width_mm": 60.0,
+  "height_mm": 40.0,
+  "fiducials": [
+    {
+      "id": "FID-TL",
+      "centre_mm": [
+        8.0,
+        8.0
+      ],
+      "size_mm": 5.0,
+      "orientation_marker": true,
+      "role": "primary"
+    },
+    {
+      "id": "FID-TR",
+      "centre_mm": [
+        52.0,
+        8.0
+      ],
+      "size_mm": 4.0,
+      "orientation_marker": false,
+      "role": "primary"
+    },
+    {
+      "id": "FID-BR",
+      "centre_mm": [
+        52.0,
+        32.0
+      ],
+      "size_mm": 4.0,
+      "orientation_marker": false,
+      "role": "primary"
+    },
+    {
+      "id": "FID-BL",
+      "centre_mm": [
+        8.0,
+        32.0
+      ],
+      "size_mm": 4.0,
+      "orientation_marker": false,
+      "role": "primary"
+    },
+    {
+      "id": "VAL-T",
+      "centre_mm": [
+        30.0,
+        8.0
+      ],
+      "size_mm": 2.5,
+      "orientation_marker": false,
+      "role": "secondary"
+    },
+    {
+      "id": "VAL-B",
+      "centre_mm": [
+        30.0,
+        32.0
+      ],
+      "size_mm": 2.5,
+      "orientation_marker": false,
+      "role": "secondary"
+    },
+    {
+      "id": "VAL-L",
+      "centre_mm": [
+        8.0,
+        20.0
+      ],
+      "size_mm": 2.5,
+      "orientation_marker": false,
+      "role": "secondary"
+    },
+    {
+      "id": "VAL-R",
+      "centre_mm": [
+        52.0,
+        20.0
+      ],
+      "size_mm": 2.5,
+      "orientation_marker": false,
+      "role": "secondary"
+    },
+    {
+      "id": "VAL-M1",
+      "centre_mm": [
+        16.0,
+        22.0
+      ],
+      "size_mm": 2.0,
+      "orientation_marker": false,
+      "role": "secondary"
+    },
+    {
+      "id": "VAL-M2",
+      "centre_mm": [
+        44.0,
+        22.0
+      ],
+      "size_mm": 2.0,
+      "orientation_marker": false,
+      "role": "secondary"
+    }
+  ],
+  "rois": [
+    {
+      "id": "A1",
+      "kind": "sensor",
+      "x_mm": 11.0,
+      "y_mm": 11.0,
+      "width_mm": 11.0,
+      "height_mm": 9.0,
+      "erosion_mm": 1.0
+    },
+    {
+      "id": "B",
+      "kind": "blank",
+      "x_mm": 24.0,
+      "y_mm": 11.0,
+      "width_mm": 8.0,
+      "height_mm": 9.0,
+      "erosion_mm": 1.0
+    },
+    {
+      "id": "E",
+      "kind": "expiry",
+      "x_mm": 34.0,
+      "y_mm": 11.0,
+      "width_mm": 6.0,
+      "height_mm": 6.0,
+      "erosion_mm": 0.75
+    },
+    {
+      "id": "QR",
+      "kind": "identifier",
+      "x_mm": 42.0,
+      "y_mm": 11.0,
+      "width_mm": 6.0,
+      "height_mm": 6.0,
+      "erosion_mm": 0.0
+    },
+    {
+      "id": "REF-BLACK",
+      "kind": "reference",
+      "x_mm": 9.3,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    },
+    {
+      "id": "REF-DARK",
+      "kind": "reference",
+      "x_mm": 13.5,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    },
+    {
+      "id": "REF-MID",
+      "kind": "reference",
+      "x_mm": 17.7,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    },
+    {
+      "id": "REF-LIGHT",
+      "kind": "reference",
+      "x_mm": 21.9,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    },
+    {
+      "id": "REF-RED",
+      "kind": "reference",
+      "x_mm": 26.1,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    },
+    {
+      "id": "REF-GREEN",
+      "kind": "reference",
+      "x_mm": 30.3,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    },
+    {
+      "id": "REF-BLUE",
+      "kind": "reference",
+      "x_mm": 34.5,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    },
+    {
+      "id": "REF-CYAN",
+      "kind": "reference",
+      "x_mm": 38.7,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    },
+    {
+      "id": "REF-MAGENTA",
+      "kind": "reference",
+      "x_mm": 42.9,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    },
+    {
+      "id": "REF-YELLOW",
+      "kind": "reference",
+      "x_mm": 47.1,
+      "y_mm": 24.0,
+      "width_mm": 3.6,
+      "height_mm": 4.0,
+      "erosion_mm": 0.55
+    }
+  ]
+}

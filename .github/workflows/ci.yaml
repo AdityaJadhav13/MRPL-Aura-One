@@ -31,6 +31,21 @@ jobs:
         run: dart test
         working-directory: packages/measurement
 
+      # Geometry has one canonical home: packages/measurement/geometry/. The
+      # Flutter asset is EXPORTED from it, never maintained alongside it.
+      # Regenerating here and diffing is what makes "single source of truth" a
+      # property rather than an intention: a hand-edited asset, or a canonical
+      # edit that was never exported, fails the build.
+      - name: Packaged geometry matches the canonical source
+        working-directory: packages/measurement
+        run: |
+          dart run tool/export_geometry.dart
+          if ! git diff --exit-code -- ../../app/assets/geometry; then
+            echo "::error::app/assets/geometry is out of date."
+            echo "Run: cd packages/measurement && dart run tool/export_geometry.dart"
+            exit 1
+          fi
+
   app:
     name: Flutter app
     runs-on: ubuntu-latest
@@ -75,15 +90,85 @@ jobs:
       # broken; it is never a release candidate. Release signing needs
       # android/key.properties, which is not available to CI.
       - name: Build (dev flavour)
-        run: flutter build appbundle --flavor dev -t lib/main_dev.dart --debug
+        run: flutter build apk --flavor dev -t lib/main_dev.dart --debug
         working-directory: app
 
-  # Enabled from Phase 7, when supabase/migrations/ has content.
-  database:
-    name: Database constraints and RLS
+      # Plugins inject permissions through manifest merging. The camera plugin
+      # adds RECORD_AUDIO and storage permissions even with audio disabled;
+      # they are removed in AndroidManifest.xml and this check is what keeps
+      # them removed. A badge reader that asks for the microphone invites
+      # exactly the suspicion that would stop workers using it.
+      - name: Permissions are only CAMERA and INTERNET
+        working-directory: app
+        run: |
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | tail -1)
+          ACTUAL=$("$AAPT" dump permissions \
+            build/app/outputs/flutter-apk/app-dev-debug.apk \
+            | grep "^uses-permission" \
+            | sed "s/.*name='//;s/'.*//" \
+            | grep -v 'DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION' \
+            | sort)
+          EXPECTED=$(printf 'android.permission.CAMERA\nandroid.permission.INTERNET')
+          echo "declared:"; echo "$ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::unexpected permissions in the built APK"
+            diff <(echo "$EXPECTED") <(echo "$ACTUAL") || true
+            exit 1
+          fi
+
+  # Both stacks must reproduce golden-vectors/vectors.json. A calibration model
+  # fitted in Python and applied in Dart is only valid if the two compute the
+  # same features; this job is what makes a divergence fail loudly instead of
+  # showing up later as an unexplained bias. See golden-vectors/README.md.
+  parity:
+    name: Cross-language golden vectors
     runs-on: ubuntu-latest
-    if: false
     steps:
       - uses: actions/checkout@v4
-      - name: pgTAP
-        run: echo "Phase 7. See docs/architecture/testing-strategy.md T3."
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python side
+        # No dependencies to install: doseband_reference.py is stdlib-only,
+        # deliberately, so that agreement is not an artefact of both stacks
+        # calling the same C library.
+        run: python3 check_parity.py
+        working-directory: golden-vectors
+
+  # The dose_only_when_valid constraint is described in the README and in
+  # docs/architecture/data-model.md as a safety property of this system. This
+  # job is what makes that description true.
+  database:
+    name: Measurement result invariants
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migrations
+        run: |
+          psql -h localhost -U postgres -c 'create database doseband'
+          for migration in supabase/migrations/*.sql; do
+            echo "applying $migration"
+            psql -h localhost -U postgres -d doseband -v ON_ERROR_STOP=1 -q -f "$migration"
+          done
+      - name: Verify invariants
+        # Plain SQL rather than pgTAP: it needs only a stock postgres image,
+        # and the invariant it checks is too important to run only when a
+        # pgTAP-enabled stack happens to be available. The pgTAP suite in
+        # supabase/tests/ remains for `supabase test db`.
+        run: |
+          psql -h localhost -U postgres -d doseband -v ON_ERROR_STOP=1 \
+            -f supabase/tests/verify_invariants_plain.sql

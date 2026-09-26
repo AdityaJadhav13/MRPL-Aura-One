@@ -29,31 +29,96 @@ checks afterwards, so overriding the guidance does not override the measurement 
 
 ## 1. Fiducial detection
 
-The badge carries four high-contrast corner markers at positions defined by
-`badge_geometries.roi_definition`. Because we control the badge design, this is a solved
-geometry problem rather than an open detection problem.
+The badge carries four high-contrast **primary corner fiducials** at positions defined by
+`badge_geometries.roi_definition`, plus a set of **secondary validation features** (see §2.2).
+Because we control the badge design, this is a bounded geometry problem rather than an open
+detection problem.
 
-Adaptive threshold (integral-image Bradley) → connected components → filter by area, aspect
-and fill ratio → sub-pixel centroid by intensity-weighted moments → identify the four by
-relative geometry, with one asymmetric marker fixing orientation.
+The detector is selected by measurement, not by authorship. Candidates and the benchmark that
+decides between them are in `research/fiducial-benchmark.md`; the current implementation is
+the custom DoseBand detector (adaptive threshold → connected components → shape filtering →
+sub-pixel corner refinement → geometric identification), and it remains on probation against
+ArUco and AprilTag until the benchmark runs on dossier V0 photographs.
 
-Fewer than four confident fiducials → refuse. Do not guess a fourth corner; a wrong homography
-produces a beautifully rectified image of the wrong region.
+Fewer than four confident primary fiducials → refuse. Do not guess a fourth corner; a wrong
+homography produces a beautifully rectified image of the wrong region.
 
 ## 2. Homography and rectification
 
-Normalised DLT from the four correspondences (Hartley normalisation, then SVD of the 8×9
-design matrix). Rectification is an inverse warp with bilinear sampling into canonical badge
-millimetre space at a fixed pixels-per-mm.
+Normalised DLT from the four primary correspondences (Hartley normalisation, then the null
+space of the 8×9 design matrix, obtained via Jacobi eigen-decomposition of AᵀA). Rectification
+is an inverse warp with bilinear sampling into canonical badge millimetre space at a fixed
+pixels-per-mm.
 
-Validity checks on the homography itself: condition number within bounds, positive
-determinant, no extreme anisotropic scaling, and reprojection residual on the fiducials below
-threshold. A curved or bent badge shows up here as elevated residual, which matters because
-the dossier warns explicitly that a curved surface is not automatically planar.
+### 2.1 What a four-point residual can and cannot tell you
 
-Insufficient source resolution for the target pixels-per-mm → refuse. Upsampling invents
-detail, and invented detail is exactly the failure mode this whole architecture exists to
-prevent.
+**Correction (M0A).** An earlier version of this document stated that "a curved or bent badge
+shows up here as elevated residual". **That claim was wrong**, and the correction matters
+enough to state plainly:
+
+> A planar homography has **eight degrees of freedom**. Four point correspondences supply
+> exactly eight equations. The system is exactly determined, so a homography can be fitted
+> through **any** four correspondences with zero residual — including four points that could
+> not possibly lie on a common plane.
+
+The reprojection residual of the four points used to fit `H` is therefore **identically zero
+by construction**, and carries no information whatsoever about badge planarity, print
+distortion or deformation. Verified as a test:
+`packages/measurement/test/geometry/homography_test.dart`, "four correspondences always fit
+exactly, so the residual carries no information about planarity".
+
+This is the same error as validating a colour correction on the patches used to fit it (§3.4).
+In both cases a model is being scored on its own inputs.
+
+### 2.2 Redundant geometric control
+
+Non-planarity is detectable only when the fit is **over-determined**. The badge therefore
+carries geometric features beyond the four needed for the pose:
+
+| Role | Used to fit `H`? | Used to validate? |
+|---|---|---|
+| Primary corner fiducials (4) | Yes | No — their residual is structurally zero |
+| Secondary validation features | **No** | Yes |
+
+Secondary features are printed at known canonical positions and are deliberately **withheld
+from the fit**. Their residuals are real measurements. From them:
+
+- **Global reprojection residual** — RMS over the withheld features. A flat, correctly printed
+  badge gives a small value; deformation raises it.
+- **Local residual pattern** — the residual *field* over the badge, not just its magnitude.
+  Different causes have different signatures, and telling them apart is the open research
+  question:
+  - a **cylindrical bend** (wristband curvature) should produce residuals that grow
+    monotonically along one axis and stay near zero along the other;
+  - **print scale error** should produce a residual field that is radial/affine in character;
+  - a **single corrupted marker** should produce one large residual among small ones;
+  - **local creasing** should produce a spatially clustered anomaly.
+- **Partial marker corruption** — a secondary feature that is detected but lands far from
+  prediction is evidence about that region, not about the whole badge.
+
+Over-determined estimation also lets the primary set be validated rather than trusted: with
+enough secondary features the pose can be re-fitted leaving one primary out, and a primary
+whose omission materially moves the pose is a suspect detection.
+
+**No bend tolerance is specified here, and none may be invented.** The thresholds that separate
+"acceptable print and handling variation" from "reject this image" are physical quantities
+about a badge that does not exist yet. They come from dossier V0 (`research/dossier-v0.md`),
+which photographs deliberately curved targets for exactly this purpose. Until then the
+residual is **computed and reported**, and the gate is provisional and labelled as such.
+
+### 2.3 Other validity checks on the homography itself
+
+Null-space margin within bounds (see below), positive determinant, no extreme anisotropic
+scaling, and sufficient source resolution for the target pixels-per-mm — upsampling invents
+detail, and invented detail is exactly the failure mode this architecture exists to prevent.
+
+**A note on conditioning.** The natural check — "condition number of `AᵀA` below a threshold"
+— is wrong here, and was implemented wrongly before being caught by a test. For a *correct*
+homography the smallest eigenvalue of `AᵀA` is essentially zero: that null space **is** the
+answer. Largest-over-smallest is therefore enormous precisely when the fit is perfect. What
+actually distinguishes a usable configuration from a degenerate one is whether the null space
+is one-dimensional, so the implementation reports the ratio of the **second**-smallest to the
+largest eigenvalue, and larger is better.
 
 ## 3. Colour science
 

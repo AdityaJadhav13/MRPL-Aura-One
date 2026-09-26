@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'corporate_colors.dart';
 import 'semantic_colors.dart';
 import 'tokens.dart';
 import 'typography.dart';
@@ -10,12 +11,23 @@ extension DoseBandTheme on BuildContext {
   DoseBandColors get colours => Theme.of(this).extension<DoseBandColors>()!;
   DoseBandTypography get type =>
       Theme.of(this).extension<DoseBandTypography>()!;
+
+  /// The MRPL-inspired corporate palette.
+  ///
+  /// Only the authentication and identity shell may read this. The instrument
+  /// surfaces stay on [colours], which is neutral by design — see
+  /// [MrplCorporateColors].
+  MrplCorporateColors get corporate =>
+      Theme.of(this).extension<MrplCorporateColors>()!;
 }
 
 ThemeData buildDoseBandTheme({required Brightness brightness}) {
   final isLight = brightness == Brightness.light;
   final c = isLight ? DoseBandColors.light : DoseBandColors.dark;
   final t = DoseBandTypography.standard;
+  final corporate = isLight
+      ? MrplCorporateColors.light
+      : MrplCorporateColors.dark;
 
   // Material's ColorScheme still drives built-in widgets, so it is mapped onto
   // the semantic tokens rather than left at its defaults.
@@ -39,7 +51,7 @@ ThemeData buildDoseBandTheme({required Brightness brightness}) {
     colorScheme: scheme,
     scaffoldBackgroundColor: c.surfacePrimary,
     splashFactory: InkSparkle.splashFactory,
-    extensions: [c, t],
+    extensions: [c, t, corporate],
     textTheme: TextTheme(
       displaySmall: t.display.copyWith(color: c.textPrimary),
       headlineSmall: t.heading.copyWith(color: c.textPrimary),

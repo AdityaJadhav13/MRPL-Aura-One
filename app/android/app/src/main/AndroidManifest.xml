@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Directive section 34: minimise permissions. The camera IS the instrument;
          the network is needed to sync records and pull calibration models.
@@ -6,6 +7,27 @@
          no broad file access. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- The camera plugin injects these through manifest merging, even with
+         enableAudio: false. They are removed explicitly.
+
+         RECORD_AUDIO on a worker-safety app is not a cosmetic problem: a badge
+         reader that asks for the microphone invites exactly the suspicion that
+         would stop workers using it. The storage permissions are equally
+         unwanted - captured images stay in app-private storage.
+
+         Found by inspecting the merged manifest of a built APK after adding
+         the camera dependency, not by reading the plugin's documentation.
+         Whenever a plugin is added, dump the built APK's permissions and
+         check them against this list. Finding M0B-6. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"
+        tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
 
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
