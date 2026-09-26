@@ -47,6 +47,10 @@ dev_dependencies:
   image: ^4.10.1
 
 flutter:
+  # Plain `flutter run` installs the dev flavour, matching lib/main.dart.
+  # Without this Gradle builds all three flavours and the tool cannot tell
+  # which APK to install.
+  default-flavor: dev
   uses-material-design: true
 
   assets:
