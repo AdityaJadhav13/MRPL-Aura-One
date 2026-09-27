@@ -110,6 +110,20 @@ abstract final class Accent {
 /// The logo green itself is 4.48:1 on white — just under the 4.5:1 floor for
 /// body text — so text and filled controls use the L*46 step, and the exact
 /// logo value is kept for identity marks only.
+/// Flat colours for the painted site plates on Select Site (used where a
+/// site has no photograph). Solid fills only: the sky that used to be a
+/// gradient is one tone.
+abstract final class SitePlate {
+  static const Color sky = Color(0xFFD4E2EC);
+  static const Color ground = Color(0xFFD8DEDB);
+  static const Color structure = Color(0xFF6E7B75);
+  static const Color structureLight = Color(0xFF98A5A0);
+  static const Color facade = Color(0xFF7E93A2);
+  static const Color glazingUpper = Color(0xFFE6EEF3);
+  static const Color glazing = Color(0xFFB2C6D4);
+  static const Color steel = Color(0xFFA9763F);
+}
+
 abstract final class Brand {
   /// L*97. Barely-there tint for a selected row's ground.
   static const Color green97 = Color(0xFFF4F8EE);
