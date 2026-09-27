@@ -7,6 +7,7 @@
 | Widths | 320×568, 360×640, 390×844, 412×915, 430×932, 600×960, 800×1280, 844×390 landscape, 1280×800 landscape |
 | Text scale | 100, 130, 150, 200 % (worker shell matrix); 100 and 200 % every route at 320 px |
 | Safe area | Notch 59/34, gesture insets 24/16 |
+| Worker flow matrix | Sign In, Select Site, Select Role, Home, Profile, Settings, Safety, History at 320×568 … 800×1280 and 844×390, 100 and 200 % (`test/surface/worker_matrix_test.dart`) |
 | Touch targets | Navigation, central Scan, Home primary, sign-in, pre-use: ≥ 48 / 56 px at 320 px, 100 and 200 % |
 | Rail vs bar | Every workspace: floating bar on phone, rail ≥ 720 px |
 | Keyboard | Bar steps aside when the keyboard is up (existing foundation test) |
@@ -15,9 +16,9 @@
 on hardware; real camera permission prompts; real QR decoding from a
 camera sensor; performance on low-end hardware.
 
-## Test inventory (0.4.0+4)
+## Test inventory (0.5.0+5)
 
-App 1 052 · engine 312 · parity 394/394 · geometry drift 75.
+App 1 111 (0.4.0+4: 1 052) · engine 312 · parity 394/394 · geometry drift 75.
 UI recovery (0.4.0+4) added goldens for the splash at 320 px / 200 % text,
 landscape and tablet; sign-in at 320 px; the DoseBand check and pre-use
 outcomes (`test/golden/doseband_flow_golden_test.dart`); Home state B;

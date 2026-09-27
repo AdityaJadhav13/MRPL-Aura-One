@@ -1,4 +1,4 @@
-# Functional completeness matrix — Product Build v1 (0.4.0+4)
+# Functional completeness matrix — Product Build v1 (0.5.0+5)
 
 REAL = works against real inputs · LOCAL_REAL = works, on this device only ·
 SIMULATED = labelled simulation · NOT_CONNECTED = boundary exists, nothing
@@ -7,13 +7,18 @@ PLANNED = not built.
 
 | Capability | Status | Notes |
 |---|---|---|
-| Splash, sign-in, sign-out | LOCAL_REAL | Presentation accounts, salted PBKDF2 verifiers; approved splash and entry identity recovered in 0.4.0 |
+| Splash, sign-in, sign-out | LOCAL_REAL | Presentation accounts, salted PBKDF2 verifiers; approved Sign In restored in 0.5.0 (prefilled presentation account from a build-time define; Remember me works) |
+| New-user setup: Select Site → Select Your Role → Sign In | LOCAL_REAL | Choices are requests; refused unless the account holds the role and is assigned the site |
+| Authentication vs authorization | LOCAL_REAL | Separate failures; enforced in the session layer on this device. SERVER AUTHORIZATION ENFORCEMENT PENDING |
+| Forgot password | NOT_CONNECTED | Says recovery is unavailable here; sends nothing |
+| Google sign-in | PLANNED | Not shown: nothing is configured |
 | Organisation identity (MRPL directory, SSO) | NOT_CONNECTED | Production flavour shows it |
 | Session restore | LOCAL_REAL | Person + role only, re-checked |
 | Role from identity; controlled workspace switch | LOCAL_REAL | Yashvi: management ⇄ administrator |
 | Route gate per workspace | LOCAL_REAL | Navigation only |
-| Worker profile (company record, read-only) | LOCAL_REAL | Presentation data; initials, no photos |
-| Worker Home states A–E | LOCAL_REAL | Approved rich Home recovered in 0.4.0 (header, identity, today's shift, work context, monitoring card, one action). B is the check screen itself; Home B appears only in the development simulation |
+| Worker profile (company record, read-only) | LOCAL_REAL | Identity, Work Assignment, Work Context; approved photo supported, initials until supplied |
+| Worker settings | LOCAL_REAL | Account, privacy, version/build from package metadata, licences, sign out; no toggles |
+| Worker Home states A–E + exception | LOCAL_REAL | Status and next action only (0.5.0). Rich content moved to Profile. Home B appears only in the development simulation |
 | QR decode on camera frames | REAL | zxing2, pure Dart; not yet run on a phone |
 | Typed serial fallback | LOCAL_REAL | Same registry checks |
 | DoseBand registry, eligibility | LOCAL_REAL | Presentation inventory |

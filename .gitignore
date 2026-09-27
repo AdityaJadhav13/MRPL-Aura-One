@@ -55,3 +55,6 @@ dist/*.apk
 # Third-party papers and patents are cited in research/papers.md, not
 # redistributed in a public repository.
 research/*.pdf
+
+# Build-time presentation password (see app/config/README.md). Never commit.
+app/config/presentation.local.json
