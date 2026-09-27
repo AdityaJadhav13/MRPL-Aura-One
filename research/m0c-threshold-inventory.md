@@ -99,6 +99,13 @@ Both describe handheld motion, which no synthetic fixture contains. §45.
 |---|---|---|---|
 | `maximumConditionNumber` | 1.0e6 | Numerical, not perceptual: guards matrix inversion. | None |
 
+**Withheld-reference limit — `validateCorrection(maximumDeltaE00: 2.0)` —
+`SYNTHETIC ONLY`.** On synthetic renders, JPEG q95 alone pushes withheld
+REF-BLACK to ΔE00 2.06 and a warm illuminant to 2.14, while every other
+withheld patch stays ≤ 0.62. Recorded as hypothesis M0C-3 in
+`dossier-v0-results.md`. Not raised, not special-cased: physical captures
+decide.
+
 A conditioning guard is not a correctness guard. A well-conditioned matrix can
 still be a bad correction, which is exactly why §37 makes withheld-reference
 validation mandatory rather than optional.

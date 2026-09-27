@@ -259,6 +259,55 @@ error is consistent across markers.
 badge looks like, which is a V0 question (the deliberately degraded print).
 Recorded so it is not mistaken for a clean result.
 
+### M0C-3 — withheld REF-BLACK exceeds the 2.0 ΔE00 limit under synthetic JPEG and warm light **[hypothesis — open, to test on physical captures]**
+
+**Evidence class: CALCULATED** (synthetic renders through the production
+pipeline, MEASUREMENT-INTEGRATION-02). **No OBSERVED data exists.**
+
+| Synthetic condition | Max withheld ΔE00 | Worst patch | Others |
+|---|---|---|---|
+| Clean render, any tested pose | 0.00 | — | 0.00 |
+| Same render through JPEG q95 | 2.06 | REF-BLACK | ≤ 0.62 |
+| Synthetic warm illuminant | 2.14 | REF-BLACK | ≤ 0.42 |
+
+The withheld-reference limit is **2.0 ΔE00, and it is SYNTHETIC /
+UNVALIDATED**. On these renders exactly one withheld patch crosses it:
+REF-BLACK.
+
+**PROVISIONAL INTERPRETATION.** The correction is fitted on REF-LIGHT and the
+six chromatic patches, so REF-LIGHT is the only neutral in the fit. Predicting
+REF-BLACK is therefore an *extrapolation* far below the fitted lightness range,
+not an interpolation. A small distortion of the fit — JPEG quantisation, a
+non-neutral illuminant — is magnified at the dark end. This is an explanation
+consistent with the synthetic numbers, not a demonstrated cause.
+
+**Expected consequence on hardware.** A phone applies far more processing than
+q95 JPEG (tone mapping, noise reduction, sharpening, auto white balance). If
+the pattern holds, physical captures will be refused as
+`referencePatchFailure` on REF-BLACK even when framing, focus and lighting are
+good. The app archives such captures and lets a worker record them as a
+reference failure, so a systematic cause cannot trap anyone in a retake loop.
+**A reference failure never produces a quantitative H₂S value.**
+
+**Deliberately NOT done**, pending physical evidence: the 2.0 limit was not
+raised; REF-BLACK was not removed from validation; fit/withheld membership was
+not changed; black was not special-cased; the failure was not suppressed; and
+nothing was tuned against synthetic data to obtain a pass.
+
+**What physical captures must discriminate between** — possibly a combination:
+
+| Candidate cause | Physical test |
+|---|---|
+| Camera / JPEG processing | Same target, same light: compare REF-BLACK residual across capture paths and devices |
+| Black-level / reference target behaviour | Inspect REF-BLACK raw linear values against REF-DARK: clipping, noise floor, lifted blacks |
+| Correction-model extrapolation | Refit with a dark neutral in the *fit* set on the same images, offline, and compare withheld residuals — research only, not a pipeline change |
+| Print / reference construction | Measure the printed black with an instrument if available; compare print specimens S1–S4 |
+| Illumination | Repeat under the lighting matrix; warm vs neutral vs directional |
+| Threshold selection | Build the valid-capture residual distribution on a development split; confirm once on a held-out session |
+
+Until those are run, every REF-BLACK refusal is **evidence, not a defect to
+tune away**.
+
 ## 6. Reference correction and reference design
 
 **CALCULATED** — synthetic per-channel illuminant gains, from
