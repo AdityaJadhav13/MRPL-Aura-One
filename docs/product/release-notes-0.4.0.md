@@ -7,6 +7,7 @@
 | Version / versionCode | 0.4.0 (`0.4.0-dev`) / 4 |
 | Flavour | dev, entry `lib/main_dev.dart` |
 | Build source | `c5429cf` (clean tree; untracked research PDFs only) |
+| Published commit | see [source commit map](../engineering/source-commit-map.md) |
 | APK | `dist/doseband-productbuild1-ui-recovery-0.4.0+4-c5429cf-dev-release.apk` (66.7 MB) |
 | SHA-256 | `7478e2340fc68db710478004de1b0b40e02cce1d8e40724ee24457caa229c18b` |
 | Permissions | CAMERA (runtime), INTERNET, AndroidX receiver permission (unchanged from 0.3.0) |

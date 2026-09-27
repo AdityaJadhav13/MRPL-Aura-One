@@ -7,6 +7,7 @@
 | Version / versionCode | 0.3.0 (`0.3.0-dev`) / 3 |
 | Flavour | dev, entry `lib/main_dev.dart` |
 | Build source | `8aa5355` (clean tree; untracked research PDFs only) |
+| Published commit | see [source commit map](../engineering/source-commit-map.md) |
 | APK | `dist/doseband-productbuild1-0.3.0+3-8aa5355-dev-release.apk` |
 | SHA-256 | `b5e7d7b1b99690ffaf69e72d8995a765cabb5a1706318929943274878a0484ff` |
 | Permissions | CAMERA (runtime), INTERNET, AndroidX receiver permission |
