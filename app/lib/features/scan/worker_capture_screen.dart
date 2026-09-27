@@ -102,6 +102,20 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
         setState(() => _error = 'No physical badge is assigned.');
         return;
       }
+      // Only a period awaiting its final scan may be read. A completed one
+      // already has its record — a re-read would need an explicit
+      // supersession, never a second capture into a closed period — and an
+      // open one has not ended. Reached by a deep link or a stale back stack,
+      // the camera stays closed.
+      if (session!.stage != ShiftStage.awaitingScan) {
+        setState(
+          () => _error = session.stage == ShiftStage.complete
+              ? 'This monitoring period already has its final record. '
+                    'Nothing more is captured for it.'
+              : 'Monitoring has not ended yet. End it from Home first.',
+        );
+        return;
+      }
 
       final geometry =
           _geometry ?? await GeometryAssets().load('badge-v1-research');

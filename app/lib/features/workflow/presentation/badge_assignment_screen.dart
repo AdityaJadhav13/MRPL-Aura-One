@@ -12,15 +12,14 @@ import '../data/simulation_catalog.dart';
 import '../../auth/application/auth_controller.dart';
 import '../domain/badge_specimen.dart';
 
-/// Badge assignment.
+/// The development simulation's entry point (`/assign`).
 ///
 /// ## Two kinds of badge, never mixed
 ///
-/// A **physical badge** is identified by its printed id, typed by the worker.
-/// QR recognition is not implemented, and nothing here pretends otherwise:
-/// there is no viewfinder, and the identity is labelled *manual entry*
-/// wherever it appears. A physical badge's final scan opens the real camera
-/// and runs the real pipeline. MEASUREMENT-INTEGRATION-02 §8–§9.
+/// A **real DoseBand** is not assigned here. It is scanned from Home — QR or
+/// typed serial — checked against the DoseBand register, photographed for
+/// the pre-use check, and claimed atomically (PRODUCT BUILD v1 §7–§12). This
+/// screen only points there.
 ///
 /// A **presentation specimen** is simulated: it carries a declared outcome,
 /// and its scan plays that outcome back. Specimens exist so the interface can

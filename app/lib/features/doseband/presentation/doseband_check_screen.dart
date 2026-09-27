@@ -87,16 +87,22 @@ class _DoseBandCheckScreenState extends ConsumerState<DoseBandCheckScreen> {
       _claimProblem = null;
     });
     try {
-      final result = await ref
-          .read(shiftSessionProvider.notifier)
-          .claimAndStart(
-            band: band,
-            preUse: PreUseRecord(
-              outcome: PreUseOutcome.readyToUse,
-              checkedAt: ref.read(clockProvider)(),
-              opticalCheck: _optical!.status,
-            ),
-          );
+      final ClaimResult result;
+      try {
+        result = await ref
+            .read(shiftSessionProvider.notifier)
+            .claimAndStart(
+              band: band,
+              preUse: PreUseRecord(
+                outcome: PreUseOutcome.readyToUse,
+                checkedAt: ref.read(clockProvider)(),
+                opticalCheck: _optical!.status,
+              ),
+            );
+      } on Object catch (e) {
+        if (mounted) setState(() => _claimProblem = 'Nothing was assigned: $e');
+        return;
+      }
       if (!mounted) return;
       switch (result) {
         case ClaimAccepted():

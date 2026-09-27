@@ -18,8 +18,8 @@ import 'work_context_repository.dart';
 abstract final class SimulationCatalog {
   /// A demo worker identity. **No identity provider verified any of this.**
   ///
-  /// The contractor variant deliberately matches the published demo account on
-  /// the sign-in screen, so the same person appears everywhere a reviewer
+  /// The contractor variant deliberately matches the presentation contractor
+  /// account (Aditya Jadhav), so the same person appears everywhere a reviewer
   /// looks. The values are duplicated rather than imported — the workflow
   /// domain does not depend on the authentication feature, because this is
   /// stored provenance and must outlive any sign-in redesign — and

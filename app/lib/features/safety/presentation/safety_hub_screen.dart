@@ -34,7 +34,7 @@ class SafetyHubScreen extends StatelessWidget {
     return SafetyScaffold(
       title: 'Safety',
       subtitle: 'Reference material and organisation resources',
-      showHero: true,
+      showHero: false,
       children: [
         const NotAnAlarmNotice(),
         const SizedBox(height: Space.base),

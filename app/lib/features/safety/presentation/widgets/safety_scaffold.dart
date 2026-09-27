@@ -43,7 +43,8 @@ class SafetyScaffold extends StatelessWidget {
 
     return CorporateNavigationTheme(
       child: Scaffold(
-        backgroundColor: corporate.surfaceMuted,
+        // White-first, like every other workspace page (PRODUCT BUILD v1 §68).
+        backgroundColor: context.product.surfacePage,
         floatingActionButton: floatingAction,
         body: SafeArea(
           bottom: false,

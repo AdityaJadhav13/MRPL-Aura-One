@@ -30,8 +30,9 @@ abstract final class AdminDemoCatalog {
           'worker actually is.',
       dataDirection: 'Read — identity and group membership',
       blockedBy:
-          'Today the application accepts one published demo account and '
-          'verifies nothing.',
+          'Today the application checks the six presentation accounts on '
+          'this device against salted password verifiers. No organisation '
+          'directory is consulted.',
     ),
     AdminIntegration(
       id: 'gate-pass',

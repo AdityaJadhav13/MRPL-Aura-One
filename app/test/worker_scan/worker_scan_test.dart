@@ -237,6 +237,33 @@ void main() {
       expect(find.text('SIMULATED SCAN'), findsNothing);
     });
 
+    testWidgets('a completed period does not reopen the camera', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        ShiftSession(
+          stage: ShiftStage.complete,
+          context: SimulationCatalog.demoContext(),
+          physicalBadge: _badge,
+          startedAt: DateTime.utc(2026, 9, 26, 8),
+          endedAt: DateTime.utc(2026, 9, 26, 16),
+          result: const NoCalibration().interpret(
+            _observe(),
+            appVersion: 't',
+            deviceModel: 't',
+          ),
+          captureId: 'cap-1',
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.textContaining('already has its final record'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('a simulated specimen never reaches the camera', (
       tester,
     ) async {

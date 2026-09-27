@@ -35,7 +35,20 @@ class EndMonitoringScreen extends ConsumerWidget {
         label: 'End monitoring and scan',
         icon: Icons.arrow_forward,
         onPressed: () async {
-          await ref.read(shiftSessionProvider.notifier).endMonitoring();
+          try {
+            await ref.read(shiftSessionProvider.notifier).endMonitoring();
+          } on Object catch (e) {
+            // The period changed elsewhere (closed by a supervisor, or the
+            // band was reported). Reload from the store rather than guess.
+            ref.invalidate(shiftSessionProvider);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Monitoring could not be ended: $e')),
+              );
+              context.go('/home');
+            }
+            return;
+          }
           if (!context.mounted) return;
           // A registered DoseBand is identified by its QR before the final
           // photograph, so the reading is attached to the band actually worn.
