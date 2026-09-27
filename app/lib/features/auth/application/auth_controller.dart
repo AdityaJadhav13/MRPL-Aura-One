@@ -102,6 +102,9 @@ class AuthController extends Notifier<AuthState> {
   /// was, by definition.
   bool _remember = true;
 
+  /// For Settings: whether the current session survives the app closing.
+  bool get remembersSession => _remember;
+
   /// Reads the stored session, re-checking it against the directory. Called
   /// once, by the splash screen.
   Future<void> restore() async {

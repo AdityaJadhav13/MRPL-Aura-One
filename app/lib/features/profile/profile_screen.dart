@@ -1,32 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:measurement/measurement.dart';
 
-import '../../core/components/identity.dart';
 import '../../core/components/product_page.dart';
 import '../../core/components/workspace_components.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
-import '../../core/env/environment.dart';
-import '../account/presentation/workspace_more_screen.dart';
 import '../auth/application/auth_controller.dart';
 import '../operations/application/operations_providers.dart';
+import '../workflow/application/workflow_controller.dart';
+import '../workflow/data/work_context_repository.dart';
+import '../workflow/domain/workflow_state.dart';
+import 'presentation/profile_cards.dart';
 
-/// The worker's profile (PRODUCT BUILD v1 §29, §30).
+/// Worker Profile (Worker directive §6–§10, §32–§34).
 ///
-/// A company record, shown read-only: ID, department, site, supervisor and
-/// role are the organisation's to change, not the worker's (§29). Photograph
-/// only when an approved one exists; otherwise initials — never a generated
-/// or stock face (§30).
+/// The authoritative worker screen: who they are, what they are assigned
+/// to, and the work they recorded. Built from the rich Home it replaces.
+///
+/// Every value resolves from the signed-in person's directory record —
+/// the same identity the monitoring session, the history and the DoseBand
+/// assignment use — or from the work context they recorded. Nothing is
+/// written into this widget, and a missing value reads "Not recorded".
+///
+/// App and technical information is in Settings, not here.
 class ProfileScreen extends ConsumerWidget {
-  const ProfileScreen({required this.config, super.key});
-
-  final EnvironmentConfig config;
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sites = ref.watch(availableSitesProvider);
+    final session = ref.watch(shiftSessionProvider).value ?? ShiftSession.none;
+
     return ProductPage(
       title: 'Profile',
       showBack: false,
@@ -35,110 +40,132 @@ class ProfileScreen extends ConsumerWidget {
           value: ref.watch(ownProfileProvider),
           builder: (context, profile) {
             final p = profile.person;
+            const repo = DemoWorkContextRepository();
             final site = sites.where((s) => s.id == p.siteId).firstOrNull;
-            final photo = p.photoAsset == null
+            // A context from a finished period is history, not today's.
+            final recorded = session.stage == ShiftStage.complete
                 ? null
-                : AssetImage(p.photoAsset!);
+                : session.context;
+            final gatePass = recorded?.worker.gatePass?.value;
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SectionCard(
-                  children: [
-                    IdentityHeader(
-                      name: p.displayName,
-                      subtitle: '${p.personId} · ${p.designation}',
-                      detail: p.contractorCompany ?? profile.departmentName,
-                      photo: photo,
-                    ),
-                  ],
+                WorkerIdentityCard(
+                  name: p.displayName,
+                  typeAndId: '${p.workerType.label} · ID ${p.personId}',
+                  company: p.contractorCompany,
+                  photo: p.photoAsset == null
+                      ? null
+                      : AssetImage(p.photoAsset!),
                 ),
-                const SizedBox(height: Gaps.section),
-                PageSection(
-                  title: 'Company record',
-                  children: [
-                    SectionCard(
-                      children: [
-                        FactRow(label: 'Full name', value: p.displayName),
-                        FactRow(
-                          label: 'Worker ID',
-                          value: p.personId,
-                          mono: true,
-                        ),
-                        FactRow(
-                          label: 'Worker type',
-                          value: p.workerType.label,
-                        ),
-                        if (p.contractorCompany != null)
-                          FactRow(
-                            label: 'Contractor company',
-                            value: p.contractorCompany!,
+                const SizedBox(height: Space.md),
+                ProfileSectionCard(
+                  title: 'Work assignment',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ProfileFieldGrid(
+                        fields: [
+                          ('Site', orNotRecorded(site?.name), false),
+                          (
+                            'Department',
+                            orNotRecorded(profile.departmentName),
+                            false,
                           ),
-                        FactRow(label: 'Site', value: site?.name ?? p.siteId),
-                        FactRow(
-                          label: 'Department',
-                          value: profile.departmentName ?? p.departmentId,
-                        ),
-                        FactRow(label: 'Designation', value: p.designation),
-                        if (profile.teamName != null)
-                          FactRow(label: 'Team', value: profile.teamName!),
-                        if (profile.supervisorName != null)
-                          FactRow(
-                            label: 'Supervisor',
-                            value: profile.supervisorName!,
+                          (
+                            'Shift',
+                            orNotRecorded(
+                              repo.shiftById(p.defaultShiftId ?? '')?.name,
+                            ),
+                            false,
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: Space.sm),
-                    Text(
-                      'These details come from the company record and cannot '
-                      'be edited here. If something is wrong, ask your '
-                      'supervisor or administrator to correct it. This build '
-                      'uses presentation data, not an MRPL directory.',
-                      style: context.type.caption.copyWith(
-                        color: context.product.textSecondary,
+                          (
+                            'Work area',
+                            orNotRecorded(
+                              repo
+                                  .workAreaById(p.defaultWorkAreaId ?? '')
+                                  ?.name,
+                            ),
+                            false,
+                          ),
+                          ('Worker type', p.workerType.label, false),
+                          if (p.contractorCompany != null)
+                            ('Contractor', p.contractorCompany!, false),
+                          ('Designation', p.designation, false),
+                          if (profile.teamName != null)
+                            ('Team', profile.teamName!, false),
+                          if (profile.supervisorName != null)
+                            ('Supervisor', profile.supervisorName!, false),
+                          if (gatePass != null)
+                            ('Gate pass', _mask(gatePass), true),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: Space.sm),
+                      Text(
+                        'From your company record. It cannot be edited here; '
+                        'ask your supervisor or administrator to correct '
+                        'anything that is wrong.',
+                        style: context.type.caption.copyWith(
+                          color: context.corporate.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: Space.md),
+                ProfileSectionCard(
+                  title: 'Work context',
+                  actionLabel: recorded == null ? 'Record' : 'View all',
+                  onAction: () => context.push('/work-context'),
+                  child: recorded == null
+                      ? const ProfileContextRows(
+                          rows: [
+                            ('Job', 'Not recorded', false),
+                            ('PTW', 'Not recorded', false),
+                            ('JSA', 'Not recorded', false),
+                            ('Toolbox talk', 'Not recorded', false),
+                          ],
+                          footnote:
+                              'Recorded before a DoseBand is assigned, so '
+                              'its record says where and on what it was '
+                              'worn.',
+                        )
+                      : ProfileContextRows(
+                          rows: [
+                            ('Job', recorded.job.title, false),
+                            ('PTW', recorded.permit.reference.value, true),
+                            ('JSA', recorded.jsa.reference.value, true),
+                            // Acknowledged, never "completed": a tap on a
+                            // phone is not evidence a talk happened.
+                            ('Toolbox talk', 'Acknowledged', false),
+                            (
+                              'Supervisor',
+                              orNotRecorded(profile.supervisorName),
+                              false,
+                            ),
+                          ],
+                          footnote:
+                              'Recorded by you. DoseBand references these; it '
+                              'does not approve permits or authorise work.',
+                        ),
                 ),
               ],
             );
           },
         ),
-        PageSection(
-          title: 'This build',
-          children: [
-            BuildFacts(config: config),
-            const SizedBox(height: Space.sm),
-            const _EngineFacts(),
-          ],
+        const SizedBox(height: Space.md),
+        ActionCard(
+          icon: Icons.settings_outlined,
+          title: 'Settings',
+          message: 'Account, privacy and about DoseBand',
+          onTap: () => context.push('/profile/settings'),
         ),
-        if (config.simulationAvailable) ...[
-          // Developer and research tools live behind /dev, outside every
-          // workspace, and this entry exists only where simulation does.
-          ActionCard(
-            icon: Icons.build_outlined,
-            title: 'Developer and research tools',
-            message: 'Development builds only',
-            onTap: () => context.push('/dev'),
-          ),
-          const SizedBox(height: Gaps.section),
-        ],
-        const SignOutButton(),
       ],
     );
   }
-}
 
-/// Versions read from the engine that actually runs.
-class _EngineFacts extends StatelessWidget {
-  const _EngineFacts();
-
-  @override
-  Widget build(BuildContext context) => const SectionCard(
-    children: [
-      FactRow(label: 'Algorithm', value: algorithmVersion, mono: true),
-      FactRow(label: 'Features', value: featureDefinitionVersion, mono: true),
-      FactRow(label: 'Geometry', value: 'badge-v1-research', mono: true),
-    ],
-  );
+  /// A gate pass is a credential reference: only the last four characters.
+  static String _mask(String value) =>
+      value.length <= 4 ? value : '•••• ${value.substring(value.length - 4)}';
 }

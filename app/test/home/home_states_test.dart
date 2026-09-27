@@ -241,14 +241,32 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
     }
 
-    testWidgets('A: who, no band, the scan action, today’s work', (
+    testWidgets('A: no band, the scan action, and nothing from Profile', (
       tester,
     ) async {
       await pumpHome(tester);
-      expect(find.text('Aditya Jadhav'), findsOneWidget);
       expect(find.text('NO DOSEBAND ASSIGNED'), findsOneWidget);
       expect(find.text('Scan new DoseBand'), findsOneWidget);
-      expect(find.text('Usual assignment from your company record. Confirm today’s work before a DoseBand is assigned.'), findsOneWidget);
+      expect(find.text('HOW MONITORING STARTS'), findsOneWidget);
+      // Worker directive §4, §55: Home is status and next action only. Who
+      // the worker is and what they are assigned to belong to Profile;
+      // technical detail belongs to Settings.
+      for (final absent in [
+        'Aditya Jadhav',
+        'WORK ASSIGNMENT',
+        'WORK CONTEXT',
+        'TODAY’S SHIFT',
+        'Department',
+        'Gate pass',
+        'PTW',
+        'Version',
+        'Algorithm',
+        'Geometry',
+        'Developer and research tools',
+        'No central server is connected yet.',
+      ]) {
+        expect(find.textContaining(absent), findsNothing, reason: absent);
+      }
       expect(tester.takeException(), isNull);
     });
 
@@ -311,6 +329,15 @@ void main() {
       expect(find.textContaining('dispose'), findsOneWidget);
     });
 
+    testWidgets('B: an assigned band leads to the pre-work step', (
+      tester,
+    ) async {
+      await pumpHome(tester, session: _session(ShiftStage.badgeAssigned));
+      expect(find.text('DOSEBAND ASSIGNED'), findsOneWidget);
+      expect(find.text('Pre-work check'), findsOneWidget);
+      expect(find.textContaining('Simulated'), findsWidgets);
+    });
+
     testWidgets('a simulated band is marked on Home', (tester) async {
       await pumpHome(
         tester,
@@ -336,7 +363,12 @@ void main() {
             in tester
                 .widgetList<Text>(find.byType(Text))
                 .map((t) => (t.data ?? '').toLowerCase())) {
-          for (final claim in ['safe to work', 'h₂s safe', 'area safe']) {
+          for (final claim in [
+            'safe to work',
+            'h₂s safe',
+            'area safe',
+            'ppm',
+          ]) {
             expect(text, isNot(contains(claim)), reason: stage.name);
           }
         }

@@ -110,25 +110,14 @@ void main() {
       }
     });
 
-    testWidgets('account is reachable from the worker identity card', (
-      tester,
-    ) async {
-      // The semantics tree is not built unless something asks for it, and
-      // this assertion is specifically about what a screen-reader user can
-      // reach.
-      // Disposed explicitly rather than in a tearDown: the framework verifies
-      // that no handle outlives the test body, and a tearDown runs after that
-      // check.
-      final semantics = tester.ensureSemantics();
-
-      await pumpAt(tester, '/home', size: const Size(390, 844));
-      // A substring match: the card's own label merges with the worker
-      // details beneath it, which is what a screen reader should read out.
-      expect(
-        find.bySemanticsLabel(RegExp('Account and profile')),
-        findsOneWidget,
-      );
-      semantics.dispose();
+    testWidgets('Settings is reachable from Profile', (tester) async {
+      await pumpAt(tester, '/profile', size: const Size(390, 844));
+      await tester.scrollUntilVisible(find.text('Settings'), 200);
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('Sign out'), 200);
+      expect(find.text('Sign out'), findsOneWidget);
+      expect(find.textContaining('Measurement engine'), findsOneWidget);
     });
   });
 
@@ -144,7 +133,7 @@ void main() {
       // And that it does not replace a detector, which is the belief the
       // sentence exists to prevent.
       expect(
-        find.textContaining('does not replace portable or fixed gas'),
+        find.textContaining('does not replace certified portable H₂S detectors'),
         findsOneWidget,
       );
     });

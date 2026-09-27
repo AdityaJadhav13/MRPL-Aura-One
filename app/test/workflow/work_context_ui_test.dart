@@ -296,7 +296,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a restored context renders on home', (tester) async {
+    testWidgets('a restored context renders on Profile', (tester) async {
       await store.save(
         ShiftSession(
           stage: ShiftStage.monitoring,
@@ -305,12 +305,12 @@ void main() {
           startedAt: DateTime(2026, 9, 25, 6),
         ),
       );
-      await pumpAt(tester, '/home');
+      await pumpAt(tester, '/profile');
       await tester.pump(const Duration(milliseconds: 200));
 
-      // Home (PRODUCT BUILD v1 §15): the state card and today's work.
-      expect(find.text('TODAY’S SHIFT'), findsOneWidget);
-      expect(find.text('MONITORING ACTIVE'), findsOneWidget);
+      // Profile (Worker directive §9): the recorded work context.
+      expect(find.text('WORK CONTEXT'), findsOneWidget);
+      expect(find.text('Routine field round'), findsOneWidget);
       // The restored context's own values are on screen.
       expect(
         find.text(SimulationCatalog.demoContext().site.name),
@@ -331,11 +331,12 @@ void main() {
           startedAt: DateTime(2026, 9, 25, 6),
         ),
       );
-      await pumpAt(tester, '/home', personId: PresentationDataset.aditya);
+      await pumpAt(tester, '/profile', personId: PresentationDataset.aditya);
       await tester.pump(const Duration(milliseconds: 200));
-      // Home's identity line: worker ID and, for a contractor, the employer.
+      // Profile's identity card: worker ID and, for a contractor, the
+      // employer — also listed under Work assignment.
       expect(find.text('Contractor · ID CT-45832'), findsOneWidget);
-      expect(find.text('XYZ Engineering'), findsOneWidget);
+      expect(find.text('XYZ Engineering'), findsWidgets);
     });
   });
 

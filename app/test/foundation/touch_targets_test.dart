@@ -79,6 +79,9 @@ void main() {
 
     testWidgets('Home primary action at ${scale}x', (tester) async {
       await pumpAt(tester, '/home', textScale: scale);
+      // At 200 % on a 320 phone the card is tall; the action is one scroll
+      // below it, never hidden behind the navigation.
+      await tester.scrollUntilVisible(primary('Scan new DoseBand'), 120);
       expectTarget(
         tester,
         primary('Scan new DoseBand'),

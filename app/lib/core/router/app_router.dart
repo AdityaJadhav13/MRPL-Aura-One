@@ -26,6 +26,7 @@ import '../../features/history/domain/measurement_record.dart';
 import '../../features/history/history_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/profile/settings_screen.dart';
 import '../../features/result/measurement_detail_screen.dart';
 import '../../features/result/result_screen.dart';
 import '../../features/scan/guided_scan_screen.dart';
@@ -224,7 +225,13 @@ GoRouter buildRouter(
             routes: [
               GoRoute(
                 path: '/profile',
-                builder: (_, _) => ProfileScreen(config: config),
+                builder: (_, _) => const ProfileScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'settings',
+                    builder: (_, _) => SettingsScreen(config: config),
+                  ),
+                ],
               ),
             ],
           ),
