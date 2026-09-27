@@ -184,7 +184,13 @@ class WorkerIdentityCard extends StatelessWidget {
     final corporate = context.corporate;
     final t = context.type;
     return Semantics(
-      label: 'Account and profile: ${name ?? 'worker'}',
+      // Everything the card shows, since its children are excluded.
+      label: [
+        'Account and profile: ${name ?? 'no worker signed in'}',
+        ?typeAndId,
+        ?company,
+        'Records stored on this phone, not synced',
+      ].join('. '),
       button: true,
       excludeSemantics: true,
       child: InfoCard(

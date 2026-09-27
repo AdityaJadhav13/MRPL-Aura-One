@@ -38,6 +38,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _left = false;
   bool _restored = false;
+  bool _tapped = false;
   Timer? _minimum;
 
   @override
@@ -45,9 +46,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     super.initState();
     _minimum = Timer(SplashScreen.minimumShown, _continue);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await ref.read(authControllerProvider.notifier).restore();
+      try {
+        await ref.read(authControllerProvider.notifier).restore();
+      } on Object {
+        // A stored session that cannot be read is no session: the person
+        // signs in again rather than waiting on a splash that never ends.
+      }
       _restored = true;
-      if (!(_minimum?.isActive ?? false)) _continue();
+      if (_tapped || !(_minimum?.isActive ?? false)) _continue();
     });
   }
 
@@ -92,7 +98,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           label: 'DoseBand is starting. Tap to continue.',
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: _continue,
+            onTap: () {
+              // Remembered: a tap while the session is still being read
+              // continues as soon as it has been.
+              _tapped = true;
+              _continue();
+            },
             child: Stack(
               fit: StackFit.expand,
               children: [
