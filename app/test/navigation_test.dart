@@ -100,7 +100,7 @@ void main() {
         expect(find.text(label), findsWidgets, reason: '$label is missing');
       }
       // No DoseBand and no history yet: the honest state A, not a fake shift.
-      expect(find.text('No DoseBand assigned'), findsOneWidget);
+      expect(find.text('NO DOSEBAND ASSIGNED'), findsOneWidget);
     });
 
     testWidgets('each destination is reachable', (tester) async {
@@ -122,7 +122,7 @@ void main() {
       expect(find.text('Environment'), findsOneWidget);
 
       await tapDestination(tester, 'Home');
-      expect(find.text('No DoseBand assigned'), findsOneWidget);
+      expect(find.text('NO DOSEBAND ASSIGNED'), findsOneWidget);
     });
   });
 

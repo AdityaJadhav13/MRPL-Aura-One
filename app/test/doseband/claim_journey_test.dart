@@ -117,7 +117,7 @@ void main() {
     tester,
   ) async {
     await pump(tester);
-    expect(find.text('No DoseBand assigned'), findsOneWidget);
+    expect(find.text('NO DOSEBAND ASSIGNED'), findsOneWidget);
 
     await scanLabel(tester);
     expect(find.text('Check DoseBand'), findsOneWidget);
@@ -131,7 +131,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Home C.
-    expect(find.text('Monitoring active'), findsOneWidget);
+    expect(find.text('MONITORING ACTIVE'), findsOneWidget);
     expect(find.text(serial), findsOneWidget);
 
     // The same store, as Aman sees it.

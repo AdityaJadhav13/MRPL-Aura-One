@@ -133,6 +133,13 @@ abstract final class Brand {
   /// The same orange at L*58: 3.39:1 on white, which clears the 3:1 floor for
   /// a meaningful icon or rule. Still never text on its own.
   static const Color orangeMark = Color(0xFFD96E0C);
+
+  /// The deep refinery green under the splash photograph's dark foreground,
+  /// used as a solid scrim there. Never a large card or page colour.
+  static const Color refineryNight = Color(0xFF082B20);
+
+  /// Organisation-name ink on light photography (splash identity block).
+  static const Color identityInk = Color(0xFF14532D);
 }
 
 /// Neutral values used only by the product (corporate) register. Taken from

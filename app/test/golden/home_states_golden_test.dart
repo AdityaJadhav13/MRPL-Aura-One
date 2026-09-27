@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:h2s_doseband/core/design/brand_assets.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/features/operations/data/presentation_dataset.dart';
@@ -77,6 +78,14 @@ void main() {
           config: _dev,
           initialLocation: '/home',
         ),
+      ),
+    );
+    // Decode the refinery photograph for real before capturing.
+    final context = tester.element(find.byType(Scaffold).first);
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage(BrandAssets.refineryBackdrop),
+        context,
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));

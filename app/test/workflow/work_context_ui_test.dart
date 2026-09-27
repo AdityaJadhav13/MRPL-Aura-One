@@ -309,8 +309,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       // Home (PRODUCT BUILD v1 §15): the state card and today's work.
-      expect(find.text('Today’s work'), findsOneWidget);
-      expect(find.text('Monitoring active'), findsOneWidget);
+      expect(find.text('TODAY’S SHIFT'), findsOneWidget);
+      expect(find.text('MONITORING ACTIVE'), findsOneWidget);
       // The restored context's own values are on screen.
       expect(
         find.text(SimulationCatalog.demoContext().site.name),
@@ -334,7 +334,8 @@ void main() {
       await pumpAt(tester, '/home', personId: PresentationDataset.aditya);
       await tester.pump(const Duration(milliseconds: 200));
       // Home's identity line: worker ID and, for a contractor, the employer.
-      expect(find.text('CT-45832 · XYZ Engineering'), findsOneWidget);
+      expect(find.text('Contractor · ID CT-45832'), findsOneWidget);
+      expect(find.text('XYZ Engineering'), findsOneWidget);
     });
   });
 

@@ -5,29 +5,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/components/buttons.dart';
-import '../../core/components/identity.dart';
 import '../../core/components/markers.dart';
-import '../../core/components/product_page.dart';
-import '../../core/components/product_status.dart';
 import '../../core/components/step_scaffold.dart';
 import '../../core/components/workspace_components.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
 import '../../core/util/format.dart';
+import '../auth/application/auth_controller.dart';
 import '../history/application/history_controller.dart';
 import '../history/domain/measurement_record.dart';
 import '../operations/application/operations_providers.dart';
 import '../operations/presentation/ops_chips.dart';
 import '../workflow/application/workflow_controller.dart';
-import '../workflow/domain/work_context.dart';
+import '../workflow/data/work_context_repository.dart';
 import '../workflow/domain/workflow_state.dart';
 import 'domain/home_presentation.dart';
+import 'presentation/home_cards.dart';
 
-/// Worker Home (PRODUCT BUILD v1 §15, §16).
+/// Worker Home (PRODUCT BUILD v1 §15, §16; corrective §3C).
 ///
-/// Answers, top to bottom: who am I, which DoseBand is mine, is monitoring
-/// running and since when, what do I do next, and what work is this for.
-/// No dashboard, no HSE or calibration concepts.
+/// The approved Home's hierarchy — refinery header, identity, today's shift,
+/// work context, monitoring card, one next action — over the current state
+/// model: every value comes from the signed-in person's directory record,
+/// the recorded work context or the monitoring session. Nothing here is a
+/// static demonstration.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -41,8 +42,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // The elapsed time is monitoring duration, not exposure. A minute's
-    // resolution is all it needs.
+    // The elapsed figure is monitoring duration, not exposure; a refresh
+    // every half minute is all it needs.
     _tick = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
@@ -56,265 +57,218 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.product;
+    final corporate = context.corporate;
     final session = ref.watch(shiftSessionProvider).value ?? ShiftSession.none;
     final now = ref.watch(clockProvider)();
     final presentation = HomePresentation.from(session: session, now: now);
     final history = ref.watch(historyProvider);
     final profile = ref.watch(ownProfileProvider).value;
+    final person = profile?.person;
+    final sites = ref.watch(availableSitesProvider);
 
-    final name =
-        profile?.person.displayName ?? session.context?.worker.displayName;
-    final detail = profile == null
-        ? session.context?.worker.workerId
-        : [
-            profile.person.personId,
-            profile.person.contractorCompany ?? profile.departmentName,
-          ].whereType<String>().join(' · ');
+    // Today's work: what the worker recorded, or — until they do — the usual
+    // site, department, area and shift from their company record. A context
+    // from a period completed on an earlier day is not today's.
+    final recorded =
+        session.stage == ShiftStage.complete &&
+            presentation.stage != HomeStage.completed
+        ? null
+        : session.context;
+    const repo = DemoWorkContextRepository();
+    final siteName =
+        recorded?.site.name ??
+        sites.where((s) => s.id == person?.siteId).firstOrNull?.name;
+    final department = recorded?.department.name ?? profile?.departmentName;
+    final shift =
+        recorded?.shift.name ??
+        repo.shiftById(person?.defaultShiftId ?? '')?.name;
+    final area =
+        recorded?.workArea.name ??
+        repo.workAreaById(person?.defaultWorkAreaId ?? '')?.name;
+    final gatePass = recorded?.worker.gatePass?.value;
+
+    final worker = recorded?.worker;
+    final name = person?.displayName ?? worker?.displayName;
+    final typeAndId = person != null
+        ? '${person.workerType.label} · ID ${person.personId}'
+        : worker == null
+        ? null
+        : '${worker.workerType.label} · ID ${worker.workerId}';
+    final company = person?.contractorCompany ?? worker?.contractorCompany;
+
+    final badge = session.assignedBadge;
+    final elapsed = session.coverageAt(session.endedAt ?? now);
 
     return StepRegisterScope(
       register: StepRegister.corporate,
       child: Scaffold(
-        backgroundColor: p.surfacePage,
-        body: SafeArea(
-          bottom: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              Gaps.screenGutter,
-              Space.base,
-              Gaps.screenGutter,
-              Space.xl,
-            ),
-            children: [
-              for (final child in [
-                _Greeting(name: name, detail: detail, now: now),
-                const SizedBox(height: Space.base),
-                _StateCard(
-                  presentation: presentation,
-                  session: session,
-                  now: now,
-                ),
-                const SizedBox(height: Gaps.section),
-                _TodaysWork(session: session),
-                if (history.isNotEmpty) ...[
-                  const SizedBox(height: Gaps.section),
-                  _Recent(records: history.take(3).toList()),
-                ],
-                const SizedBox(height: Space.base),
-                const DataOriginNote(
-                  'Your records are stored on this phone. No central server '
-                  'is connected yet.',
-                ),
-              ])
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: Breakpoints.maxContentWidth,
+        backgroundColor: corporate.surfaceMuted,
+        body: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const HomeHero(),
+            // Everything below lifts into the header by the same amount, so
+            // the identity card overlaps the photograph and no gap opens.
+            Transform.translate(
+              offset: const Offset(0, -24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: Breakpoints.maxContentWidth,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Gaps.screenGutter,
                     ),
-                    child: child,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        WorkerIdentityCard(
+                          name: name,
+                          typeAndId: typeAndId,
+                          company: company,
+                          onOpenProfile: () => context.go('/profile'),
+                        ),
+                        const SizedBox(height: Space.md),
+                        HomeSectionCard(
+                          title: 'Today’s shift',
+                          actionLabel: recorded == null
+                              ? 'Record'
+                              : 'View details',
+                          onAction: () => context.push('/work-context'),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              HomeFieldGrid(
+                                fields: [
+                                  ('Site', orNotRecorded(siteName), false),
+                                  (
+                                    'Department',
+                                    orNotRecorded(department),
+                                    false,
+                                  ),
+                                  ('Shift', orNotRecorded(shift), false),
+                                  ('Work area', orNotRecorded(area), false),
+                                  if (gatePass != null)
+                                    ('Gate pass', _mask(gatePass), true),
+                                  ('Date', Fmt.date(now), true),
+                                ],
+                              ),
+                              if (recorded == null) ...[
+                                const SizedBox(height: Space.sm),
+                                Text(
+                                  'Usual assignment from your company record. '
+                                  'Confirm today’s work before a DoseBand is '
+                                  'assigned.',
+                                  style: context.type.caption.copyWith(
+                                    color: corporate.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: Space.md),
+                        HomeSectionCard(
+                          title: 'Work context',
+                          actionLabel: recorded == null ? null : 'View all',
+                          onAction: () => context.push('/work-context'),
+                          child: recorded == null
+                              ? HomeContextRows(
+                                  rows: [
+                                    ('PTW', 'Not recorded', false),
+                                    ('JSA', 'Not recorded', false),
+                                    ('Toolbox talk', 'Not recorded', false),
+                                    (
+                                      'Supervisor',
+                                      orNotRecorded(profile?.supervisorName),
+                                      false,
+                                    ),
+                                  ],
+                                )
+                              : HomeContextRows(
+                                  rows: [
+                                    ('Job', recorded.job.title, false),
+                                    (
+                                      'PTW',
+                                      recorded.permit.reference.value,
+                                      true,
+                                    ),
+                                    ('JSA', recorded.jsa.reference.value, true),
+                                    // Acknowledged, never "completed": a tap
+                                    // on a phone is not evidence a talk
+                                    // happened.
+                                    ('Toolbox talk', 'Acknowledged', false),
+                                    (
+                                      'Supervisor',
+                                      orNotRecorded(profile?.supervisorName),
+                                      false,
+                                    ),
+                                  ],
+                                  footnote:
+                                      'Recorded by you. Not checked against '
+                                      'a permit system; DoseBand does not '
+                                      'authorise work.',
+                                ),
+                        ),
+                        const SizedBox(height: Space.md),
+                        MonitoringStatusCard(
+                          presentation: presentation,
+                          badgeId: badge?.badgeId,
+                          simulated: badge?.isSimulated ?? false,
+                          startedAt: session.startedAt,
+                          endedAt: session.endedAt,
+                          elapsed: elapsed,
+                          work: session.context == null
+                              ? null
+                              : '${session.context!.workArea.name} · '
+                                    '${session.context!.shift.name}',
+                        ),
+                        const SizedBox(height: Space.md),
+                        DoseBandButton.primary(
+                          label: presentation.actionLabel,
+                          icon: switch (presentation.stage) {
+                            HomeStage.noDoseBand => Icons.qr_code_scanner,
+                            HomeStage.readyForFinalRead =>
+                              Icons.document_scanner_outlined,
+                            HomeStage.completed => Icons.receipt_long_outlined,
+                            _ => Icons.arrow_forward,
+                          },
+                          onPressed: () =>
+                              context.push(presentation.actionRoute),
+                        ),
+                        if (presentation.secondaryLabel != null) ...[
+                          const SizedBox(height: Space.sm),
+                          DoseBandButton.secondary(
+                            label: presentation.secondaryLabel!,
+                            onPressed: () =>
+                                context.push(presentation.secondaryRoute!),
+                          ),
+                        ],
+                        if (history.isNotEmpty) ...[
+                          const SizedBox(height: Space.lg),
+                          _Recent(records: history.take(3).toList()),
+                        ],
+                        const SizedBox(height: Space.base),
+                        const DataOriginNote(
+                          'Your records are stored on this phone. No central '
+                          'server is connected yet.',
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Greeting extends StatelessWidget {
-  const _Greeting({
-    required this.name,
-    required this.detail,
-    required this.now,
-  });
-
-  final String? name;
-  final String? detail;
-  final DateTime now;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.product;
-    final t = context.type;
-    // The identity block is also the way to the profile: a screen-reader
-    // user hears who is signed in and that it opens the account.
-    return Semantics(
-      header: true,
-      button: true,
-      label: 'Account and profile: ${name ?? 'worker'}',
-      child: InkWell(
-        onTap: () => context.go('/profile'),
-        borderRadius: BorderRadius.circular(Radii.md),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: Space.xs),
-          child: Row(
-            children: [
-              IdentityAvatar(name: name ?? '?', size: 48),
-              const SizedBox(width: Space.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name ?? 'Worker',
-                      style: t.heading.copyWith(color: p.textPrimary),
-                    ),
-                    if (detail != null)
-                      Text(
-                        detail!,
-                        style: t.caption.copyWith(color: p.textSecondary),
-                      ),
-                    Text(
-                      Fmt.date(now),
-                      style: t.caption.copyWith(color: p.textSecondary),
-                    ),
-                  ],
-                ),
               ),
-              Icon(Icons.chevron_right, color: p.textSecondary),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The one card that says where the worker's day stands, with its action.
-class _StateCard extends StatelessWidget {
-  const _StateCard({
-    required this.presentation,
-    required this.session,
-    required this.now,
-  });
-
-  final HomePresentation presentation;
-  final ShiftSession session;
-  final DateTime now;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.product;
-    final t = context.type;
-    final badge = session.assignedBadge;
-    final (IconData icon, StatusTone tone) = switch (presentation.stage) {
-      HomeStage.noDoseBand => (Icons.qr_code_2, StatusTone.neutral),
-      HomeStage.doseBandAssigned => (Icons.qr_code_2, StatusTone.info),
-      HomeStage.monitoringActive => (Icons.sensors, StatusTone.info),
-      HomeStage.readyForFinalRead => (
-        Icons.document_scanner_outlined,
-        StatusTone.attention,
-      ),
-      HomeStage.completed => (Icons.task_alt, StatusTone.neutral),
-      HomeStage.requiresAttention => (Icons.schedule, StatusTone.critical),
-    };
-    final showsBand =
-        badge != null && presentation.stage != HomeStage.noDoseBand;
-    return SectionCard(
-      children: [
-        if (badge?.isSimulated ?? false) ...[
-          const SimulationMarker(),
-          const SizedBox(height: Space.md),
-        ],
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ToneChip(label: presentation.title, icon: icon, tone: tone),
-        ),
-        if (showsBand) ...[
-          const SizedBox(height: Space.md),
-          Text('DoseBand', style: t.caption.copyWith(color: p.textSecondary)),
-          Text(
-            badge.badgeId,
-            style: t.readoutLarge.copyWith(color: p.textPrimary),
-          ),
-          const SizedBox(height: Space.sm),
-          FactRow(
-            label: 'Started',
-            value: session.startedAt == null
-                ? Fmt.noValue
-                : Fmt.stamp(session.startedAt!),
-          ),
-          if (session.stage == ShiftStage.monitoring ||
-              presentation.stage == HomeStage.requiresAttention)
-            FactRow(
-              label: 'Monitoring for',
-              value: Fmt.duration(session.coverageAt(now)),
-            )
-          else if (session.endedAt != null)
-            FactRow(label: 'Ended', value: Fmt.stamp(session.endedAt!)),
-          if (session.context case final WorkContext c)
-            FactRow(
-              label: 'Work',
-              value: '${c.workArea.name} · ${c.shift.name}',
             ),
-        ],
-        const SizedBox(height: Space.md),
-        Text(
-          presentation.message,
-          style: t.body.copyWith(color: p.textPrimary),
+          ],
         ),
-        const SizedBox(height: Space.base),
-        DoseBandButton.primary(
-          label: presentation.actionLabel,
-          onPressed: () => context.push(presentation.actionRoute),
-        ),
-        if (presentation.secondaryLabel != null) ...[
-          const SizedBox(height: Space.sm),
-          DoseBandButton.secondary(
-            label: presentation.secondaryLabel!,
-            onPressed: () => context.push(presentation.secondaryRoute!),
-          ),
-        ],
-      ],
+      ),
     );
   }
-}
 
-class _TodaysWork extends StatelessWidget {
-  const _TodaysWork({required this.session});
-
-  final ShiftSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = session.stage == ShiftStage.complete ? null : session.context;
-    return PageSection(
-      title: 'Today’s work',
-      children: [
-        if (c == null)
-          ActionCard(
-            icon: Icons.assignment_outlined,
-            title: 'Not recorded yet',
-            message:
-                'Your site, area and shift are filled in from your record. '
-                'Add the job, permit and JSA references.',
-            onTap: () => context.push('/work-context'),
-          )
-        else
-          SectionCard(
-            children: [
-              FactRow(label: 'Site', value: c.site.name),
-              FactRow(label: 'Area', value: c.workArea.name),
-              FactRow(label: 'Shift', value: c.shift.name),
-              FactRow(label: 'Job', value: c.job.title),
-              FactRow(
-                label: 'PTW',
-                value: c.permit.reference.value,
-                mono: true,
-              ),
-              if (!session.contextIsLocked) ...[
-                const SizedBox(height: Space.sm),
-                DoseBandButton.tertiary(
-                  label: 'Change',
-                  onPressed: () => context.push('/work-context'),
-                ),
-              ],
-            ],
-          ),
-      ],
-    );
-  }
+  /// A gate pass is a credential reference: only the last four characters.
+  static String _mask(String value) =>
+      value.length <= 4 ? value : '•••• ${value.substring(value.length - 4)}';
 }
 
 class _Recent extends StatelessWidget {
@@ -324,59 +278,60 @@ class _Recent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PageSection(
+    final corporate = context.corporate;
+    final t = context.type;
+    return HomeSectionCard(
       title: 'Recent records',
-      trailing: DoseBandButton.tertiary(
-        label: 'All',
-        onPressed: () => context.go('/history'),
-      ),
-      children: [
-        RowList(
-          children: [
-            for (final r in records)
-              InkWell(
-                onTap: () => context.push('/history/record/${r.id}', extra: r),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: kMinTouchTarget),
-                  child: Padding(
-                    padding: const EdgeInsets.all(Space.md),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${Fmt.date(r.scannedAt)} · ${r.badge.badgeId}',
-                                style: context.type.bodyStrong.copyWith(
-                                  color: context.product.textPrimary,
-                                ),
+      actionLabel: 'History',
+      onAction: () => context.go('/history'),
+      child: Column(
+        children: [
+          for (var i = 0; i < records.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: corporate.border),
+            InkWell(
+              onTap: () => context.push(
+                '/history/record/${records[i].id}',
+                extra: records[i],
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: kMinTouchTarget),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: Space.sm),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${Fmt.date(records[i].scannedAt)} · '
+                              '${records[i].badge.badgeId}',
+                              style: t.bodyStrong.copyWith(
+                                color: corporate.textPrimary,
                               ),
-                              const SizedBox(height: Space.xs),
-                              Wrap(
-                                spacing: Space.xs,
-                                runSpacing: Space.xs,
-                                children: [
-                                  MeasurementStateChip(r.result),
-                                  if (r.badge.isSimulated)
-                                    const SimulationMarker(),
-                                ],
-                              ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: Space.xs),
+                            Wrap(
+                              spacing: Space.xs,
+                              runSpacing: Space.xs,
+                              children: [
+                                MeasurementStateChip(records[i].result),
+                                if (records[i].badge.isSimulated)
+                                  const SimulationMarker(),
+                              ],
+                            ),
+                          ],
                         ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: context.product.textSecondary,
-                        ),
-                      ],
-                    ),
+                      ),
+                      Icon(Icons.chevron_right, color: corporate.textSecondary),
+                    ],
                   ),
                 ),
               ),
+            ),
           ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

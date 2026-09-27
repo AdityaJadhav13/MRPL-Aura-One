@@ -246,9 +246,9 @@ void main() {
     ) async {
       await pumpHome(tester);
       expect(find.text('Aditya Jadhav'), findsOneWidget);
-      expect(find.text('No DoseBand assigned'), findsOneWidget);
+      expect(find.text('NO DOSEBAND ASSIGNED'), findsOneWidget);
       expect(find.text('Scan new DoseBand'), findsOneWidget);
-      expect(find.text('Not recorded yet'), findsOneWidget);
+      expect(find.text('Usual assignment from your company record. Confirm today’s work before a DoseBand is assigned.'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -263,7 +263,7 @@ void main() {
           registered: true,
         ),
       );
-      expect(find.text('Monitoring active'), findsOneWidget);
+      expect(find.text('MONITORING ACTIVE'), findsOneWidget);
       expect(find.text('DB-2609-0010'), findsOneWidget);
       expect(find.text('3 h 42 min'), findsOneWidget);
       expect(find.text('Complete monitoring & scan'), findsOneWidget);
@@ -279,7 +279,7 @@ void main() {
         ),
       );
       expect(find.text(Fmt.noValue), findsWidgets);
-      expect(find.text('Monitoring time cannot be trusted'), findsOneWidget);
+      expect(find.text('MONITORING TIME CANNOT BE TRUSTED'), findsOneWidget);
       expect(find.text('0 min'), findsNothing);
     });
 
@@ -293,7 +293,7 @@ void main() {
           registered: true,
         ),
       );
-      expect(find.text('Ready for final scan'), findsOneWidget);
+      expect(find.text('READY FOR FINAL SCAN'), findsOneWidget);
       expect(find.text('Scan assigned DoseBand'), findsOneWidget);
     });
 
@@ -307,7 +307,7 @@ void main() {
           registered: true,
         ),
       );
-      expect(find.text('Today’s monitoring complete'), findsOneWidget);
+      expect(find.text('TODAY’S MONITORING COMPLETE'), findsOneWidget);
       expect(find.textContaining('dispose'), findsOneWidget);
     });
 
