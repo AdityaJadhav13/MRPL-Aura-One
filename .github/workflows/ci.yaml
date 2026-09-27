@@ -45,7 +45,7 @@ jobs:
         working-directory: measurement-engine
         run: |
           dart run tool/export_geometry.dart
-          if ! git diff --exit-code -- ../../app/assets/geometry; then
+          if ! git diff --exit-code -- ../app/assets/geometry; then
             echo "::error::app/assets/geometry is out of date."
             echo "Run: cd measurement-engine && dart run tool/export_geometry.dart"
             exit 1
