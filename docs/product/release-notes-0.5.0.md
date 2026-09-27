@@ -6,7 +6,11 @@
 | Package | `in.doseband.h2s.dev` |
 | Version / versionCode | 0.5.0 (`0.5.0-dev`) / 5 |
 | Flavour | dev, entry `lib/main_dev.dart`, `--dart-define-from-file=config/presentation.local.json` |
-| Build source | _filled in when built_ |
+| Build source | `acfcf2d` (clean tree) |
+| APK | `dist/doseband-worker-0.5.0+5-acfcf2d-dev-release.apk` (66.7 MB) |
+| SHA-256 | `0d61cc8da2915006917523aecc6f1c5d05377e590a103fa7db70a06ccd5be40e` |
+| Permissions | CAMERA (runtime), INTERNET, AndroidX receiver permission — no location, audio or storage |
+| minSdk / targetSdk | 24 / 36 |
 | Toolchain | Flutter 3.47.5, Dart 3.13.4, Android SDK 36, JDK 21 |
 
 ## New
