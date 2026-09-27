@@ -98,9 +98,7 @@ void main() {
           if (failure != null)
             authControllerProvider.overrideWith(() => _Refused(failure)),
           if (prefilled)
-            presentationCredentialsProvider.overrideWithValue(
-              _testCredentials,
-            ),
+            presentationCredentialsProvider.overrideWithValue(_testCredentials),
           if (setup != null)
             onboardingProvider.overrideWith(() => _Preset(setup)),
           if (restoring) authControllerProvider.overrideWith(_Restoring.new),

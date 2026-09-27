@@ -58,12 +58,11 @@ void main() {
     }
   }
 
-  Finder primary(String label) =>
-      find.byWidgetPredicate(
-        (w) =>
-            (w is DoseBandButton && w.label == label) ||
-            (w is AuthPrimaryButton && w.label == label),
-      );
+  Finder primary(String label) => find.byWidgetPredicate(
+    (w) =>
+        (w is DoseBandButton && w.label == label) ||
+        (w is AuthPrimaryButton && w.label == label),
+  );
 
   for (final scale in [1.0, 2.0]) {
     testWidgets('worker navigation and central Scan at ${scale}x', (

@@ -181,7 +181,10 @@ void main() {
     test('without a requested role, it must choose among its own', () async {
       final c = container();
       final auth = c.read(authControllerProvider.notifier);
-      await auth.signIn(loginId: PresentationDataset.yashvi, password: password);
+      await auth.signIn(
+        loginId: PresentationDataset.yashvi,
+        password: password,
+      );
       final state = c.read(authControllerProvider);
       expect(state.awaitingRoleChoice, isTrue);
       expect(
@@ -408,9 +411,8 @@ void main() {
           .read(authControllerProvider.notifier)
           .signIn(loginId: PresentationDataset.lavitra, password: password);
       await tester.pumpAndSettle();
-      GoRouter.of(
-        tester.element(find.byType(Scaffold).first),
-      ).go('/history/record/CAP-TEST-1'); // Aditya's record
+      GoRouter.of(tester.element(find.byType(Scaffold).first))
+          .go('/history/record/CAP-TEST-1'); // Aditya's record
       await tester.pumpAndSettle();
       expect(find.textContaining('outside your access'), findsOneWidget);
       expect(find.text('DB-2609-0010'), findsNothing);

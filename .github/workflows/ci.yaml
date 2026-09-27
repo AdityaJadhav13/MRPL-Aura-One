@@ -16,11 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dart-lang/setup-dart@v1
+      # The engine has no Flutter dependency, but it is a member of a pub
+      # workspace that also contains the app, and resolution is
+      # workspace-wide. The Flutter SDK is needed to resolve; the tests
+      # themselves still run headless under `dart test`.
+      - uses: subosito/flutter-action@v2
         with:
-          sdk: stable
-      - run: dart pub get
-        working-directory: measurement-engine
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
       - name: Format
         run: dart format --output=none --set-exit-if-changed .
         working-directory: measurement-engine

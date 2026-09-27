@@ -123,10 +123,14 @@ const allProhibitedClaims = <String>[
 const allRoutes = <String>[
   '/splash',
   '/sign-in',
+  // First-time setup (Worker directive §15).
+  '/select-site',
+  '/select-role',
   '/home',
   '/scan',
   '/history',
   '/profile',
+  '/profile/settings',
   // Development-only (APP-PRODUCT-01): the tools hub and component catalog.
   '/dev',
   '/dev/components',

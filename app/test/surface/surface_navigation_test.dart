@@ -133,7 +133,9 @@ void main() {
       // And that it does not replace a detector, which is the belief the
       // sentence exists to prevent.
       expect(
-        find.textContaining('does not replace certified portable H₂S detectors'),
+        find.textContaining(
+          'does not replace certified portable H₂S detectors',
+        ),
         findsOneWidget,
       );
     });
