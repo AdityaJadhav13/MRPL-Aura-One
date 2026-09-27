@@ -23,35 +23,41 @@ class AuthBrandHeader extends StatelessWidget {
     final corporate = context.corporate;
     final t = context.type;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        MrplBrandmark(size: markSize),
-        const SizedBox(width: Space.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                'Mangalore Refinery\nand Petrochemicals Limited',
-                style: t.bodyStrong.copyWith(
-                  color: corporate.primary,
-                  height: 1.22,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (showTagline) ...<Widget>[
-                const SizedBox(height: 2),
+    // The organisation's name is identity, not content a task depends on,
+    // and at 200 % it broke inside "Petrochemicals" and filled a small
+    // phone. It stops at 130 %; everything below it scales in full.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.3,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          MrplBrandmark(size: markSize),
+          const SizedBox(width: Space.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
                 Text(
-                  'Refining for a Brighter Tomorrow',
-                  style: t.caption.copyWith(color: corporate.textSecondary),
+                  'Mangalore Refinery\nand Petrochemicals Limited',
+                  style: t.bodyStrong.copyWith(
+                    color: corporate.primary,
+                    height: 1.22,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+                if (showTagline) ...<Widget>[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Refining for a Brighter Tomorrow',
+                    style: t.caption.copyWith(color: corporate.textSecondary),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

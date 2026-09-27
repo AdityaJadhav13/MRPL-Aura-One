@@ -90,6 +90,15 @@ enum SignInFailure {
 
   /// No identity provider is connected to this build.
   notConnected,
+
+  /// The credentials were valid, but the account is not authorized for the
+  /// role that was requested. Distinct from [invalidCredentials]: this is an
+  /// authorization refusal, not an authentication one.
+  roleNotAuthorised,
+
+  /// The credentials were valid, but the account is not assigned to the site
+  /// that was selected during setup.
+  siteNotAuthorised,
 }
 
 @immutable

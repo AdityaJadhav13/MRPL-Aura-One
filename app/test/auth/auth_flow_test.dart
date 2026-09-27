@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:h2s_doseband/core/components/buttons.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/core/router/route_gate.dart';
 import 'package:h2s_doseband/core/router/router_gate.dart';
@@ -16,6 +15,7 @@ import 'package:h2s_doseband/features/operations/application/operations_reposito
 import 'package:h2s_doseband/features/operations/data/operations_store.dart';
 import 'package:h2s_doseband/features/operations/data/presentation_dataset.dart';
 import 'package:h2s_doseband/features/operations/domain/audit.dart';
+import 'package:h2s_doseband/features/auth/presentation/widgets/auth_scaffold.dart';
 import 'package:h2s_doseband/main.dart';
 
 import '../support/signed_in.dart';
@@ -301,13 +301,14 @@ void main() {
       expect(await sessions.load(), isNull);
     });
 
-    test('presentation one-tap access is refused in production', () async {
+    test('production signs nobody in and prefills nothing', () async {
       final c = container(config: prod);
       final failure = await c
           .read(authControllerProvider.notifier)
-          .signInAsPresentation(PresentationDataset.aditya);
-      expect(failure, isNotNull);
+          .signIn(loginId: PresentationDataset.aditya, password: testPassword);
+      expect(failure, SignInFailure.notConnected);
       expect(c.read(authControllerProvider).isSignedIn, isFalse);
+      expect(c.read(presentationCredentialsProvider), isNull);
     });
 
     test('the stored session file holds no credential', () async {
@@ -384,7 +385,7 @@ void main() {
 
   group('screens', () {
     final signInButton = find.byWidgetPredicate(
-      (w) => w is DoseBandButton && w.label == 'Sign in',
+      (w) => w is AuthPrimaryButton && w.label == 'Sign In',
     );
 
     Future<ProviderContainer> pumpApp(
@@ -409,8 +410,8 @@ void main() {
 
     testWidgets('launch without a session lands on sign-in', (tester) async {
       await pumpApp(tester);
-      expect(find.text('Sign in'), findsWidgets);
-      expect(find.text('Employee or contractor ID'), findsOneWidget);
+      expect(find.text('Sign In'), findsWidgets);
+      expect(find.text('User ID / Employee ID'), findsOneWidget);
     });
 
     testWidgets('sign-in shows no credentials and no role picker', (
@@ -430,7 +431,10 @@ void main() {
       await tester.enterText(find.byType(TextField).at(1), 'wrong');
       await tester.tap(signInButton);
       await tester.pumpAndSettle();
-      expect(find.text('ID or password not recognised'), findsOneWidget);
+      expect(
+        find.text('Unable to sign in with those credentials'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a supervisor signs in and lands in the supervisor workspace', (

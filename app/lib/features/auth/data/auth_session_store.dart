@@ -13,10 +13,17 @@ import '../domain/auth_models.dart';
 /// account or a withdrawn role does not come back through a stale file.
 @immutable
 final class StoredSession {
-  const StoredSession({required this.personId, required this.activeRole});
+  const StoredSession({
+    required this.personId,
+    required this.activeRole,
+    this.siteId,
+  });
 
   final String personId;
   final AppRole activeRole;
+
+  /// The site confirmed at sign-in, when one was selected during setup.
+  final String? siteId;
 }
 
 abstract interface class AuthSessionStore {
@@ -63,7 +70,12 @@ final class FileAuthSessionStore implements AuthSessionStore {
           .where((r) => r.name == raw['active_role'])
           .firstOrNull;
       if (id is! String || id.isEmpty || role == null) return null;
-      return StoredSession(personId: id, activeRole: role);
+      final site = raw['site_id'];
+      return StoredSession(
+        personId: id,
+        activeRole: role,
+        siteId: site is String && site.isNotEmpty ? site : null,
+      );
     } on FormatException {
       return null;
     } on FileSystemException {
@@ -80,6 +92,7 @@ final class FileAuthSessionStore implements AuthSessionStore {
       jsonEncode({
         'person_id': session.personId,
         'active_role': session.activeRole.name,
+        if (session.siteId != null) 'site_id': session.siteId,
       }),
       flush: true,
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:h2s_doseband/core/components/buttons.dart';
+import 'package:h2s_doseband/features/auth/presentation/widgets/auth_scaffold.dart';
 import 'package:h2s_doseband/core/components/product_navigation.dart';
 import 'package:h2s_doseband/core/design/tokens.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
@@ -58,7 +59,11 @@ void main() {
   }
 
   Finder primary(String label) =>
-      find.byWidgetPredicate((w) => w is DoseBandButton && w.label == label);
+      find.byWidgetPredicate(
+        (w) =>
+            (w is DoseBandButton && w.label == label) ||
+            (w is AuthPrimaryButton && w.label == label),
+      );
 
   for (final scale in [1.0, 2.0]) {
     testWidgets('worker navigation and central Scan at ${scale}x', (
@@ -84,7 +89,7 @@ void main() {
 
     testWidgets('sign-in action at ${scale}x', (tester) async {
       await pumpAt(tester, '/sign-in', textScale: scale);
-      expectTarget(tester, primary('Sign in'), kMinTouchTarget, 'Sign in');
+      expectTarget(tester, primary('Sign In'), kMinTouchTarget, 'Sign In');
     });
 
     testWidgets('pre-use check action at ${scale}x', (tester) async {

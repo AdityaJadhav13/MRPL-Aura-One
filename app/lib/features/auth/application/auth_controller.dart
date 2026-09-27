@@ -10,6 +10,7 @@ import '../data/auth_session_store.dart';
 import '../data/site_repository.dart';
 import '../domain/auth_models.dart';
 import '../domain/identity.dart';
+import '../../workflow/domain/worker_identity.dart';
 
 /// The build's environment. Overridden at the root of the app and in tests, so
 /// no screen reads configuration from a global.
@@ -35,6 +36,34 @@ final identityProviderProvider = Provider<IdentityProvider>((ref) {
 final presentationAccessProvider = Provider<bool>(
   (ref) => ref.watch(environmentConfigProvider).simulationAvailable,
 );
+
+/// The presentation sign-in, prefilled so a judge can press Sign In.
+///
+/// The password is **not in source control**: it is supplied at build time
+/// (`--dart-define-from-file`, from a git-ignored file) and checked against
+/// the salted verifier like any typed password. Null in production, and
+/// wherever no password was supplied — the fields are then simply empty.
+typedef PresentationCredentials = ({
+  String loginId,
+  WorkerType accountType,
+  String password,
+});
+
+const String _presentationPassword = String.fromEnvironment(
+  'DOSEBAND_PRESENTATION_PASSWORD',
+);
+
+final presentationCredentialsProvider = Provider<PresentationCredentials?>((
+  ref,
+) {
+  if (!ref.watch(presentationAccessProvider)) return null;
+  if (_presentationPassword.isEmpty) return null;
+  return (
+    loginId: 'CT-45832',
+    accountType: WorkerType.contractor,
+    password: _presentationPassword,
+  );
+});
 
 final authSessionStoreProvider = Provider<AuthSessionStore>(
   (_) => InMemoryAuthSessionStore(),
@@ -69,6 +98,10 @@ class AuthController extends Notifier<AuthState> {
 
   AuthSessionStore get _store => ref.read(authSessionStoreProvider);
 
+  /// Whether this session is kept on disk (Remember Me). A restored session
+  /// was, by definition.
+  bool _remember = true;
+
   /// Reads the stored session, re-checking it against the directory. Called
   /// once, by the splash screen.
   Future<void> restore() async {
@@ -85,6 +118,7 @@ class AuthController extends Notifier<AuthState> {
       state = AuthState.signedOut;
       return;
     }
+    _remember = true;
     final role = person.hasRole(stored.activeRole)
         ? stored.activeRole
         : person.roles.first;
@@ -94,11 +128,36 @@ class AuthController extends Notifier<AuthState> {
     );
   }
 
-  /// Checks the ID and password with the identity provider. Returns why it
-  /// failed, or null on success. The password is passed through and dropped.
+  /// Signs a person in.
+  ///
+  /// Authentication and authorization are separate steps, and fail with
+  /// separate reasons:
+  ///
+  /// 1. **Identity** — the identity provider checks the ID and password.
+  ///    An account-type mismatch (employee / contractor) is reported as
+  ///    invalid credentials, so the form cannot be used to learn what kind
+  ///    of account an ID is.
+  /// 2. **Authorization** — only after the credentials are accepted: a
+  ///    [requestedRole] must be one the directory grants the account, and a
+  ///    [siteId] chosen during setup must be the account's assigned site.
+  ///    Selecting a role never grants it.
+  ///
+  /// With no [requestedRole] the session opens in the account's first
+  /// role; a person with several chooses among their own afterwards.
+  /// [remember] decides whether the session survives the app closing.
+  ///
+  /// Enforced here, in the session layer, on this device. SERVER
+  /// AUTHORIZATION ENFORCEMENT PENDING: there is no server to repeat it.
+  ///
+  /// The password is passed through and dropped; it is never stored or
+  /// logged.
   Future<SignInFailure?> signIn({
     required String loginId,
     required String password,
+    WorkerType? accountType,
+    AppRole? requestedRole,
+    String? siteId,
+    bool remember = true,
   }) async {
     if (state.status == AuthStatus.signingIn) return null;
     state = const AuthState(status: AuthStatus.signingIn);
@@ -112,52 +171,75 @@ class AuthController extends Notifier<AuthState> {
         );
     switch (outcome) {
       case SignInRefused(:final failure):
-        state = AuthState(status: AuthStatus.signedOut, failure: failure);
-        return failure;
+        return _refuse(failure);
       case SignInAccepted(:final personId):
-        return _establish(personId);
+        final person = directory.person(personId);
+        if (person == null ||
+            (accountType != null && person.workerType != accountType)) {
+          return _refuse(SignInFailure.invalidCredentials);
+        }
+        if (requestedRole != null && !person.hasRole(requestedRole)) {
+          return _refuse(SignInFailure.roleNotAuthorised);
+        }
+        if (siteId != null && person.siteId != siteId) {
+          return _refuse(SignInFailure.siteNotAuthorised);
+        }
+        return _establish(
+          person,
+          role: requestedRole ?? person.roles.first,
+          siteId: siteId,
+          remember: remember,
+          chooseRole: requestedRole == null && person.roles.length > 1,
+        );
     }
   }
 
-  /// One-tap sign-in to a presentation account. Refused unless the build
-  /// offers presentation access — never in production.
-  Future<SignInFailure?> signInAsPresentation(String personId) async {
-    if (!ref.read(presentationAccessProvider)) {
-      state = const AuthState(
-        status: AuthStatus.signedOut,
-        failure: SignInFailure.notConnected,
-      );
-      return SignInFailure.notConnected;
-    }
-    state = const AuthState(status: AuthStatus.signingIn);
-    final directory = await ref.read(operationsProvider.future);
-    if (!(directory.person(personId)?.active ?? false)) {
-      state = const AuthState(
-        status: AuthStatus.signedOut,
-        failure: SignInFailure.accountSuspended,
-      );
-      return SignInFailure.accountSuspended;
-    }
-    return _establish(personId);
+  SignInFailure _refuse(SignInFailure failure) {
+    state = AuthState(status: AuthStatus.signedOut, failure: failure);
+    return failure;
   }
 
-  Future<SignInFailure?> _establish(String personId) async {
-    final directory = await ref.read(operationsProvider.future);
-    final person = directory.person(personId);
-    if (person == null) {
-      state = const AuthState(
-        status: AuthStatus.signedOut,
-        failure: SignInFailure.invalidCredentials,
+  Future<SignInFailure?> _establish(
+    Person person, {
+    required AppRole role,
+    required bool remember,
+    String? siteId,
+    bool chooseRole = false,
+  }) async {
+    _remember = remember;
+    final session = _sessionFor(person, role);
+    if (remember) {
+      await _store.save(
+        StoredSession(
+          personId: person.personId,
+          activeRole: session.activeRole,
+          siteId: siteId,
+        ),
       );
-      return SignInFailure.invalidCredentials;
+    } else {
+      // Not remembered: nothing on disk, and nothing left from before.
+      await _store.clear();
     }
-    final session = _sessionFor(person, person.roles.first);
-    await _store.save(
-      StoredSession(personId: person.personId, activeRole: session.activeRole),
-    );
     await _audit(AuditAction.signedIn, session);
-    state = AuthState(status: AuthStatus.signedIn, session: session);
+    state = AuthState(
+      status: AuthStatus.signedIn,
+      session: session,
+      awaitingRoleChoice: chooseRole,
+    );
     return null;
+  }
+
+  /// Completes sign-in for an account with several roles: opens [role]'s
+  /// workspace, provided the account holds it. Returns false, and changes
+  /// nothing, for a role the account does not hold.
+  Future<bool> confirmRole(AppRole role) async {
+    final current = state.session;
+    if (current == null || !current.roles.contains(role)) return false;
+    if (current.activeRole != role) {
+      await switchWorkspace(role);
+    }
+    state = AuthState(status: AuthStatus.signedIn, session: state.session);
+    return true;
   }
 
   /// Moves to another of the person's own workspaces.
@@ -166,9 +248,16 @@ class AuthController extends Notifier<AuthState> {
     if (current == null || !current.roles.contains(role)) return;
     if (current.activeRole == role) return;
     final next = current.withRole(role);
-    await _store.save(
-      StoredSession(personId: next.personId, activeRole: next.activeRole),
-    );
+    if (_remember) {
+      final stored = await _store.load();
+      await _store.save(
+        StoredSession(
+          personId: next.personId,
+          activeRole: next.activeRole,
+          siteId: stored?.siteId,
+        ),
+      );
+    }
     await _audit(AuditAction.workspaceSwitched, next);
     state = AuthState(status: AuthStatus.signedIn, session: next);
   }

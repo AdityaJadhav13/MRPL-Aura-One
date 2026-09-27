@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/screens/role_selection_screen.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
+import '../../features/auth/presentation/screens/site_selection_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../components/states.dart';
 import '../design/theme.dart';
@@ -88,6 +90,16 @@ GoRouter buildRouter(
             SplashScreen(from: state.uri.queryParameters['from']),
       ),
       GoRoute(path: '/sign-in', builder: (_, _) => const SignInScreen()),
+      // First-time setup (Worker directive §15). Open before sign-in; the
+      // choices are requests that Sign In checks, never grants.
+      GoRoute(
+        path: '/select-site',
+        builder: (_, _) => const SiteSelectionScreen(),
+      ),
+      GoRoute(
+        path: '/select-role',
+        builder: (_, _) => const RoleSelectionScreen(),
+      ),
 
       // Worker journey — pushed over the shell.
       GoRoute(

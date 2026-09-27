@@ -28,19 +28,38 @@ enum AuthSource {
 /// sign-in (PRODUCT BUILD v1 §54). A person holding several roles switches
 /// between them explicitly, and only between those.
 enum AppRole {
-  worker(
-    'Worker',
-    'Scan your DoseBand, see your history and safety information',
+  worker('Worker', 'DoseBand monitoring, history and safety information'),
+  supervisor(
+    'Supervisor',
+    'Authorized team monitoring and operational exceptions',
   ),
-  supervisor('Supervisor', 'Your team’s monitoring today'),
-  hseOfficer('HSE Officer', 'Exposure records, reviews and reports'),
-  management('Management', 'De-identified monitoring and trends'),
-  administrator('Administrator', 'People, DoseBand inventory and system');
+  hseOfficer(
+    'HSE Officer',
+    'Occupational exposure review, HSE records and reviews',
+  ),
+  management(
+    'Management',
+    'De-identified monitoring summaries, trends and reports',
+  ),
+  administrator(
+    'Administrator',
+    'System, users, roles, DoseBand inventory and configuration',
+  );
 
   const AppRole(this.label, this.description);
 
   final String label;
   final String description;
+
+  /// The order the role cards are shown in, as in the approved Select Your
+  /// Role screen.
+  static const List<AppRole> selectionOrder = [
+    AppRole.worker,
+    AppRole.hseOfficer,
+    AppRole.supervisor,
+    AppRole.management,
+    AppRole.administrator,
+  ];
 
   /// Where this role's workspace starts. Declared here so the role model and
   /// the routing cannot drift apart.
@@ -134,7 +153,12 @@ enum AuthStatus {
 
 @immutable
 final class AuthState {
-  const AuthState({required this.status, this.session, this.failure});
+  const AuthState({
+    required this.status,
+    this.session,
+    this.failure,
+    this.awaitingRoleChoice = false,
+  });
 
   static const AuthState unknown = AuthState(status: AuthStatus.unknown);
   static const AuthState signedOut = AuthState(status: AuthStatus.signedOut);
@@ -144,6 +168,11 @@ final class AuthState {
 
   /// Why the last sign-in attempt failed, until the next attempt.
   final SignInFailure? failure;
+
+  /// Signed in to an account with several roles, without having requested
+  /// one: the person must choose among **their own** roles before any
+  /// workspace opens. The route gate holds them on Select Your Role.
+  final bool awaitingRoleChoice;
 
   bool get isSignedIn => status == AuthStatus.signedIn && session != null;
 }

@@ -67,7 +67,7 @@ void main() {
     await tester.pump(SplashScreen.minimumShown);
     await tester.pumpAndSettle();
     expect(find.byType(SplashScreen), findsNothing);
-    expect(find.text('Sign in'), findsWidgets);
+    expect(find.text('Sign In'), findsWidgets);
   });
 
   testWidgets('a tap while the session is read continues once it is', (
@@ -83,7 +83,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(SplashScreen), findsNothing);
-    expect(find.text('Sign in'), findsWidgets);
+    expect(find.text('Sign In'), findsWidgets);
     await tester.pump(SplashScreen.minimumShown);
   });
 

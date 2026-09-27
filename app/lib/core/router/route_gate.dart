@@ -49,7 +49,16 @@ abstract final class RouteGate {
   };
 
   /// Routes reachable without signing in.
-  static const List<String> _public = ['/splash', '/sign-in'];
+  static const List<String> _public = [
+    '/splash',
+    '/sign-in',
+    '/select-site',
+    '/select-role',
+  ];
+
+  /// First-time setup: open before sign-in, closed once signed in — except
+  /// Select Your Role while a multi-role account chooses among its roles.
+  static const List<String> _setup = ['/select-site', '/select-role'];
 
   static bool _under(String path, String prefix) =>
       path == prefix || path.startsWith('$prefix/');
@@ -94,10 +103,15 @@ abstract final class RouteGate {
     }
 
     final session = auth.session;
+    final inSetup = _setup.any((p) => _under(path, p));
     if (session == null || !auth.isSignedIn) {
-      return _under(path, '/sign-in') ? null : '/sign-in';
+      return _under(path, '/sign-in') || inSetup ? null : '/sign-in';
     }
-    if (path == '/' || _under(path, '/sign-in')) {
+    // A multi-role account that has not chosen goes nowhere else.
+    if (auth.awaitingRoleChoice) {
+      return _under(path, '/select-role') ? null : '/select-role';
+    }
+    if (path == '/' || _under(path, '/sign-in') || inSetup) {
       return session.activeRole.landingRoute;
     }
     return allows(session: session, location: location)
