@@ -54,7 +54,7 @@ Their goldens are byte-identical before and after the recovery.
 
 * No quantitative H₂S result: there is no validated calibration (M0C, S1–S3 open).
 * REF-BLACK behaviour and all optical thresholds are untouched.
-* `packages/measurement` is unchanged (312 tests; parity 394/394; geometry drift 75).
+* `measurement-engine` is unchanged (312 tests; parity 394/394; geometry drift 75).
 * No gradients anywhere (ratchet 0).
 
 ## Not connected

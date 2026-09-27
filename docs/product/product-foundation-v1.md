@@ -241,7 +241,7 @@ records exists anywhere.
 
 ## 15. Measurement-engine boundary
 
-`packages/measurement` is pure Dart, with no Flutter dependency, and is the
+`measurement-engine` is pure Dart, with no Flutter dependency, and is the
 only place optical features, quality decisions and calibration interfaces
 live. The app calls it; it never reads app or UI state. **Phase 0 changed zero
 files in it.**

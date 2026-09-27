@@ -41,7 +41,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   final canonical = File(
-    '../packages/measurement/geometry/badge-v1.geometry.json',
+    '../measurement-engine/geometry/badge-v1.geometry.json',
   ).readAsStringSync();
 
   group('the packaged asset matches the canonical geometry', () {
@@ -62,7 +62,7 @@ void main() {
         canonical,
         reason:
             'the exported asset has drifted from '
-            'packages/measurement/geometry/ — re-run '
+            'measurement-engine/geometry/ — re-run '
             'dart run tool/export_geometry.dart',
       );
     });

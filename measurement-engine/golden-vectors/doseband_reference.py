@@ -6,7 +6,7 @@ OpenCV, no scikit-image.
 
 That is not minimalism for its own sake. The purpose of this file is to be an
 independent implementation of the same arithmetic as
-`packages/measurement/lib/src/`. If it delegated the linear algebra and the
+`measurement-engine/lib/src/`. If it delegated the linear algebra and the
 colour conversions to a third-party library, the two stacks would agree
 because they were both calling the same C code, and the test would stop
 detecting the thing it exists to detect: that our Dart implementation and our

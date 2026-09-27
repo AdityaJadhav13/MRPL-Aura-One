@@ -24,7 +24,7 @@ question open until there is one.
 
 ## 3. What was actually measured
 
-`packages/measurement/tool/fiducial_benchmark.dart`, run on rendered
+`measurement-engine/tool/fiducial_benchmark.dart`, run on rendered
 `badge-v1-research` fixtures. Every distortion is synthetic. **These numbers
 describe the detector on rendered images and say nothing about photographs.**
 
@@ -49,7 +49,7 @@ centre.
 **0% on the occlusion row is the correct result.** It means refusal. See §4.1.
 
 A permanent adversarial suite extends this row into sixteen cases —
-`packages/measurement/test/geometry/adversarial_pose_test.dart`. It asserts a
+`measurement-engine/test/geometry/adversarial_pose_test.dart`. It asserts a
 one-sided property, *refuse or be right*, and never requires detection to
 succeed. Current result: **0 confident wrong poses out of 16.**
 
@@ -183,7 +183,7 @@ If A or B wins on detection, it is not free:
 
 - native binary size per ABI, and an FFI boundary in the measurement path;
 - a second numerical implementation that the cross-language parity contract
-  (`golden-vectors/README.md`) would have to cover;
+  (`measurement-engine/golden-vectors/README.md`) would have to cover;
 - coded markers change the badge: design rule **R2** (orientation by marker
   size) is superseded by marker identity, and the quiet-zone and module-size
   requirements are theirs, not ours.

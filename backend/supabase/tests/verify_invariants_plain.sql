@@ -4,8 +4,8 @@
 -- therefore Docker. This file needs neither: any PostgreSQL 13+ can run it.
 --
 --   createdb doseband
---   psql -d doseband -f supabase/migrations/20260923000000_measurement_result_invariants.sql
---   psql -d doseband -f supabase/tests/verify_invariants_plain.sql
+--   psql -d doseband -f backend/supabase/migrations/20260923000000_measurement_result_invariants.sql
+--   psql -d doseband -f backend/supabase/tests/verify_invariants_plain.sql
 --
 -- It exists because the invariant it checks is the product's central promise,
 -- and a promise that can only be checked when Docker happens to be running is

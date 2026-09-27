@@ -9,7 +9,7 @@ ROI sampling, least-squares colour fitting, CIELAB and ΔE₀₀. The obvious mo
 that ML cannot recover information the sensor did not capture.
 
 ## Decision
-Implement the pipeline in pure Dart in `packages/measurement`, using `image` for decode only.
+Implement the pipeline in pure Dart in `measurement-engine`, using `image` for decode only.
 No OpenCV. No ML model.
 
 ## Why

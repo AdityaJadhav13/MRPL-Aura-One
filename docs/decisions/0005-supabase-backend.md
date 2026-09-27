@@ -29,5 +29,5 @@ is no path for a simulated row into a production dataset.
 
 ## Consequences
 - Three projects to manage, three sets of credentials, none shared with development.
-- Migrations are forward-only SQL in `supabase/migrations/`, tested with pgTAP.
+- Migrations are forward-only SQL in `backend/supabase/migrations/`, tested with pgTAP.
 - No service-role key ever ships in the client.

@@ -20,29 +20,29 @@ jobs:
         with:
           sdk: stable
       - run: dart pub get
-        working-directory: packages/measurement
+        working-directory: measurement-engine
       - name: Format
         run: dart format --output=none --set-exit-if-changed .
-        working-directory: packages/measurement
+        working-directory: measurement-engine
       - name: Analyze
         run: dart analyze --fatal-infos
-        working-directory: packages/measurement
+        working-directory: measurement-engine
       - name: Test
         run: dart test
-        working-directory: packages/measurement
+        working-directory: measurement-engine
 
-      # Geometry has one canonical home: packages/measurement/geometry/. The
+      # Geometry has one canonical home: measurement-engine/geometry/. The
       # Flutter asset is EXPORTED from it, never maintained alongside it.
       # Regenerating here and diffing is what makes "single source of truth" a
       # property rather than an intention: a hand-edited asset, or a canonical
       # edit that was never exported, fails the build.
       - name: Packaged geometry matches the canonical source
-        working-directory: packages/measurement
+        working-directory: measurement-engine
         run: |
           dart run tool/export_geometry.dart
           if ! git diff --exit-code -- ../../app/assets/geometry; then
             echo "::error::app/assets/geometry is out of date."
-            echo "Run: cd packages/measurement && dart run tool/export_geometry.dart"
+            echo "Run: cd measurement-engine && dart run tool/export_geometry.dart"
             exit 1
           fi
 
@@ -58,7 +58,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: Format
-        run: dart format --output=none --set-exit-if-changed app packages
+        run: dart format --output=none --set-exit-if-changed app measurement-engine
       - name: Analyze
         run: flutter analyze --fatal-infos
         working-directory: app
@@ -116,10 +116,10 @@ jobs:
             exit 1
           fi
 
-  # Both stacks must reproduce golden-vectors/vectors.json. A calibration model
+  # Both stacks must reproduce measurement-engine/golden-vectors/vectors.json. A calibration model
   # fitted in Python and applied in Dart is only valid if the two compute the
   # same features; this job is what makes a divergence fail loudly instead of
-  # showing up later as an unexplained bias. See golden-vectors/README.md.
+  # showing up later as an unexplained bias. See measurement-engine/golden-vectors/README.md.
   parity:
     name: Cross-language golden vectors
     runs-on: ubuntu-latest
@@ -133,7 +133,7 @@ jobs:
         # deliberately, so that agreement is not an artefact of both stacks
         # calling the same C library.
         run: python3 check_parity.py
-        working-directory: golden-vectors
+        working-directory: measurement-engine/golden-vectors
 
   # The dose_only_when_valid constraint is described in the README and in
   # docs/architecture/data-model.md as a safety property of this system. This
@@ -160,7 +160,7 @@ jobs:
       - name: Apply migrations
         run: |
           psql -h localhost -U postgres -c 'create database doseband'
-          for migration in supabase/migrations/*.sql; do
+          for migration in backend/supabase/migrations/*.sql; do
             echo "applying $migration"
             psql -h localhost -U postgres -d doseband -v ON_ERROR_STOP=1 -q -f "$migration"
           done
@@ -168,7 +168,7 @@ jobs:
         # Plain SQL rather than pgTAP: it needs only a stock postgres image,
         # and the invariant it checks is too important to run only when a
         # pgTAP-enabled stack happens to be available. The pgTAP suite in
-        # supabase/tests/ remains for `supabase test db`.
+        # backend/supabase/tests/ remains for `supabase test db`.
         run: |
           psql -h localhost -U postgres -d doseband -v ON_ERROR_STOP=1 \
-            -f supabase/tests/verify_invariants_plain.sql
+            -f backend/supabase/tests/verify_invariants_plain.sql

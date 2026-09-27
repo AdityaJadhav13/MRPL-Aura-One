@@ -32,7 +32,7 @@
 
 * No quantitative H₂S result: no validated calibration (M0C, S1–S3 open).
 * REF-BLACK behaviour and all optical thresholds untouched.
-* `packages/measurement` unchanged.
+* `measurement-engine` unchanged.
 
 ## Not connected
 

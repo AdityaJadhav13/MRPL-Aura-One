@@ -17,7 +17,7 @@ dependencies:
 
   # The scientific core. Pure Dart, no Flutter. See ADR-0004.
   measurement:
-    path: ../packages/measurement
+    path: ../measurement-engine
 
   # Role-based shells with redirect guards (worker / officer / admin) are
   # awkward and error-prone with imperative Navigator. That is the whole
@@ -57,7 +57,7 @@ flutter:
 
   assets:
     # GENERATED. Do not edit by hand and do not add a second copy of a
-    # geometry here. The canonical source is packages/measurement/geometry/;
+    # geometry here. The canonical source is measurement-engine/geometry/;
     # `dart run tool/export_geometry.dart` regenerates this directory and CI
     # fails if it has drifted.
     - assets/geometry/

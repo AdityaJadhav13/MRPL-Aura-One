@@ -36,7 +36,7 @@ ones are reliably refused.
 ## 2. Print (§7, §8, §50)
 
 ```
-cd packages/measurement
+cd measurement-engine
 dart run tool/generate_print_sheet.dart > geometry/badge-v1-sheet.svg
 ```
 
@@ -165,7 +165,7 @@ the correction is unreliable however good the fit looks.
 
 ## 10. Engine changes (§66, §67)
 
-`packages/measurement` is frozen except for narrowly justified M0C fixes backed
+`measurement-engine` is frozen except for narrowly justified M0C fixes backed
 by physical evidence. Every change carries: M0C issue id · physical evidence ·
 root cause · minimal fix · test · before/after · impact on goldens and parity.
 

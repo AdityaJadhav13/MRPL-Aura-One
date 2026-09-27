@@ -236,7 +236,7 @@ failed.
 SmART-Form is **GPL-3.0**. The consequences for us are concrete:
 
 - Copying, translating or deriving our Dart code from this Java source would make
-  `packages/measurement` — and by linkage the DoseBand application — a derivative work subject
+  `measurement-engine` — and by linkage the DoseBand application — a derivative work subject
   to GPL-3.0. We would have to license the whole distributed app under GPL-3.0 and provide
   corresponding source. For a badge product intended for an industrial customer, that is a
   decision for the project owner and counsel, not a default.

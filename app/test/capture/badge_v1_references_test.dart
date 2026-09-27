@@ -43,7 +43,7 @@ void main() {
 
   test('every patch exists in the canonical geometry', () {
     final geometry = BadgeGeometry.parse(
-      File('../packages/measurement/geometry/badge-v1.geometry.json')
+      File('../measurement-engine/geometry/badge-v1.geometry.json')
           .readAsStringSync(),
     );
     for (final id in badgeV1ReferenceDesignBytes.keys) {

@@ -17,7 +17,7 @@ The Flutter app cannot read them from here at runtime: a Flutter asset must
 live inside the app package. They are therefore **exported**, not duplicated:
 
 ```bash
-cd packages/measurement && dart run tool/export_geometry.dart
+cd measurement-engine && dart run tool/export_geometry.dart
 ```
 
 That writes `app/assets/geometry/` and a manifest carrying each file's

@@ -12,8 +12,8 @@ Budget roughly half a day for one phone, plus an hour per additional phone.
 ### 1. Print the target
 
 ```bash
-cd packages/measurement
-dart run tool/generate_printable_target.dart > ../../assets/badge-samples/badge-v1-target.svg
+cd measurement-engine
+dart run tool/generate_printable_target.dart > ../../measurement-engine/badge-print/badge-v1-target.svg
 ```
 
 Print `badge-v1-target.svg` **at 100% scale**. In most print dialogs this

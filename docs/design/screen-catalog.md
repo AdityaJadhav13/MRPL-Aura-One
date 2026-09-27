@@ -466,7 +466,7 @@ numeric figure with a unit appears anywhere on it.
 **Data:** mixed · **Status:** UI ONLY
 Geometry, formulation and batch records.
 **Boundary:** geometry is displayed, not edited. It is owned by
-`packages/measurement` and exported with a SHA-256 manifest; a geometry editable
+`measurement-engine` and exported with a SHA-256 manifest; a geometry editable
 from an admin text field would be a second source of truth for where a sensor
 region is. No badge has been manufactured, so manufacture records, quality
 release, shelf life and expiry policy are all empty.

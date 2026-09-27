@@ -10,7 +10,7 @@
 
 The repository is in better shape than a greenfield audit would assume. The **architecture for
 the measurement engine is already specified in detail and is largely correct**; what is missing
-is the implementation. `packages/measurement` contains 3 source files and no science.
+is the implementation. `measurement-engine` contains 3 source files and no science.
 
 The research pass did not mostly confirm the existing design. It surfaced **four findings that
 change what must be built, and one of them is a hardware constraint that software cannot work
@@ -24,7 +24,7 @@ and justified. I recommend **not** adopting the directive's layout, for stated r
 
 ## 1. What exists today — verified, not assumed
 
-Commands run at audit time, from `packages/measurement`:
+Commands run at audit time, from `measurement-engine`:
 
 ```
 dart analyze   →  No issues found!
@@ -35,12 +35,12 @@ dart test      →  All tests passed!  (12/12)
 
 ```
 app/                    Flutter application — 54 Dart files, 25 screens, worker workflow complete
-packages/measurement/   Pure Dart scientific core — 3 files (see below)
+measurement-engine/   Pure Dart scientific core — 3 files (see below)
 docs/                   17 documents, 10 ADRs — architecture, CV spec, data model, design system
 research/               6 PDFs (4 readable papers, 1 cover sheet, 1 scanned patent)
 supabase/               migrations/ tests/ functions/ — all three EMPTY
 tools/                  EMPTY
-assets/badge-samples/   EMPTY
+measurement-engine/badge-print/   EMPTY
 assets/reference-colors/ EMPTY
 .github/workflows/ci.yaml  format · analyze · test · build, per PR
 ```
@@ -247,12 +247,12 @@ Everything below is absent from the repository today.
 | `data/` with `simulated/ lab/ calibration/` | §30 | directory does not exist |
 | `research/notebooks/` | §42 | does not exist |
 | `research/references/` | §2 | **created by this pass** |
-| Demo badge artwork + geometry file | §51 | `assets/badge-samples/` is empty |
+| Demo badge artwork + geometry file | §51 | `measurement-engine/badge-print/` is empty |
 | Reference colour target definitions | §15 | `assets/reference-colors/` is empty |
 | Fixture generator | §46 | `tools/` is empty |
-| Test fixtures | §46 | `packages/measurement/test/fixtures/` does not exist |
+| Test fixtures | §46 | `measurement-engine/test/fixtures/` does not exist |
 | Camera capture in the app | §9, §11 | no `camera` dependency in `app/pubspec.yaml` |
-| Supabase migrations | §31 | `supabase/migrations/` empty |
+| Supabase migrations | §31 | `backend/supabase/migrations/` empty |
 | `CATALOG.md`, `LICENSE`, `CONTRIBUTING.md` at root | §0 | absent |
 
 ### 4.3 Pure-Dart linear algebra
@@ -278,15 +278,15 @@ it should be planned honestly.
 
 Directive §1.9 asks for these explicitly.
 
-### C-1 — Repository layout: `measurement-engine/` vs `packages/measurement/`
+### C-1 — Repository layout: `measurement-engine/` vs `measurement-engine/`
 
 The directive (§0, §43, §58) specifies root-level `measurement-engine/`, `research/`, `data/`,
-`backend/`. The repository has `packages/measurement/`, `research/`, `supabase/`, `app/`,
+`backend/`. The repository has `measurement-engine/`, `research/`, `supabase/`, `app/`,
 `docs/`, `tools/`, justified in ADR-0004.
 
 **Recommendation: keep the existing layout.** Rationale:
 
-- `packages/measurement` **is** the measurement engine. Renaming it changes nothing about its
+- `measurement-engine` **is** the measurement engine. Renaming it changes nothing about its
   contents and breaks the Dart pub workspace, the package import paths in ~54 app files, the CI
   job and the ADR.
 - The workspace membership is what enforces the directive's own §44 boundary: `measurement`
@@ -361,12 +361,12 @@ serialised model with a Dart inference path, which is a significant additional d
 
 ### 6.2 Found during this audit
 
-9. **`supabase/migrations`, `supabase/tests`, `supabase/functions` and `tools/` are empty
+9. **`backend/supabase/migrations`, `backend/supabase/tests`, `backend/supabase/functions` and `tools/` are empty
    directories.** The schema in `data-model.md` is designed but not written. The constraint that
    the README advertises as a safety mechanism — `dose_only_when_valid` — **does not exist
    yet**. Today it is enforced only by the Dart type system.
-10. `image: ^4.10.1` is declared in `packages/measurement/pubspec.yaml` but unused.
-11. `assets/badge-samples/` and `assets/reference-colors/` are empty; the design system
+10. `image: ^4.10.1` is declared in `measurement-engine/pubspec.yaml` but unused.
+11. `measurement-engine/badge-print/` and `assets/reference-colors/` are empty; the design system
     references neither.
 12. Root `LICENSE`, `CONTRIBUTING.md` and `CATALOG.md` do not exist (directive §0).
 13. `research/` PDFs sit at the top level of `research/` with no index; two of the six are not
@@ -443,7 +443,7 @@ to make.
 
 ### L-2 — SmART-Form is GPL-3.0
 
-Copying or translating that source into `packages/measurement` would make the distributed app a
+Copying or translating that source into `measurement-engine` would make the distributed app a
 derivative work under GPL-3.0. **Recommendation: do not use the source at all.** Implement from
 the published equations and our own design; record in `CATALOG.md` that no SmART-Form code was
 copied. Nothing in the teardown requires its code — the algorithm is nine lines and we need a
@@ -525,7 +525,7 @@ fully buildable now and assert nothing about chemistry.
 from a fixture image through the full deterministic chain. **Makes no H₂S claim whatsoever** —
 the only calibration model present is explicitly `simulated`-domain.
 
-### 12.1 New files in `packages/measurement/`
+### 12.1 New files in `measurement-engine/`
 
 ```
 lib/src/
@@ -573,7 +573,7 @@ lib/src/
 tools/
   generate_fixtures.dart       synthetic badge renderer: known dose levels, applied perspective,
                                simulated illuminants, glare, defocus, noise, damaged patches
-assets/badge-samples/
+measurement-engine/badge-print/
   demo-badge-v0.svg            artificial demo badge artwork (NOT the product badge)
   demo-badge-v0.geometry.json  versioned geometry — the only place ROI coordinates live
 data/

@@ -5,7 +5,7 @@
     python3 check_parity.py --verbose  # print every comparison
 
 The Dart engine is checked against the same file by
-`packages/measurement/test/golden/golden_vectors_test.dart`. Because both
+`measurement-engine/test/golden/golden_vectors_test.dart`. Because both
 stacks are compared against one authoritative set of expected values, agreement
 with the file implies agreement with each other, and CI fails if either drifts.
 """

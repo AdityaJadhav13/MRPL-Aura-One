@@ -21,7 +21,7 @@ import 'dart:io';
 import 'package:measurement/measurement.dart';
 import 'package:measurement/testing.dart';
 
-const String _outputDirectory = '../../golden-vectors';
+const String _outputDirectory = 'golden-vectors';
 const String _geometryPath = 'geometry/demo-badge-v0.geometry.json';
 
 /// Patch ids used to fit the colour correction. Three chromatic plus the

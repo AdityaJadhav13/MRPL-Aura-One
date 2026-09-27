@@ -15,7 +15,7 @@ void main() {
       expect(
         _demoGeometryFile.existsSync(),
         isTrue,
-        reason: 'demo geometry is missing from assets/badge-samples/',
+        reason: 'demo geometry is missing from geometry/',
       );
       final geometry = BadgeGeometry.parse(
         _demoGeometryFile.readAsStringSync(),

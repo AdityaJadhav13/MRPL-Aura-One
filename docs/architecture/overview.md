@@ -74,7 +74,7 @@ analytics SDKs.
 
 ## The measurement core
 
-`packages/measurement` is a pipeline of pure functions. No I/O, no clock, no randomness
+`measurement-engine` is a pipeline of pure functions. No I/O, no clock, no randomness
 unless injected. Everything is deterministic and fixture-testable.
 
 ```
@@ -301,7 +301,7 @@ projects and separate signing. Simulation mode is compiled out of `prod`. Produc
 credentials never reach a development build.
 
 CI on every pull request: `dart format --set-exit-if-changed`, `flutter analyze --fatal-infos`,
-`dart test` on `packages/measurement`, `flutter test`, golden tests, pgTAP against a
+`dart test` on `measurement-engine`, `flutter test`, golden tests, pgTAP against a
 throwaway Postgres, then `flutter build appbundle`.
 
 Android permissions: `CAMERA` and `INTERNET`. Nothing else. No location, no storage, no
@@ -347,7 +347,7 @@ FUTURE SERVER BOUNDARY  (TARGET, P10)
                Replaces: NotConnectedDoseBandRegistry, the demo catalogs,
                DesignContractAccessPolicy (server-enforced), localOnly sync.
 
-MEASUREMENT ENGINE  packages/measurement — pure Dart, no Flutter.
+MEASUREMENT ENGINE  measurement-engine — pure Dart, no Flutter.
                Called by application/data; never reads app or UI state.
                Phase 0 changed no file in it.
 ```

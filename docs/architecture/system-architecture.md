@@ -13,7 +13,7 @@ deployed.**
 │   ├─ route gate (navigation only)                         │
 │   ├─ operations services  ── access policy (local) ──┐    │
 │   ├─ LocalDoseBandRegistry (atomic on this device)   │    │
-│   ├─ measurement engine (packages/measurement)       │    │
+│   ├─ measurement engine (measurement-engine)       │    │
 │   └─ stores (JSON files, app-private, not encrypted) │    │
 │        • operations_v1.json   ◀──────────────────────┘    │
 │        • shift_session_<worker>.json (per worker)         │
@@ -55,7 +55,7 @@ Server responsibilities: identity federation with the organisation
 directory, roles and scopes, DoseBand registry with transactional claim
 (`UNIQUE (doseband_id) WHERE assignment active`), inventory, sessions,
 measurement records (append-only, supersession by reference), HSE review,
-reporting, audit, calibration distribution. `supabase/migrations/` holds an
+reporting, audit, calibration distribution. `backend/supabase/migrations/` holds an
 earlier schema sketch; it is a target, not a running service.
 
 The service interfaces in `lib/features/operations/application/` are the

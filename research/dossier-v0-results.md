@@ -83,7 +83,7 @@ Preparation only. None of it is evidence.
 
 | Artefact | Purpose |
 |---|---|
-| `packages/measurement/tool/generate_print_sheet.dart` | A4 sheet: 4 specimens (§50), a 100 mm scale bar (§8), and a printed record block for printer, paper, mode, date and measured dimensions (§7). Fails loudly rather than silently dropping a record field off the page. |
+| `measurement-engine/tool/generate_print_sheet.dart` | A4 sheet: 4 specimens (§50), a 100 mm scale bar (§8), and a printed record block for printer, paper, mode, date and measured dimensions (§7). Fails loudly rather than silently dropping a record field off the page. |
 | `geometry/badge-v1-sheet.svg` | The generated sheet, rendered and visually verified. |
 | `research/m0c-threshold-inventory.md` | Every capture and quality threshold, its value, its origin, and the fact that **all 21 are `SYNTHETIC ONLY`**. |
 | `research/m0c-protocol.md` | The capture runbook: print, measure, capture matrix, dataset layout, session-wise splitting, reporting definitions, colour-claim limits. |
@@ -132,7 +132,7 @@ twenty files across a frozen UI during an M0C phase.
 
 ### Scientific state unchanged
 
-`packages/measurement` was **not modified**. No engine change was made, because
+`measurement-engine` was **not modified**. No engine change was made, because
 §66 permits one only on physical evidence and none exists. M0C, S1, S2 and S3
 all remain **OPEN**. No H₂S was involved at any point; M0C requires none.
 
@@ -163,7 +163,7 @@ M0C's software half is complete and verified; its evidence half is not.
 
 | | |
 |---|---|
-| Geometry single source of truth | Canonical in `packages/measurement/geometry/`, exported to the app, SHA-256 verified at load, CI fails on drift |
+| Geometry single source of truth | Canonical in `measurement-engine/geometry/`, exported to the app, SHA-256 verified at load, CI fails on drift |
 | Dev-only capture route | Wired at `/profile/capture`, behind the same guard that compiles simulation out of production |
 | Capture archive | One directory per capture; original bytes never re-encoded; record written last so an interrupted capture is identifiable |
 | Adversarial wrong-pose set | 17 permanent cases, asserting *refuse or be right* |

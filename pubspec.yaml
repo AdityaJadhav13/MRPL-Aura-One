@@ -6,4 +6,4 @@ environment:
 
 workspace:
   - app
-  - packages/measurement
+  - measurement-engine

@@ -1,7 +1,7 @@
 {
   "schema": "doseband-geometry-manifest/1",
-  "generated_by": "packages/measurement/tool/export_geometry.dart",
-  "note": "Generated. Do not edit. The canonical source is packages/measurement/geometry/; see its README.",
+  "generated_by": "measurement-engine/tool/export_geometry.dart",
+  "note": "Generated. Do not edit. The canonical source is measurement-engine/geometry/; see its README.",
   "geometries": [
     {
       "version": "badge-v1-research",

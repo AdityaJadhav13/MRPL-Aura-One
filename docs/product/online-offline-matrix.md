@@ -20,7 +20,7 @@ produce are `localOnly` and `notConnected`.
 | Global uniqueness check | server, atomic | server | Not connected — **not faked locally** |
 | Pre-use check (identity/lot/expiry parts) | server for registry facts; on-device for image checks | both | Not built (P2) |
 | Final camera scan of the assigned DoseBand | offline-capable | device | **Works offline** for a physical band (real camera) |
-| Measurement engine | on-device, offline | device | **Works offline** (`packages/measurement`) |
+| Measurement engine | on-device, offline | device | **Works offline** (`measurement-engine`) |
 | Persist a completed local measurement | offline | local store | **Works** for the session; history database is P5 |
 | Upload / synchronisation | queued until connectivity; `syncPending` → `synced` / `syncFailed` | server + queue | Not connected: records are `localOnly` |
 | Supervisor authoritative live team state | server | server | Not built (P6) |

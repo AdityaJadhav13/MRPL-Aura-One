@@ -49,7 +49,7 @@ and must not present outputs as if it could.
 | 9–10 | Role-specific navigation, actionable home | Architecture §Navigation |
 | 11 | Camera as its own product | CV §2 + Phase 3 |
 | 12–13 | Deterministic CV, colour science | `docs/computer-vision/pipeline.md` |
-| 14 | Versioned calibration model, never in UI code | Package boundary: `packages/measurement` has no Flutter import |
+| 14 | Versioned calibration model, never in UI code | Package boundary: `measurement-engine` has no Flutter import |
 | 15 | Full measurement traceability, supersede not overwrite | Data model §Results |
 | 16 | Offline-first | Architecture §Offline |
 | 17–18 | Supabase, normalised schema, DB constraints | `docs/architecture/data-model.md` |

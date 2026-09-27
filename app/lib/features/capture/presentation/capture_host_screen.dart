@@ -17,7 +17,7 @@ import 'capture_screen.dart';
 /// is to collect dossier V0 images.
 ///
 /// The geometry comes from the packaged asset, checksum-verified against the
-/// canonical definition in `packages/measurement/geometry/`. It is not
+/// canonical definition in `measurement-engine/geometry/`. It is not
 /// hard-coded here, and there is no fallback: if the geometry cannot be
 /// trusted, capture does not start.
 class CaptureHostScreen extends StatefulWidget {

@@ -8,7 +8,7 @@ file. The two do not deserve equal attention.
 
 | Tier | Scope | Runner | Gate |
 |---|---|---|---|
-| T1 Measurement core | `packages/measurement` — all CV, colour, calibration, validity | `dart test`, headless, no Flutter | Every PR. **Blocking.** |
+| T1 Measurement core | `measurement-engine` — all CV, colour, calibration, validity | `dart test`, headless, no Flutter | Every PR. **Blocking.** |
 | T2 Database | Drift migrations, constraints, triggers | `dart test` with in-memory SQLite | Every PR. Blocking. |
 | T3 Backend | RLS policies, CHECK constraints, triggers | pgTAP against a throwaway Postgres | Every PR. Blocking. |
 | T4 Unit / widget | Controllers, repositories, widgets | `flutter test` | Every PR. Blocking. |

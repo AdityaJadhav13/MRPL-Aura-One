@@ -17,7 +17,7 @@ import 'package:test/test.dart';
 /// it: regenerate the vectors **and** bump `featureDefinitionVersion` in the
 /// same commit, so that a calibration model fitted against the old arithmetic
 /// is refused rather than quietly misapplied.
-const String _goldenDirectory = '../../golden-vectors';
+const String _goldenDirectory = 'golden-vectors';
 
 Map<String, Object?> get _vectors =>
     jsonDecode(File('$_goldenDirectory/vectors.json').readAsStringSync())

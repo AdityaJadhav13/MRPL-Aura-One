@@ -293,7 +293,7 @@ void main() {
       required RgbImage preview,
     }) async {
       final geometry = BadgeGeometry.parse(
-        File('../packages/measurement/geometry/badge-v1.geometry.json')
+        File('../measurement-engine/geometry/badge-v1.geometry.json')
             .readAsStringSync(),
       );
       final port = FakeCameraPort(
@@ -358,7 +358,7 @@ void main() {
       // Read from the canonical file. Loading through the asset bundle from
       // a plain test() after widget tests hangs on the test binding.
       final geometry = BadgeGeometry.parse(
-        File('../packages/measurement/geometry/badge-v1.geometry.json')
+        File('../measurement-engine/geometry/badge-v1.geometry.json')
             .readAsStringSync(),
       );
       final tmp = Directory.systemTemp.createTempSync('doseband-worker-');
@@ -426,7 +426,7 @@ void main() {
     for (final downscale in const <int>[2, 4]) {
       test('ready on a 1/$downscale preview', () async {
         final geometry = BadgeGeometry.parse(
-          File('../packages/measurement/geometry/badge-v1.geometry.json')
+          File('../measurement-engine/geometry/badge-v1.geometry.json')
               .readAsStringSync(),
         );
         const stillPxPerMm = 16.0;
@@ -474,7 +474,7 @@ void main() {
       // G-03 showed up as `moveCloser` for a badge that was the right size.
       // A badge too small to *detect* is a different, honest failure.
       final geometry = BadgeGeometry.parse(
-        File('../packages/measurement/geometry/badge-v1.geometry.json')
+        File('../measurement-engine/geometry/badge-v1.geometry.json')
             .readAsStringSync(),
       );
       const d = 8;
@@ -515,7 +515,7 @@ void main() {
 
 ResearchObservation _observe() {
   final geometry = BadgeGeometry.parse(
-    File('../packages/measurement/geometry/badge-v1.geometry.json')
+    File('../measurement-engine/geometry/badge-v1.geometry.json')
         .readAsStringSync(),
   );
   final h = placeBadge(pixelsPerMm: 14, translateX: 70, translateY: 60);

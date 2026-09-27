@@ -541,7 +541,7 @@ class BadgeConfigurationScreen extends StatelessWidget {
               ),
               const RecordRow(
                 label: 'Source',
-                value: 'packages/measurement (canonical)',
+                value: 'measurement-engine (canonical)',
               ),
               const RecordRow(label: 'Verified by', value: 'SHA-256 manifest'),
               const SizedBox(height: Space.xs),

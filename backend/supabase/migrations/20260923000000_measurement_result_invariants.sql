@@ -58,7 +58,7 @@ create table calibration_models (
   -- Which pipeline code this model was fitted against. A model fitted on one
   -- feature definition must not be applied by a pipeline that computes those
   -- features differently; mismatch is UNSUPPORTED_CALIBRATION, not a
-  -- best-effort reading. See golden-vectors/README.md.
+  -- best-effort reading. See measurement-engine/golden-vectors/README.md.
   algorithm_version text not null,
   feature_definition_version text not null,
 

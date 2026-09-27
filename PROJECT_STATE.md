@@ -31,7 +31,7 @@ Branch `app-product-01`, from checkpoint `75bb983` (MEASUREMENT-INTEGRATION-02).
 - Tests: 1,063 app (baseline 714), 312 measurement, 394 parity. 27 foundation
   goldens; 49 legacy goldens updated after visual review. A new sweep renders
   every parameterless route at 320×568 at 100% and 200% text.
-- `packages/measurement` unchanged. M0C, S1, S2, S3 remain **OPEN**.
+- `measurement-engine` unchanged. M0C, S1, S2, S3 remain **OPEN**.
 
 Earlier phase notes follow.
 
@@ -136,7 +136,7 @@ and a printed record block for printer, paper, mode and measured dimensions), a
 threshold inventory recording all 21 capture and quality thresholds as
 `SYNTHETIC ONLY`, and a capture protocol covering the matrix, dataset layout,
 session-wise splitting and the limits on what may be claimed about colour
-without a spectrophotometer. `packages/measurement` was not modified — §66
+without a spectrophotometer. `measurement-engine` was not modified — §66
 permits an engine change only on physical evidence, and there is none.
 
 M0C, S1, S2 and S3 all remain OPEN. No H₂S was involved; M0C requires none.
@@ -285,7 +285,7 @@ drawing cannot. See `docs/design/auth-flow.md`.
 
 ## Architecture
 
-- Dart pub workspace, two packages: `packages/measurement` (pure Dart scientific core, no
+- Dart pub workspace, two packages: `measurement-engine` (pure Dart scientific core, no
   Flutter dependency) + `app` (Flutter). ADR-0004.
 - Riverpod 3 state, go_router navigation, Drift/SQLite local store, Supabase backend.
 - Deterministic computer vision in pure Dart. No OpenCV, no ML, until measured evidence

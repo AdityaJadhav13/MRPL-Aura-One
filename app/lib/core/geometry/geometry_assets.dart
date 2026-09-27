@@ -39,7 +39,7 @@ final class GeometryAssetException implements Exception {
 /// a measurement made against the wrong ROI coordinates is worse than no
 /// measurement, because nothing downstream can tell.
 ///
-/// The canonical definition lives in `packages/measurement/geometry/`; these
+/// The canonical definition lives in `measurement-engine/geometry/`; these
 /// assets are generated from it by `tool/export_geometry.dart`, and CI fails
 /// if they have drifted.
 final class GeometryAssets {

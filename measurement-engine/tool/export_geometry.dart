@@ -2,7 +2,7 @@
 //
 //   dart run tool/export_geometry.dart
 //
-// The canonical definition lives in `packages/measurement/geometry/`. The app
+// The canonical definition lives in `measurement-engine/geometry/`. The app
 // cannot read it from there at runtime — a Flutter asset must live inside the
 // app package — so it is **exported**, never copied by hand.
 //
@@ -16,7 +16,7 @@ import 'package:crypto/crypto.dart';
 import 'package:measurement/measurement.dart';
 
 const String canonicalDirectory = 'geometry';
-const String exportDirectory = '../../app/assets/geometry';
+const String exportDirectory = '../app/assets/geometry';
 
 void main() {
   final source = Directory(canonicalDirectory);
@@ -87,10 +87,10 @@ void main() {
 
   final manifest = <String, Object?>{
     'schema': 'doseband-geometry-manifest/1',
-    'generated_by': 'packages/measurement/tool/export_geometry.dart',
+    'generated_by': 'measurement-engine/tool/export_geometry.dart',
     'note':
         'Generated. Do not edit. The canonical source is '
-        'packages/measurement/geometry/; see its README.',
+        'measurement-engine/geometry/; see its README.',
     'geometries': entries,
   };
   File('$exportDirectory/manifest.json').writeAsStringSync(
