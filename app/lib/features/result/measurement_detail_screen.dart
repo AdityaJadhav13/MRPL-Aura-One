@@ -43,7 +43,9 @@ class MeasurementDetailScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Measurement details')),
       body: Column(
         children: [
-          const SimulationMarker(),
+          // Only for simulated data. A real scan's details were shown under
+          // this marker unconditionally.
+          if (record.domain == DataDomain.simulated) const SimulationMarker(),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(Space.base),
@@ -104,7 +106,10 @@ class MeasurementDetailScreen extends StatelessWidget {
                 ),
                 _Section(
                   title: 'Data domain',
-                  rows: const {'Domain': 'Simulated'},
+                  rows: {
+                    'Domain': record.domain.disclosure,
+                    'Photograph': record.captureId ?? 'None — simulated',
+                  },
                 ),
                 const SizedBox(height: Space.base),
               ],

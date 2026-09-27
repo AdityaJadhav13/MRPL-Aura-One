@@ -63,10 +63,22 @@ class _ResultScreenState extends State<ResultScreen> {
             colour: presentation.colour,
           );
 
+    // A real scan of a physical badge is not simulated, and must not say so.
+    // The marker used to be inherited from the scaffold's default, which put
+    // "Simulated — not a real H₂S measurement" over a real photograph's
+    // honest no-calibration refusal.
+    final simulated = record.domain == DataDomain.simulated;
+
     return StepScaffold(
       register: StepRegister.instrument,
       title: 'Exposure result',
-      primaryAction: status.isRefusal
+      simulated: simulated,
+      // "Scan again" only for a simulated specimen. A physical scan has
+      // completed its monitored period, and reopening the camera on it threw
+      // when the second result tried to complete a closed session. A re-read
+      // would need a superseding record, never a rewrite of this one (§78) —
+      // and no rescan turns "no calibration exists" into a value.
+      primaryAction: status.isRefusal && simulated
           ? DoseBandButton.primary(
               label: 'Scan again',
               icon: Icons.refresh,
