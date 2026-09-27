@@ -1,4 +1,4 @@
-# Functional completeness matrix — Product Build v1 (0.3.0+3)
+# Functional completeness matrix — Product Build v1 (0.4.0+4)
 
 REAL = works against real inputs · LOCAL_REAL = works, on this device only ·
 SIMULATED = labelled simulation · NOT_CONNECTED = boundary exists, nothing
@@ -7,13 +7,13 @@ PLANNED = not built.
 
 | Capability | Status | Notes |
 |---|---|---|
-| Splash, sign-in, sign-out | LOCAL_REAL | Presentation accounts, salted PBKDF2 verifiers |
+| Splash, sign-in, sign-out | LOCAL_REAL | Presentation accounts, salted PBKDF2 verifiers; approved splash and entry identity recovered in 0.4.0 |
 | Organisation identity (MRPL directory, SSO) | NOT_CONNECTED | Production flavour shows it |
 | Session restore | LOCAL_REAL | Person + role only, re-checked |
 | Role from identity; controlled workspace switch | LOCAL_REAL | Yashvi: management ⇄ administrator |
 | Route gate per workspace | LOCAL_REAL | Navigation only |
 | Worker profile (company record, read-only) | LOCAL_REAL | Presentation data; initials, no photos |
-| Worker Home states A–E | LOCAL_REAL | B is the check screen itself |
+| Worker Home states A–E | LOCAL_REAL | Approved rich Home recovered in 0.4.0 (header, identity, today's shift, work context, monitoring card, one action). B is the check screen itself; Home B appears only in the development simulation |
 | QR decode on camera frames | REAL | zxing2, pure Dart; not yet run on a phone |
 | Typed serial fallback | LOCAL_REAL | Same registry checks |
 | DoseBand registry, eligibility | LOCAL_REAL | Presentation inventory |

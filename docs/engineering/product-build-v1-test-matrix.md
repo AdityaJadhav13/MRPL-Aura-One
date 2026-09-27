@@ -15,9 +15,13 @@
 on hardware; real camera permission prompts; real QR decoding from a
 camera sensor; performance on low-end hardware.
 
-## Test inventory (0.3.0+3)
+## Test inventory (0.4.0+4)
 
-App 1 038 · engine 312 · parity 394/394 · geometry drift 75.
+App 1 049 · engine 312 · parity 394/394 · geometry drift 75.
+UI recovery (0.4.0+4) added goldens for the splash at 320 px / 200 % text,
+landscape and tablet; sign-in at 320 px; the DoseBand check and pre-use
+outcomes (`test/golden/doseband_flow_golden_test.dart`); Home state B;
+empty History. 0.3.0+3 had App 1 038.
 New suites: `test/operations/*` (store, registry, lifecycle, persistence,
 §107 authorisation), `test/auth/auth_flow_test.dart`,
 `test/doseband/*` (QR contract, pre-use rules, claim journey through the
@@ -38,3 +42,4 @@ UI), `test/hse/hse_workspace_test.dart`, `test/admin/admin_surface_test.dart`,
 | Low | UX | No connectivity indicator (nothing uses the network yet) | Add with sync |
 | Low | UX | Pre-use photograph is not archived as evidence | Archive via the capture archive |
 | Low | Legacy | Some governance screens use the older corporate components | Migrate to Phase 0 components |
+| Low | UX | Home's primary action is below the first screen on a 390 × 844 phone (directive's card order); the centre Scan is always visible | Revisit order after device testing |

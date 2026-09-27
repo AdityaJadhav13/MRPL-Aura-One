@@ -8,4 +8,4 @@
 /// specimen.** Two builds carrying the same version make their captures
 /// indistinguishable, and a mid-session hotfix is exactly when that happens.
 /// APP-INTEGRATION-01 §49.
-const String appVersion = '0.3.0+3';
+const String appVersion = '0.4.0+4';
