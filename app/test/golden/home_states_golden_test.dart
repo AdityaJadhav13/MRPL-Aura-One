@@ -53,7 +53,7 @@ void main() {
   );
 
   Future<void> pumpHome(WidgetTester tester, ShiftSession seeded) async {
-    tester.view.physicalSize = const Size(390 * 2, 1100 * 2);
+    tester.view.physicalSize = const Size(390 * 2, 1500 * 2);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
 
@@ -94,6 +94,13 @@ void main() {
   final states = <String, ShiftSession>{
     'home-a-no-doseband': session(ShiftStage.noShift),
     'home-a-work-recorded': session(ShiftStage.contextSet),
+    // Only the development simulation stops here: a real claim starts
+    // monitoring in the same step, so B carries a simulated specimen.
+    'home-b-assigned-simulated': ShiftSession(
+      stage: ShiftStage.badgeAssigned,
+      context: SimulationCatalog.demoContext(),
+      badge: SimulationCatalog.specimens().first,
+    ),
     'home-c-monitoring': session(ShiftStage.monitoring, startedAt: start),
     'home-d-final-scan': session(
       ShiftStage.awaitingScan,
@@ -122,4 +129,31 @@ void main() {
       );
     });
   }
+
+  // Corrective §44: History with nothing recorded yet.
+  testWidgets('history-empty', (tester) async {
+    tester.view.physicalSize = const Size(390 * 2, 844 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          environmentConfigProvider.overrideWithValue(_dev),
+          ...signedInOverrides(personId: PresentationDataset.aditya, now: now),
+          workflowStoreProvider.overrideWithValue(InMemoryWorkflowStore()),
+        ],
+        child: const DoseBandApp(
+          key: ValueKey('/history'),
+          config: _dev,
+          initialLocation: '/history',
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('No records yet'), findsOneWidget);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/history-empty.png'),
+    );
+  });
 }
