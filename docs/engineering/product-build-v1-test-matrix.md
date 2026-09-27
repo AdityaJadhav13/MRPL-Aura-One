@@ -17,11 +17,11 @@ camera sensor; performance on low-end hardware.
 
 ## Test inventory (0.4.0+4)
 
-App 1 049 · engine 312 · parity 394/394 · geometry drift 75.
+App 1 052 · engine 312 · parity 394/394 · geometry drift 75.
 UI recovery (0.4.0+4) added goldens for the splash at 320 px / 200 % text,
 landscape and tablet; sign-in at 320 px; the DoseBand check and pre-use
 outcomes (`test/golden/doseband_flow_golden_test.dart`); Home state B;
-empty History. 0.3.0+3 had App 1 038.
+empty History; `test/auth/splash_test.dart`. 0.3.0+3 had App 1 038.
 New suites: `test/operations/*` (store, registry, lifecycle, persistence,
 §107 authorisation), `test/auth/auth_flow_test.dart`,
 `test/doseband/*` (QR contract, pre-use rules, claim journey through the
