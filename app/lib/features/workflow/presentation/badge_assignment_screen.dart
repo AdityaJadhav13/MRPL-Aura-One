@@ -10,9 +10,7 @@ import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
 import '../data/simulation_catalog.dart';
 import '../../auth/application/auth_controller.dart';
-import '../application/workflow_controller.dart';
 import '../domain/badge_specimen.dart';
-import '../domain/physical_badge.dart';
 
 /// Badge assignment.
 ///
@@ -40,45 +38,6 @@ class BadgeAssignmentScreen extends ConsumerStatefulWidget {
 }
 
 class _BadgeAssignmentScreenState extends ConsumerState<BadgeAssignmentScreen> {
-  final _badgeId = TextEditingController();
-  final _batch = TextEditingController();
-  final _formulation = TextEditingController();
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _badgeId.dispose();
-    _batch.dispose();
-    _formulation.dispose();
-    super.dispose();
-  }
-
-  String? _orNull(TextEditingController c) =>
-      c.text.trim().isEmpty ? null : c.text.trim();
-
-  Future<void> _assignPhysical() async {
-    final id = _badgeId.text.trim();
-    if (id.isEmpty || _saving) return;
-    setState(() => _saving = true);
-    try {
-      await ref
-          .read(shiftSessionProvider.notifier)
-          .assignPhysicalBadge(
-            PhysicalBadge(
-              badgeId: id,
-              batchId: _orNull(_batch),
-              formulationId: _orNull(_formulation),
-              identifiedAt: ref.read(clockProvider)(),
-            ),
-          );
-      // No verification screen: there is nothing to verify a hand-typed id
-      // against. The pre-work check shows it as not verified instead.
-      if (mounted) context.go('/prework');
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = context.colours;
@@ -88,68 +47,28 @@ class _BadgeAssignmentScreenState extends ConsumerState<BadgeAssignmentScreen> {
         .simulationAvailable;
 
     return StepScaffold(
-      title: 'Assign badge',
+      title: 'Simulated journey',
       simulated: false,
       children: [
         Semantics(
           header: true,
           child: Text(
-            'Physical badge',
+            'Real DoseBands',
             style: t.label.copyWith(color: c.textPrimary),
           ),
         ),
         const SizedBox(height: Space.xs),
         Text(
-          'Type the id printed on the badge. QR recognition is not '
-          'implemented, so the id is recorded as manual entry and is not '
-          'checked against any inventory.',
+          'A real DoseBand is scanned from Home — its QR code, or its serial '
+          'typed in — and checked against the DoseBand register before it is '
+          'assigned. That path is not on this screen.',
           style: t.caption.copyWith(color: c.textSecondary),
         ),
         const SizedBox(height: Space.md),
-        TextField(
-          controller: _badgeId,
-          onChanged: (_) => setState(() {}),
-          textCapitalization: TextCapitalization.characters,
-          decoration: const InputDecoration(
-            labelText: 'Badge ID *',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: Space.md),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _batch,
-                // Short label: "(optional)" truncated at phone width.
-                decoration: const InputDecoration(
-                  labelText: 'Batch',
-                  hintText: 'Optional',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-            const SizedBox(width: Space.sm),
-            Expanded(
-              child: TextField(
-                controller: _formulation,
-                // Short label: "(optional)" truncated at phone width.
-                decoration: const InputDecoration(
-                  labelText: 'Formulation',
-                  hintText: 'Optional',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: Space.md),
-        DoseBandButton.primary(
-          label: 'Assign physical badge',
-          icon: Icons.badge_outlined,
-          onPressed: _badgeId.text.trim().isEmpty || _saving
-              ? null
-              : _assignPhysical,
+        DoseBandButton.secondary(
+          label: 'Scan a real DoseBand',
+          icon: Icons.qr_code_scanner,
+          onPressed: () => context.go('/doseband/scan'),
         ),
         if (showSpecimens) ...[
           const SizedBox(height: Space.xl),

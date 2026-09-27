@@ -130,6 +130,10 @@ const allRoutes = <String>[
   // Development-only (APP-PRODUCT-01): the tools hub and component catalog.
   '/dev',
   '/dev/components',
+  '/dev/labels',
+  '/doseband/scan',
+  '/doseband/check/DB-2609-0011',
+  '/history/record/CAP-TEST-1',
   '/shift',
   '/worker-identity',
   '/work-context',

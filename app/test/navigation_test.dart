@@ -214,6 +214,10 @@ void main() {
       await openDevTools(tester);
       expect(find.byType(DeveloperToolsScreen), findsOneWidget);
 
+      await tester.ensureVisible(find.text('Instrument components'));
+
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Instrument components'));
       await tester.pumpAndSettle();
       expect(find.byType(GalleryScreen), findsOneWidget);
@@ -222,6 +226,8 @@ void main() {
     testWidgets('the catalog opens from the developer hub', (tester) async {
       await pumpShell(tester, _dev);
       await openDevTools(tester);
+      await tester.ensureVisible(find.text('Component catalog'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Component catalog'));
       await tester.pumpAndSettle();
       expect(find.byType(ComponentCatalogScreen), findsOneWidget);

@@ -55,6 +55,28 @@ class DeveloperToolsScreen extends StatelessWidget {
           ],
         ),
         PageSection(
+          title: 'Presentation',
+          children: [
+            ActionCard(
+              icon: Icons.science_outlined,
+              title: 'Simulated worker journey',
+              message:
+                  'Presentation specimens with declared outcomes, marked '
+                  'simulated throughout. Sign in as a worker first.',
+              onTap: () => context.push('/assign'),
+            ),
+            const SizedBox(height: Gaps.control),
+            ActionCard(
+              icon: Icons.qr_code_2,
+              title: 'DoseBand QR labels',
+              message:
+                  'Printable labels for available DoseBands in the '
+                  'presentation inventory.',
+              onTap: () => context.push('/dev/labels'),
+            ),
+          ],
+        ),
+        PageSection(
           title: 'Research',
           children: [
             ActionCard(

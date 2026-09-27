@@ -49,6 +49,7 @@ import '../../features/history/record_route.dart';
 import '../../features/hse/presentation/hse_workspace.dart';
 import '../../features/reporting/presentation/hse_reports_screen.dart';
 import '../../features/admin/presentation/admin_workspace.dart';
+import '../../features/dev/label_sheet_screen.dart';
 import 'router_gate.dart';
 import 'workspace_shell.dart';
 import 'worker_shell.dart';
@@ -235,6 +236,10 @@ GoRouter buildRouter(
               builder: (_, _) => const ComponentCatalogScreen(),
             ),
             // The instrument components: readouts, scale, markers, results.
+            GoRoute(
+              path: 'labels',
+              builder: (_, _) => const LabelSheetScreen(),
+            ),
             GoRoute(path: 'gallery', builder: (_, _) => const GalleryScreen()),
             // Seeds the workflow store directly — the last thing a worker
             // should be able to do.

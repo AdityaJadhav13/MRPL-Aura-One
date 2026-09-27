@@ -183,6 +183,30 @@ void main() {
     expect(button('Photograph the DoseBand'), findsNothing);
   });
 
+  testWidgets('the final scan refuses a band that is not the one worn', (
+    tester,
+  ) async {
+    await pump(tester);
+    await scanLabel(tester);
+    await tester.tap(button('Photograph the DoseBand'));
+    await tester.pumpAndSettle();
+    await tester.tap(button('Assign this DoseBand'));
+    await tester.pumpAndSettle();
+    await container.read(shiftSessionProvider.notifier).endMonitoring();
+    await tester.pumpAndSettle();
+    expect(find.text('Scan assigned DoseBand'), findsOneWidget);
+
+    await tester.tap(button('Scan assigned DoseBand'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await emit(tester, QrCodec.render(DoseBandQr.encode('DB-2609-0013')));
+    expect(
+      find.textContaining('Your assigned DoseBand is $serial'),
+      findsOneWidget,
+    );
+    expect(find.text('Scan your assigned DoseBand'), findsOneWidget);
+  });
+
   testWidgets('a non-DoseBand code is named and scanning continues', (
     tester,
   ) async {

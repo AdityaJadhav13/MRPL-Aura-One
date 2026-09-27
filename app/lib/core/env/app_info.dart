@@ -34,5 +34,11 @@ final class InstalledPackage {
 
   String get full => buildNumber.isEmpty ? version : '$version+$buildNumber';
 
-  bool get matchesStamp => full == appVersion;
+  /// The flavour's version-name suffix ("-dev", "-staging") is a label, not
+  /// a different version; the comparison is on the release part.
+  bool get matchesStamp {
+    final release = version.split('-').first;
+    return (buildNumber.isEmpty ? release : '$release+$buildNumber') ==
+        appVersion;
+  }
 }
