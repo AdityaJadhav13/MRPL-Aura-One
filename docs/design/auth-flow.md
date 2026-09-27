@@ -1,3 +1,9 @@
+> **SUPERSEDED by Product Build v1 (0.3.0+3).** Sign-in now checks presentation
+> accounts against salted verifiers, the role comes from the account, and the
+> site and role pickers and the skip control are gone. See
+> `docs/architecture/system-architecture.md` and
+> `docs/product/privacy-model.md`. The text below is kept as history.
+
 # Authentication flow
 
 **Phase AUTH-UI-01. UI and navigation only.**
