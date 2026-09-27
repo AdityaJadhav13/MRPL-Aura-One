@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:h2s_doseband/core/components/product_navigation.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/capture/presentation/capture_host_screen.dart';
+import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/features/dev/component_catalog_screen.dart';
 import 'package:h2s_doseband/features/dev/developer_tools_screen.dart';
 import 'package:h2s_doseband/features/gallery/gallery_screen.dart';
@@ -35,6 +36,7 @@ Future<void> pumpShell(WidgetTester tester, EnvironmentConfig config) async {
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
+      overrides: [environmentConfigProvider.overrideWithValue(config)],
       child: DoseBandApp(
         key: ValueKey('/home'),
         config: config,
@@ -61,10 +63,11 @@ Future<void> openAccount(WidgetTester tester) async {
   await _scrollToEnd(tester);
 }
 
-/// Opens the developer hub from Profile's single development-only row.
+/// Opens the developer hub. It is not a worker destination (Worker
+/// directive §12): development builds reach it at /dev, and from the
+/// Administrator's More screen.
 Future<void> openDevTools(WidgetTester tester) async {
-  await openAccount(tester);
-  await tester.tap(find.text('Developer and research tools'));
+  GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/dev');
   await tester.pumpAndSettle();
   await _scrollToEnd(tester);
 }
@@ -119,7 +122,7 @@ void main() {
       );
 
       await tapDestination(tester, 'Profile');
-      expect(find.text('Environment'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
 
       await tapDestination(tester, 'Home');
       expect(find.text('NO DOSEBAND ASSIGNED'), findsOneWidget);
@@ -258,10 +261,16 @@ void main() {
       ]) {
         expect(find.text(label), findsNothing, reason: label);
       }
-      // One tap into Profile shows one development row, not the tools.
+      // Not in Profile, and not in Settings either.
       await openAccount(tester);
       expect(find.text('Physical capture test'), findsNothing);
-      expect(find.text('Developer and research tools'), findsOneWidget);
+      expect(find.text('Developer and research tools'), findsNothing);
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+      await _scrollToEnd(tester);
+      expect(find.text('Developer and research tools'), findsNothing);
+      expect(find.text('Algorithm'), findsNothing);
+      expect(find.text('Geometry'), findsNothing);
     });
 
     test('simulation availability is decided by environment, not a flag', () {

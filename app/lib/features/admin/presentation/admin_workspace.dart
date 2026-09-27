@@ -831,6 +831,16 @@ class AdminMoreScreen extends StatelessWidget {
           message: 'Reset the presentation dataset (development builds only)',
           route: '/admin/demo-data',
         ),
+      // Engineering and research tooling (capture diagnostics, geometry,
+      // research captures). Not a worker feature: it is reached only from
+      // here, in development builds, never from Home, Profile or Settings.
+      if (config.simulationAvailable)
+        const MoreLink(
+          icon: Icons.build_outlined,
+          title: 'Developer and research tools',
+          message: 'Engineering tooling (development builds only)',
+          route: '/dev',
+        ),
     ],
   );
 }
