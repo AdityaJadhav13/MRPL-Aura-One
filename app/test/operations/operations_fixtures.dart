@@ -125,3 +125,20 @@ MeasurementRecord refusalRecord({
     supersessionReason: supersessionReason,
   );
 }
+
+extension RecordWithResult on MeasurementRecord {
+  /// The same record with another result — for export-semantics tests only.
+  MeasurementRecord copyWithResult(MeasurementResult r) => MeasurementRecord(
+    id: id,
+    result: r,
+    badge: badge,
+    context: context,
+    startedAt: startedAt,
+    endedAt: endedAt,
+    scannedAt: scannedAt,
+    domain: domain,
+    captureId: captureId,
+    workerId: workerId,
+    sessionId: sessionId,
+  );
+}

@@ -3,7 +3,12 @@ import 'package:h2s_doseband/core/domain/doseband.dart';
 import 'package:h2s_doseband/core/domain/monitoring_session.dart';
 import 'package:h2s_doseband/core/domain/provenance.dart';
 import 'package:h2s_doseband/core/router/route_gate.dart';
+import 'package:h2s_doseband/features/history/domain/measurement_record.dart';
 import 'package:h2s_doseband/features/operations/domain/assignment.dart';
+import 'package:h2s_doseband/features/operations/domain/review.dart';
+import 'package:h2s_doseband/features/workflow/data/simulation_catalog.dart';
+import 'package:h2s_doseband/features/workflow/domain/physical_badge.dart';
+import 'package:measurement/measurement.dart';
 import 'package:h2s_doseband/features/workflow/domain/workflow_state.dart';
 import 'package:h2s_doseband/core/time/clock.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
@@ -100,7 +105,7 @@ List<Override> routeOverrides(String route, {DateTime? now}) {
   return signedInOverrides(
     personId: personForRoute(route),
     role: RouteGate.workspaceOf(route),
-    seed: PresentationDataset.build(t),
+    seed: datasetWithRecord(t),
     now: t,
   );
 }
@@ -152,6 +157,105 @@ OperationsSnapshot seedForSession(ShiftSession s, DateTime now) {
         assignmentId: 'ASG-1',
         startedAt: s.startedAt,
         endedAt: s.endedAt,
+      ),
+    ],
+  );
+}
+
+/// The presentation dataset plus one completed period for Aditya, closed by a
+/// real-capture refusal (no calibration) awaiting HSE review — the state
+/// the live demonstration produces.
+OperationsSnapshot datasetWithRecord(DateTime now) {
+  final base = PresentationDataset.build(now);
+  const band = 'DB-2609-0010';
+  final start = now.subtract(const Duration(hours: 8));
+  final end = now.subtract(const Duration(minutes: 20));
+  final record = MeasurementRecord(
+    id: 'CAP-TEST-1',
+    result: Refused(
+      status: ResultStatus.unsupportedCalibration,
+      reasons: const [ReasonCode('NO_CALIBRATION_MODEL')],
+      provenance: const Provenance(
+        algorithmVersion: 'm0a',
+        geometryVersion: 'badge-v1-research',
+        calibrationModelId: null,
+        referenceProfileId: null,
+        appVersion: 'test',
+        deviceModel: 'Test phone',
+      ),
+    ),
+    badge: PhysicalBadge(
+      badgeId: band,
+      batchId: PresentationDataset.currentLot,
+      identifiedAt: start,
+      source: BadgeIdentitySource.localRegistry,
+    ),
+    context: SimulationCatalog.demoContext(),
+    startedAt: start,
+    endedAt: end,
+    scannedAt: end.add(const Duration(minutes: 2)),
+    domain: DataDomain.field,
+    captureId: 'CAP-TEST-1',
+    workerId: PresentationDataset.aditya,
+    sessionId: 'SES-REC-1',
+  );
+  final b = base.bands[band]!;
+  return base.copyWith(
+    bands: {
+      ...base.bands,
+      band: DoseBand(
+        dosebandId: band,
+        lifecycle: DoseBandLifecycle.read,
+        provenance: b.provenance,
+        lotId: b.lotId,
+        formulationId: b.formulationId,
+        expiry: b.expiry,
+        assignmentId: 'ASG-REC-1',
+        geometryVersion: b.geometryVersion,
+      ),
+    },
+    assignments: [
+      ...base.assignments,
+      DoseBandAssignment(
+        assignmentId: 'ASG-REC-1',
+        dosebandId: band,
+        workerId: PresentationDataset.aditya,
+        sessionId: 'SES-REC-1',
+        claimedAt: start,
+        state: AssignmentState.completed,
+        endedAt: record.scannedAt,
+      ),
+    ],
+    sessions: [
+      ...base.sessions,
+      MonitoringSession(
+        sessionId: 'SES-REC-1',
+        workerId: PresentationDataset.aditya,
+        state: MonitoringSessionState.readComplete,
+        provenance: RecordProvenance.realLocal,
+        dosebandId: band,
+        assignmentId: 'ASG-REC-1',
+        startedAt: start,
+        endedAt: end,
+        measurementId: record.id,
+        work: const WorkSummary(
+          siteId: PresentationDataset.siteId,
+          siteName: PresentationDataset.siteName,
+          departmentId: 'maintenance',
+          departmentName: 'Maintenance',
+          workAreaId: 'sru',
+          workAreaName: 'Sulphur Recovery Unit — Demo area',
+        ),
+      ),
+    ],
+    measurements: [record],
+    reviews: [
+      HseReview(
+        reviewId: 'REV-REC-1',
+        measurementId: record.id,
+        state: ReviewState.pending,
+        openedAt: record.scannedAt,
+        updatedAt: record.scannedAt,
       ),
     ],
   );

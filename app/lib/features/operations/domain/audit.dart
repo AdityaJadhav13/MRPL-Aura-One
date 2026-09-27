@@ -20,6 +20,7 @@ enum AuditAction {
   dispositionRecorded('Disposition recorded'),
   inventoryChanged('Inventory changed'),
   accountChanged('Account changed'),
+  exportRequested('Report exported'),
   presentationDataReset('Presentation data reset');
 
   const AuditAction(this.label);

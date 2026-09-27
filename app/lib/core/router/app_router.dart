@@ -16,20 +16,8 @@ import '../../features/capture/presentation/capture_host_screen.dart';
 import '../../features/research/presentation/physical_capture_screen.dart';
 import '../../features/scan/worker_capture_screen.dart';
 import '../../features/research/presentation/research_captures_screen.dart';
-import '../../features/hse/presentation/hse_detail_screens.dart';
-import '../../features/hse/presentation/hse_review_screens.dart';
-import '../../features/hse/presentation/hse_screens.dart';
-import '../../features/hse/presentation/hse_shell.dart';
-import '../../features/reporting/data/reporting_demo_catalog.dart';
-import '../../features/reporting/domain/report_models.dart';
-import '../../features/reporting/presentation/audit_package_screen.dart';
-import '../../features/reporting/presentation/occupational_register_screen.dart';
-import '../../features/reporting/presentation/record_traceability_screen.dart';
-import '../../features/reporting/presentation/report_builder_screen.dart';
-import '../../features/reporting/presentation/reporting_screens.dart';
 import '../../features/safety/presentation/safety_hub_screen.dart';
 import '../../features/safety/presentation/safety_screens.dart';
-import '../../core/demo/ui_demo_catalog.dart';
 import '../../features/gallery/gallery_screen.dart';
 import '../../features/gallery/worker_preview_screen.dart';
 import '../../features/history/domain/measurement_record.dart';
@@ -58,6 +46,9 @@ import '../../features/doseband/presentation/doseband_check_screen.dart';
 import '../../features/doseband/presentation/pre_use_capture_screen.dart';
 import '../../features/doseband/presentation/qr_scan_screen.dart';
 import '../../features/history/record_route.dart';
+import '../../features/hse/presentation/hse_workspace.dart';
+import '../../features/reporting/presentation/hse_reports_screen.dart';
+import '../../features/admin/presentation/admin_workspace.dart';
 import 'router_gate.dart';
 import 'workspace_shell.dart';
 import 'worker_shell.dart';
@@ -341,84 +332,6 @@ GoRouter buildRouter(
       ),
 
       // --------------------------------------------------------- HSE detail
-      GoRoute(
-        path: '/hse/record',
-        builder: (_, state) => _needs<DemoExposureRecord>(
-          state,
-          what: 'one exposure record for review',
-          returnLabel: 'Go to the exposure register',
-          returnRoute: '/hse/exposures',
-          build: (record) => MeasurementReviewScreen(record: record),
-        ),
-      ),
-      GoRoute(
-        path: '/hse/disposition',
-        builder: (_, state) => _needs<DemoExposureRecord>(
-          state,
-          what: 'the record a disposition applies to',
-          returnLabel: 'Go to the exposure register',
-          returnRoute: '/hse/exposures',
-          build: (record) => HseDispositionScreen(record: record),
-        ),
-      ),
-      GoRoute(
-        path: '/hse/handoff',
-        builder: (_, state) => _needs<DemoExposureRecord>(
-          state,
-          what: 'the record being referred',
-          returnLabel: 'Go to the exposure register',
-          returnRoute: '/hse/exposures',
-          build: (record) => OccupationalHealthHandoffScreen(record: record),
-        ),
-      ),
-      GoRoute(
-        path: '/hse/session',
-        builder: (_, state) => _needs<DemoWorker>(
-          state,
-          what: 'one worker being monitored',
-          returnLabel: 'Go to active monitoring',
-          returnRoute: '/hse/monitoring',
-          build: (worker) => ActiveMonitoringDetailScreen(worker: worker),
-        ),
-      ),
-      GoRoute(
-        path: '/hse/workers',
-        builder: (_, _) => const HseWorkerSearchScreen(),
-      ),
-      GoRoute(
-        path: '/hse/worker',
-        builder: (_, state) => _needs<DemoWorker>(
-          state,
-          what: 'one worker\'s exposure profile',
-          returnLabel: 'Search for a worker',
-          returnRoute: '/hse/workers',
-          build: (worker) => WorkerExposureProfileScreen(worker: worker),
-        ),
-      ),
-      GoRoute(
-        path: '/hse/exceptions',
-        builder: (_, _) => const ExceptionQueueScreen(),
-      ),
-      GoRoute(
-        path: '/hse/inventory',
-        builder: (_, _) => const BadgeInventoryScreen(),
-      ),
-      GoRoute(
-        path: '/hse/batch',
-        builder: (_, state) => _needs<String>(
-          state,
-          what: 'one badge batch',
-          returnLabel: 'Go to badge inventory',
-          returnRoute: '/hse/inventory',
-          build: (batchId) => BatchDetailScreen(batchId: batchId),
-        ),
-      ),
-      GoRoute(
-        path: '/hse/calibration',
-        builder: (_, _) => const CalibrationDetailScreen(),
-      ),
-      GoRoute(path: '/hse/audit', builder: (_, _) => const AuditTrailScreen()),
-
       // ------------------------------------------------ supervisor shell
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => WorkspaceShell(
@@ -481,99 +394,56 @@ GoRouter buildRouter(
 
       // ------------------------------------------------------- HSE shell
       StatefulShellRoute.indexedStack(
-        builder: (context, state, shell) => HseShell(shell: shell),
+        builder: (context, state, shell) => WorkspaceShell(
+          destinations: WorkspaceDestinations.hse,
+          shell: shell,
+        ),
         branches: [
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/hse',
-                builder: (_, _) => const HseDashboardScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/hse/monitoring',
-                builder: (_, _) => const HseActiveMonitoringScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/hse/exposures',
-                builder: (_, _) => const HseExposureRegisterScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/hse/review',
-                builder: (_, _) => const HseReviewQueueScreen(),
-              ),
-            ],
-          ),
+          _branch('/hse', (_) => const HseOverviewScreen()),
+          _branch('/hse/exposures', (_) => const HseExposureRegisterScreen()),
+          _branch('/hse/reviews', (_) => const HseReviewQueueScreen()),
+          _branch('/hse/reports', (_) => const HseReportsScreen()),
+          _branch('/hse/more', (_) => HseMoreScreen(config: config)),
         ],
       ),
-
-      // ------------------------------------------------------- reporting
       GoRoute(
-        path: '/reporting',
-        builder: (_, _) => const ReportingCentreScreen(),
-      ),
-      GoRoute(
-        path: '/reporting/report',
-        builder: (_, state) => _needs<ReportKind>(
-          state,
-          what: 'one kind of report',
-          returnLabel: 'Go to the reporting centre',
-          returnRoute: '/reporting',
-          build: (kind) => ReportDetailScreen(kind: kind),
-        ),
-      ),
-      GoRoute(
-        path: '/reporting/register',
-        builder: (_, _) => const OccupationalRegisterScreen(),
-      ),
-      GoRoute(
-        path: '/reporting/record',
-        builder: (_, state) => _needs<OccupationalRecord>(
-          state,
-          what: 'the traceability chain behind one record',
-          returnLabel: 'Go to the occupational register',
-          returnRoute: '/reporting/register',
-          build: (record) => RecordTraceabilityScreen(record: record),
-        ),
-      ),
-      GoRoute(
-        path: '/reporting/builder',
-        builder: (_, _) => const ReportBuilderScreen(),
-      ),
-      GoRoute(
-        path: '/reporting/preview',
-        builder: (_, state) => _needs<ReportDefinition>(
-          state,
-          what: 'a report definition to preview',
-          returnLabel: 'Go to the report builder',
-          returnRoute: '/reporting/builder',
-          build: (definition) => ReportPreviewScreen(definition: definition),
-        ),
-      ),
-      GoRoute(
-        path: '/reporting/audit-package',
-        builder: (_, _) => const AuditPackageScreen(),
-      ),
-      GoRoute(
-        path: '/reporting/history',
-        builder: (_, _) => const ExportHistoryScreen(),
+        path: '/hse/record/:id',
+        builder: (_, state) =>
+            HseRecordScreen(measurementId: state.pathParameters['id']!),
       ),
 
       // ----------------------------------------------------------- admin
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) => WorkspaceShell(
+          destinations: WorkspaceDestinations.admin,
+          shell: shell,
+        ),
+        branches: [
+          _branch('/admin', (_) => const AdminOverviewScreen()),
+          _branch('/admin/people', (_) => const AdminPeopleScreen()),
+          _branch('/admin/doseband', (_) => const AdminDoseBandsScreen()),
+          _branch('/admin/system', (_) => const AdminSystemScreen()),
+          _branch('/admin/more', (_) => AdminMoreScreen(config: config)),
+        ],
+      ),
       GoRoute(
-        path: '/admin',
-        builder: (_, _) => AdminHomeScreen(config: config),
+        path: '/admin/people/:personId',
+        builder: (_, state) =>
+            AdminPersonScreen(personId: state.pathParameters['personId']!),
+      ),
+      GoRoute(
+        path: '/admin/doseband/lot/:lotId',
+        builder: (_, state) =>
+            AdminLotScreen(lotId: state.pathParameters['lotId']!),
+      ),
+      GoRoute(
+        path: '/admin/doseband/band/:id',
+        builder: (_, state) =>
+            AdminBandScreen(dosebandId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/admin/audit',
+        builder: (_, _) => const AdminAuditScreen(),
       ),
       GoRoute(
         path: '/admin/integrations',
@@ -591,26 +461,6 @@ GoRouter buildRouter(
             );
           }
           return IntegrationDetailScreen(integration: integration);
-        },
-      ),
-      GoRoute(
-        path: '/admin/users',
-        builder: (_, _) => const AdminUsersScreen(),
-      ),
-      GoRoute(
-        path: '/admin/users/:userId',
-        builder: (_, state) {
-          final id = state.pathParameters['userId']!;
-          final user = AdminDemoCatalog.users()
-              .where((u) => u.userId == id)
-              .firstOrNull;
-          if (user == null) {
-            return AdminRecordNotFoundScreen(
-              recordKind: 'user',
-              identifier: id,
-            );
-          }
-          return AdminUserDetailScreen(user: user);
         },
       ),
       GoRoute(
@@ -635,26 +485,6 @@ GoRouter buildRouter(
         ),
       ),
       GoRoute(
-        path: '/admin/devices',
-        builder: (_, _) => const AdminDevicesScreen(),
-      ),
-      GoRoute(
-        path: '/admin/devices/:deviceId',
-        builder: (_, state) {
-          final id = state.pathParameters['deviceId']!;
-          final device = AdminDemoCatalog.devices()
-              .where((d) => d.deviceId == id)
-              .firstOrNull;
-          if (device == null) {
-            return AdminRecordNotFoundScreen(
-              recordKind: 'device',
-              identifier: id,
-            );
-          }
-          return AdminDeviceDetailScreen(device: device);
-        },
-      ),
-      GoRoute(
         path: '/admin/retention',
         builder: (_, _) => const AdminRetentionScreen(),
       ),
@@ -676,14 +506,14 @@ GoRouter buildRouter(
         builder: (_, _) => AdminVersionsScreen(config: config),
       ),
       GoRoute(
-        path: '/admin/system',
+        path: '/admin/system/info',
         builder: (_, _) => SystemInformationScreen(config: config),
       ),
       // Compiled out of production, like the gallery and the worker previews.
       if (config.simulationAvailable)
         GoRoute(
           path: '/admin/demo-data',
-          builder: (_, _) => const DemoDataControlsScreen(),
+          builder: (_, _) => const PresentationDataScreen(),
         ),
     ],
   );

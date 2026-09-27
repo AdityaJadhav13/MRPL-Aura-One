@@ -6,7 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
+import 'package:h2s_doseband/core/components/product_navigation.dart';
 import 'package:h2s_doseband/main.dart';
+
+import '../support/signed_in.dart';
 
 const _dev = EnvironmentConfig(
   environment: AppEnvironment.dev,
@@ -31,7 +34,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [environmentConfigProvider.overrideWithValue(_dev)],
+        overrides: [
+          environmentConfigProvider.overrideWithValue(_dev),
+          ...routeOverrides(location),
+        ],
         child: DoseBandApp(
           key: ValueKey(location),
           config: _dev,
@@ -44,22 +50,33 @@ void main() {
 
   final surfaces = <String, String>{
     'worker-monitoring': '/active',
+    'worker-history': '/history',
+    'worker-profile': '/profile',
     'safety-hub': '/safety',
     'safety-h2s': '/safety/h2s',
     'safety-emergency': '/safety/emergency',
-    'hse-dashboard': '/hse',
+    'supervisor-overview': '/supervisor',
+    'supervisor-team': '/supervisor/team',
+    'supervisor-monitoring': '/supervisor/monitoring',
+    'supervisor-exceptions': '/supervisor/exceptions',
+    'supervisor-worker': '/supervisor/worker/E-10231',
+    'hse-overview': '/hse',
     'hse-exposures': '/hse/exposures',
-    'hse-calibration': '/hse/calibration',
-    'reporting-centre': '/reporting',
-    'reporting-register': '/reporting/register',
-    'admin-home': '/admin',
+    'hse-record': '/hse/record/CAP-TEST-1',
+    'hse-reports': '/hse/reports',
+    'management-overview': '/management',
+    'management-monitoring': '/management/monitoring',
+    'management-trends': '/management/trends',
+    'admin-overview': '/admin',
+    'admin-people': '/admin/people',
+    'admin-doseband': '/admin/doseband',
+    'admin-band': '/admin/doseband/band/DB-2609-0010',
+    'admin-system-hub': '/admin/system',
     'admin-integrations': '/admin/integrations',
-    'admin-users': '/admin/users',
-    'admin-user-detail': '/admin/users/CT-45832',
     'admin-retention': '/admin/retention',
     'admin-calibration': '/admin/calibration',
     'admin-versions': '/admin/versions',
-    'admin-system': '/admin/system',
+    'admin-more': '/admin/more',
   };
 
   for (final entry in surfaces.entries) {
@@ -77,42 +94,38 @@ void main() {
   }
 
   group('the surfaces survive real constraints', () {
-    testWidgets('HSE active monitoring renders', (tester) async {
-      // No pixel golden for this one. It shows elapsed time against the wall
-      // clock, so its image changes every minute — a golden here would fail
-      // on a schedule rather than on a regression, and the usual fix for that
-      // is to stop trusting goldens. The assertion that matters is that it
-      // lays out and shows a duration slot.
-      await pumpAt(tester, '/hse/monitoring');
-      expect(tester.takeException(), isNull);
-      expect(find.text('Monitoring'), findsWidgets);
-    });
-
-    for (final width in <double>[360, 390, 430]) {
-      testWidgets('HSE dashboard at ${width.toInt()} wide', (tester) async {
+    for (final width in <double>[320, 360, 390, 430]) {
+      testWidgets('HSE overview at ${width.toInt()} wide', (tester) async {
         await pumpAt(tester, '/hse', size: Size(width, 900));
         expect(tester.takeException(), isNull);
       });
     }
 
-    testWidgets('HSE uses a rail on a wide layout', (tester) async {
-      await pumpAt(tester, '/hse', size: const Size(1000, 800));
-      expect(tester.takeException(), isNull);
-      expect(find.byType(NavigationRail), findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing);
-    });
+    for (final route in ['/supervisor', '/hse', '/management', '/admin']) {
+      testWidgets('$route uses a rail on a wide layout', (tester) async {
+        await pumpAt(tester, route, size: const Size(1000, 800));
+        expect(tester.takeException(), isNull);
+        expect(find.byType(ProductNavigationRail), findsOneWidget);
+        expect(find.byType(FloatingNavigationBar), findsNothing);
+      });
 
-    testWidgets('HSE uses a bottom bar on a phone', (tester) async {
-      await pumpAt(tester, '/hse', size: const Size(390, 844));
-      expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.byType(NavigationRail), findsNothing);
-    });
+      testWidgets('$route uses the floating bar on a phone', (tester) async {
+        await pumpAt(tester, route, size: const Size(390, 844));
+        expect(find.byType(FloatingNavigationBar), findsOneWidget);
+        expect(find.byType(ProductNavigationRail), findsNothing);
+      });
+    }
 
     for (final route in <String>[
       '/safety',
+      '/supervisor',
+      '/supervisor/team',
       '/hse',
-      '/reporting',
+      '/hse/record/CAP-TEST-1',
+      '/hse/reports',
+      '/management',
       '/admin',
+      '/admin/doseband',
       '/admin/integrations',
     ]) {
       testWidgets('$route at 200% text', (tester) async {
@@ -122,7 +135,10 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [environmentConfigProvider.overrideWithValue(_dev)],
+            overrides: [
+              environmentConfigProvider.overrideWithValue(_dev),
+              ...routeOverrides(route),
+            ],
             child: MediaQuery(
               data: const MediaQueryData(textScaler: TextScaler.linear(2)),
               child: DoseBandApp(

@@ -6,6 +6,8 @@ import 'package:h2s_doseband/features/admin/data/admin_demo_catalog.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/main.dart';
 
+import '../support/signed_in.dart';
+
 const _dev = EnvironmentConfig(
   environment: AppEnvironment.dev,
   supabaseUrl: '',
@@ -32,7 +34,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [environmentConfigProvider.overrideWithValue(config)],
+        overrides: [
+          environmentConfigProvider.overrideWithValue(config),
+          ...routeOverrides(route),
+        ],
         child: MediaQuery(
           data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
           child: DoseBandApp(
@@ -54,23 +59,26 @@ void main() {
 
   const adminRoutes = <String, String>{
     '/admin': 'Administration',
+    '/admin/people': 'People',
+    '/admin/people/CT-45832': 'Roles and scopes',
+    '/admin/doseband': 'DoseBand inventory',
+    '/admin/doseband/lot/LOT-2609-A': 'Lot LOT-2609-A',
+    '/admin/doseband/band/DB-2609-0010': 'QR label',
+    '/admin/system': 'System',
+    '/admin/audit': 'Audit log',
     '/admin/integrations': 'Integration status',
-    '/admin/users': 'Users and roles',
-    '/admin/users/CT-45832': 'Aditya Jadhav',
     '/admin/sites': 'Sites',
     '/admin/departments': 'Departments',
     '/admin/work-areas': 'Work areas',
     '/admin/organisation': 'Organisation',
     '/admin/integrations/ptw': 'Permit to Work',
     '/admin/retention': 'Retention',
-    '/admin/devices': 'Devices',
-    '/admin/devices/DEV-8841': 'Demo handset A',
     '/admin/versions': 'Versions',
     '/admin/sync': 'Sync health',
     '/admin/calibration': 'Calibration',
     '/admin/badges': 'Badge configuration',
-    '/admin/demo-data': 'Demo data',
-    '/admin/system': 'System information',
+    '/admin/demo-data': 'Presentation data',
+    '/admin/system/info': 'System information',
   };
 
   // ===================================================================
@@ -151,42 +159,42 @@ void main() {
   // §47 — no fabricated MRPL enterprise identity
   // ===================================================================
 
-  group('no enterprise identity is claimed', () {
-    testWidgets('user detail reports no identity provider', (tester) async {
-      await pumpAt(tester, '/admin/users/CT-45832');
-      final text = visibleText(tester);
-      expect(text.any((t) => t.contains('no identity provider')), isTrue);
-      // Nothing that reads as a live enterprise directory binding.
+  group('administration is not exposure access (§45, §149)', () {
+    testWidgets('an account shows roles and scopes, never exposure', (
+      tester,
+    ) async {
+      await pumpAt(tester, '/admin/people/CT-45832');
+      final text = visibleText(tester).join(' ');
+      expect(text, contains('roles and scopes'));
       for (final forbidden in const [
-        'sso enabled',
-        'active directory connected',
-        'ldap connected',
-        'mfa enabled',
-        'sap',
+        'no reading',
+        'ppm',
+        'exposure record',
+        'monitoring active',
+        'db-2609',
       ]) {
-        expect(
-          text.any((t) => t.contains(forbidden)),
-          isFalse,
-          reason: 'admin must not claim "$forbidden"',
-        );
+        expect(text, isNot(contains(forbidden)), reason: forbidden);
       }
     });
 
-    testWidgets('permissions are described as unenforced', (tester) async {
-      await pumpAt(tester, '/admin/users/CT-45832');
-      final text = visibleText(tester);
-      expect(text.any((t) => t.contains('would allow')), isTrue);
-      expect(
-        text.any(
-          (t) =>
-              t.contains('not enforced') ||
-              t.contains(
-                'nothing '
-                'checks',
-              ),
-        ),
-        isTrue,
-      );
+    testWidgets('an in-use band shows its state, not who holds it', (
+      tester,
+    ) async {
+      // DB-2609-0001 is being worn by Lavitra in the presentation dataset.
+      await pumpAt(tester, '/admin/doseband/band/DB-2609-0001');
+      final text = visibleText(tester).join(' ');
+      expect(text, contains('doseband in use'));
+      expect(text, isNot(contains('lavitra')));
+      expect(text, contains('not while it is in use'));
+    });
+
+    testWidgets('no enterprise directory is claimed', (tester) async {
+      await pumpAt(tester, '/admin/people');
+      final text = visibleText(tester).join(' ');
+      expect(text, contains('no organisation directory is connected'));
+      for (final forbidden in const ['sso enabled', 'ldap connected', 'sap']) {
+        expect(text, isNot(contains(forbidden)), reason: forbidden);
+      }
     });
   });
 
@@ -222,50 +230,6 @@ void main() {
           reason: 'retention must not assert "$forbidden"',
         );
       }
-    });
-  });
-
-  // ===================================================================
-  // §49 — no device is validated for measurement
-  // ===================================================================
-
-  group('no device is validated', () {
-    test('every demo device is untested', () {
-      for (final device in AdminDemoCatalog.devices()) {
-        expect(device.validation, DeviceValidationState.untested);
-        expect(device.captureCapability, 'Not assessed');
-      }
-    });
-
-    testWidgets('device detail says validation is incomplete', (tester) async {
-      await pumpAt(tester, '/admin/devices/DEV-8841');
-      final text = visibleText(tester);
-      expect(text.any((t) => t.contains('untested')), isTrue);
-      expect(
-        text.any((t) => t.contains('no smartphone has yet photographed')),
-        isTrue,
-      );
-      expect(
-        text.any(
-          (t) =>
-              t.contains('certified') ||
-              t.contains(
-                'approved for '
-                'measurement',
-              ),
-        ),
-        isFalse,
-      );
-    });
-
-    testWidgets('the overview counts zero validated devices', (tester) async {
-      await pumpAt(tester, '/admin');
-      final text = visibleText(tester);
-      expect(
-        text.any((t) => t.startsWith('0 of ')),
-        isTrue,
-        reason: 'the overview must show the real counts',
-      );
     });
   });
 
@@ -354,8 +318,8 @@ void main() {
   // ===================================================================
 
   testWidgets('demo data controls do not exist in production', (tester) async {
-    await pumpAt(tester, '/admin', config: _prod);
-    expect(find.text('Demo data'), findsNothing);
+    await pumpAt(tester, '/admin/more', config: _prod);
+    expect(find.text('Presentation data'), findsNothing);
   });
 
   // ===================================================================
@@ -363,11 +327,7 @@ void main() {
   // ===================================================================
 
   group('unknown identifiers do not render an empty record', () {
-    for (final route in const [
-      '/admin/users/EMP-00000',
-      '/admin/devices/DEV-0000',
-      '/admin/integrations/nonexistent',
-    ]) {
+    for (final route in const ['/admin/integrations/nonexistent']) {
       testWidgets(route, (tester) async {
         await pumpAt(tester, route);
         expect(find.text('Not found'), findsWidgets);
@@ -375,4 +335,15 @@ void main() {
       });
     }
   });
+
+  for (final route in const [
+    '/admin/people/EMP-00000',
+    '/admin/doseband/band/DB-0000-0000',
+  ]) {
+    testWidgets('$route explains itself', (tester) async {
+      await pumpAt(tester, route);
+      expect(find.textContaining('No '), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

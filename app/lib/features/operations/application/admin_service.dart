@@ -236,6 +236,19 @@ final class AdminCommands {
     }
     final band = s.bands[dosebandId];
     if (band == null) throw const OperationRefused('Unknown DoseBand.');
+    // A band someone is wearing belongs to that open period. Only the worker
+    // (damaged or lost) or the period's own close-out may change it; an
+    // inventory edit here would leave the period pointing at a band in a
+    // state its session never reached.
+    final held = band.assignmentId == null
+        ? null
+        : s.assignment(band.assignmentId!);
+    if (held != null && held.isActive) {
+      throw const OperationRefused(
+        'This DoseBand is in an open monitoring period and cannot be changed '
+        'from inventory.',
+      );
+    }
     final next = band.advanceTo(to);
     if (next == null) {
       throw OperationRefused(

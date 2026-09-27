@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:measurement/measurement.dart' show Refused;
 
 import '../../core/components/markers.dart';
 import '../../core/components/product_page.dart';
@@ -171,11 +172,15 @@ class _HistoryRow extends StatelessWidget {
                       '${r.badge.badgeId} · ${Fmt.duration(r.endedAt.isBefore(r.startedAt) ? null : r.coverage)}',
                       style: t.readoutSmall.copyWith(color: p.textSecondary),
                     ),
-                    const SizedBox(height: Space.xs),
-                    Text(
-                      MeasurementStateText.exposureCell(r.result),
-                      style: t.body.copyWith(color: p.textPrimary),
-                    ),
+                    // The value (or censoring bound) only where one exists;
+                    // otherwise the state chip below says everything.
+                    if (r.result is! Refused) ...[
+                      const SizedBox(height: Space.xs),
+                      Text(
+                        MeasurementStateText.exposureCell(r.result),
+                        style: t.body.copyWith(color: p.textPrimary),
+                      ),
+                    ],
                     const SizedBox(height: Space.xs),
                     Wrap(
                       spacing: Space.xs,

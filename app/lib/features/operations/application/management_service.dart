@@ -92,8 +92,15 @@ final class ManagementOverview {
   /// exposure values to summarise and none are computed (§43).
   final bool validatedExposureStatistics;
 
-  int get startedToday =>
-      expectedWorkers - (byStatus[WorkerDayStatus.notStarted] ?? 0);
+  /// Workers whose DoseBand was claimed, worn or read today. A worker whose
+  /// only activity is an overdue period from an earlier day is not covered
+  /// today — they need attention, not a tick.
+  int get startedToday => [
+    WorkerDayStatus.claimed,
+    WorkerDayStatus.monitoring,
+    WorkerDayStatus.finalReadDue,
+    WorkerDayStatus.completed,
+  ].fold(0, (n, s) => n + (byStatus[s] ?? 0));
 }
 
 /// De-identified, organisational information only (§42, §58 Class B).

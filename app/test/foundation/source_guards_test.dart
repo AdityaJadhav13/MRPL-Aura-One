@@ -150,46 +150,47 @@ void main() {
     expect(dev - guard, lessThan(120));
   });
 
-  test('presentation people are only the approved team (§38)', () {
-    const approved = {
-      // A generic account label, not a person.
-      'Demo User',
-      'Aditya Jadhav',
-      'Lavitra Satam',
-      'Nikhil Sharma',
-      'Aman Singh',
-      'Samhita Hejmadi',
-      'Yashvi Chotalia',
-    };
-    // Legacy seed data in two catalogs invented other names before this
-    // rule existed. Listed here so the set cannot grow; replaced in the
-    // phases that rebuild those catalogs (P7, P9).
-    const legacy = {
-      'Sunita Rao',
-      'Rahul Shetty',
-      'Priya Menon',
-      'Meera Nair',
-      'Joseph Fernandes',
-      'Imran Qureshi',
-    };
-    final names = RegExp(r"'([A-Z][a-z]+ [A-Z][a-z]+)'");
-    final nameFields = RegExp(
-      r'(name|fullName|displayName|workerName|supervisor|officer|'
-      r'reviewer|assignedTo|by)\s*:\s*'
-      "'",
-    );
-    final unexpected = <String>{};
-    for (final e in _sources().entries) {
-      if (!e.key.contains('demo') && !e.key.contains('catalog')) continue;
-      for (final line in e.value.where(nameFields.hasMatch)) {
-        for (final m in names.allMatches(line)) {
-          final n = m.group(1)!;
-          if (!approved.contains(n) && !legacy.contains(n)) {
-            unexpected.add('${e.key}: $n');
+  test(
+    'presentation people are only the approved team (PRODUCT BUILD v1 §31)',
+    () {
+      // The legacy catalogues that invented other names were removed with the
+      // demo-catalogue screens; the allowance for them is gone. Every person
+      // named in a name-like field anywhere in lib/ is one of the six.
+      const approved = {
+        'Aditya Jadhav',
+        'Lavitra Satam',
+        'Nikhil Sharma',
+        'Aman Singh',
+        'Samhita Hejmadi',
+        'Yashvi Chotalia',
+      };
+      final names = RegExp(r"'([A-Z][a-z]+ [A-Z][a-z]+)'");
+      final nameFields = RegExp(
+        r'(name|fullName|displayName|workerName|supervisor|officer|'
+        r'reviewer|assignedTo|by)\s*:\s*'
+        "'",
+      );
+      // Labels that match the shape but are not people.
+      const notPeople = {
+        'Demo Worker',
+        'Demo User',
+        'Mangalore Refinery',
+        'Corporate Office',
+        'Projects Site',
+        'General shift',
+      };
+      final unexpected = <String>{};
+      for (final e in _sources().entries) {
+        for (final line in e.value.where(nameFields.hasMatch)) {
+          for (final m in names.allMatches(line)) {
+            final n = m.group(1)!;
+            if (!approved.contains(n) && !notPeople.contains(n)) {
+              unexpected.add('${e.key}: $n');
+            }
           }
         }
       }
-    }
-    expect(unexpected, isEmpty);
-  });
+      expect(unexpected, isEmpty);
+    },
+  );
 }

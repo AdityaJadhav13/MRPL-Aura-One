@@ -289,6 +289,14 @@ void main() {
       expect(sru.completed.suppressed, isTrue);
       expect(sru.completed.display, '<3');
       expect(o.validatedExposureStatistics, isFalse);
+      expect(o.startedToday, 3);
+      // In the untouched dataset Nikhil's only activity is yesterday's
+      // overdue period: he needs attention, and is not "covered today".
+      final seeded = ManagementView(
+        PresentationDataset.build(fixedNow),
+        yashviManagement,
+      ).overview(fixedNow);
+      expect(seeded.startedToday, 1);
     });
   });
 
@@ -344,6 +352,22 @@ void main() {
           expect(r.actor, isNot(contains(p.displayName)));
         }
       }
+    });
+
+    test('cannot change a band that is in an open period', () async {
+      final c = opsContainer();
+      await expectLater(
+        AdminCommands(
+          repository: c.read(operationsProvider.notifier),
+          actor: yashviAdmin,
+          ids: c.read(idGeneratorProvider),
+          now: () => fixedNow,
+        ).setBandCondition(
+          dosebandId: 'DB-2609-0001',
+          to: DoseBandLifecycle.lost,
+        ),
+        throwsA(isA<OperationRefused>()),
+      );
     });
 
     test('can suspend an account, which then gets nothing', () async {

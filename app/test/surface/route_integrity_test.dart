@@ -17,20 +17,7 @@ const _dev = EnvironmentConfig(
 /// These are the routes a deep link, a typed address or a cold-start restore
 /// can reach without the record they exist to display. Each one used to write
 /// `state.extra! as T` and throw. See [MissingRouteContextScreen].
-const _extraRoutes = <String>[
-  '/verify',
-  '/result',
-  '/measurement',
-  '/hse/record',
-  '/hse/disposition',
-  '/hse/handoff',
-  '/hse/session',
-  '/hse/worker',
-  '/hse/batch',
-  '/reporting/report',
-  '/reporting/record',
-  '/reporting/preview',
-];
+const _extraRoutes = <String>['/verify', '/result', '/measurement'];
 
 void main() {
   Future<void> pumpAt(WidgetTester tester, String route) async {
@@ -74,7 +61,7 @@ void main() {
   });
 
   testWidgets('the recovery action leads somewhere real', (tester) async {
-    await pumpAt(tester, '/reporting/record');
+    await pumpAt(tester, '/measurement');
     expect(find.byType(MissingRouteContextScreen), findsOneWidget);
 
     await tester.tap(find.byType(FilledButton).first);

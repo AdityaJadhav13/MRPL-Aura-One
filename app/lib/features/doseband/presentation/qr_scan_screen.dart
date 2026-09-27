@@ -161,8 +161,9 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
     }
     _done = true;
     HapticFeedback.mediumImpact();
-    await _stop();
     if (!mounted) return;
+    // Leave at once; replacing this route disposes it, and dispose releases
+    // the camera. Waiting on the camera first only delays the worker.
     if (widget.purpose == QrScanPurpose.finalRead) {
       context.pushReplacement('/read');
     } else {

@@ -240,6 +240,31 @@ final class HseView {
     );
   }
 
+  /// Operational exceptions for workers in scope.
+  List<OperationalException> exceptions(DateTime now, {int days = 30}) =>
+      Exceptions.of(_s, _scope, now, days: days);
+
+  /// Periods in scope that never reached a usable final read.
+  List<MonitoringSession> incompleteSessions(DateTime since) => [
+    for (final x in _s.sessions)
+      if (_scope.contains(x.workerId) &&
+          (x.endedAt ?? x.startedAt ?? since).isAfter(since) &&
+          const {
+            MonitoringSessionState.interrupted,
+            MonitoringSessionState.finalReadMissing,
+            MonitoringSessionState.invalidRead,
+          }.contains(x.state))
+        x,
+  ];
+
+  /// A name for a worker in scope; the ID alone otherwise.
+  String nameOf(String workerId) => _scope.contains(workerId)
+      ? (_s.person(workerId)?.displayName ?? workerId)
+      : workerId;
+
+  List<AuditEvent> auditFor(Set<String> subjectIds) =>
+      _s.audit.where((e) => subjectIds.contains(e.subjectId)).toList();
+
   /// Open reviews, oldest first — the order they should be worked.
   List<RegisterRow> reviewQueue({ReviewState? state}) {
     final rows = register().where((row) {

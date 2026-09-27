@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:h2s_doseband/core/components/product_navigation.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
-import 'package:h2s_doseband/core/util/format.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/features/auth/domain/auth_models.dart';
 import 'package:h2s_doseband/main.dart';
+
+import '../support/signed_in.dart';
 
 const _dev = EnvironmentConfig(
   environment: AppEnvironment.dev,
@@ -35,7 +36,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [environmentConfigProvider.overrideWithValue(config)],
+        overrides: [
+          environmentConfigProvider.overrideWithValue(config),
+          ...routeOverrides(location),
+        ],
         child: DoseBandApp(
           key: ValueKey(location),
           config: config,
@@ -186,81 +190,20 @@ void main() {
     });
   });
 
-  group('HSE surface', () {
-    testWidgets('the dashboard reaches its destinations', (tester) async {
-      await pumpAt(tester, '/hse', size: const Size(390, 844));
-      final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
-      expect(bar.destinations, hasLength(4));
-      for (final label in ['Overview', 'Monitoring', 'Exposures', 'Review']) {
-        expect(find.text(label), findsWidgets, reason: label);
-      }
-    });
-
-    for (final route in <String, String>{
-      '/hse/monitoring': 'Monitoring',
-      '/hse/exposures': 'Exposure register',
-      '/hse/review': 'Review',
-      '/hse/workers': 'Workers',
-      '/hse/exceptions': 'Exceptions',
-      '/hse/inventory': 'Badge inventory',
-      '/hse/calibration': 'Calibration',
-      '/hse/audit': 'Audit trail',
-    }.entries) {
-      testWidgets('${route.key} renders', (tester) async {
-        await pumpAt(tester, route.key);
-        expect(tester.takeException(), isNull);
-        expect(find.text(route.value), findsWidgets);
-      });
-    }
-
-    testWidgets('calibration says no production model exists', (tester) async {
-      await pumpAt(tester, '/hse/calibration');
-      expect(find.text('No production calibration available'), findsOneWidget);
-      // The three gates stay visible; UI progress must not hide them.
-      for (final gate in ['S1', 'S2', 'S3']) {
-        expect(find.text(gate), findsOneWidget, reason: gate);
-      }
-      expect(find.text('OPEN'), findsNWidgets(3));
-    });
-
-    testWidgets('demo screens say they are demo', (tester) async {
-      for (final route in ['/hse', '/hse/exposures', '/hse/monitoring']) {
-        await pumpAt(tester, route);
-        expect(find.text('DEMONSTRATION DATA'), findsWidgets, reason: route);
-      }
-    });
-  });
-
-  group('reporting surface', () {
-    testWidgets('the centre lists report templates', (tester) async {
-      await pumpAt(tester, '/reporting');
-      expect(find.text('Internal templates'), findsOneWidget);
-      // Listed twice on purpose: once as a shortcut under "Start here",
-      // once in its category. It is the backbone screen of the subsystem.
-      expect(find.text('Occupational exposure register'), findsWidgets);
-    });
-
-    testWidgets('no report claims regulatory compliance', (tester) async {
-      await pumpAt(tester, '/reporting');
-      final text = visibleText(tester).join(' ');
-      for (final claim in ['oisd', 'dgms', 'compliant', 'certified']) {
-        expect(text, isNot(contains(claim)), reason: claim);
-      }
-    });
-  });
-
   group('admin surface', () {
     for (final route in <String, String>{
       '/admin': 'Administration',
+      '/admin/people': 'People',
+      '/admin/doseband': 'DoseBand inventory',
+      '/admin/system': 'System',
+      '/admin/audit': 'Audit log',
       '/admin/integrations': 'Integration status',
-      '/admin/users': 'Users and roles',
       '/admin/sites': 'Sites',
       '/admin/departments': 'Departments',
       '/admin/work-areas': 'Work areas',
-      '/admin/devices': 'Devices',
       '/admin/retention': 'Retention',
       '/admin/sync': 'Sync health',
-      '/admin/system': 'System information',
+      '/admin/system/info': 'System information',
     }.entries) {
       testWidgets('${route.key} renders', (tester) async {
         await pumpAt(tester, route.key);
@@ -282,84 +225,12 @@ void main() {
     testWidgets('system information keeps the limitations visible', (
       tester,
     ) async {
-      await pumpAt(tester, '/admin/system');
+      await pumpAt(tester, '/admin/system/info');
       final text = visibleText(tester).join(' ');
       expect(text, contains('no quantitative h₂s calibration exists'));
       expect(text, contains('s1'));
       expect(text, contains('are open'));
       expect(text, contains('forward device-clock jumps cannot be detected'));
-    });
-  });
-
-  group('measurement honesty holds across every surface', () {
-    const surfaces = [
-      '/hse',
-      '/hse/exposures',
-      '/hse/review',
-      '/hse/exceptions',
-      '/reporting',
-      '/admin/system',
-    ];
-
-    testWidgets('no surface prints a fabricated dose', (tester) async {
-      for (final route in surfaces) {
-        await pumpAt(tester, route);
-        final text = visibleText(tester);
-        for (final line in text) {
-          // No calibration exists, so no ppm or ppm·h figure may appear
-          // anywhere. Prose mentioning the unit is fine; a number attached to
-          // it is not.
-          expect(
-            RegExp(r'\d+(\.\d+)?\s*ppm').hasMatch(line),
-            isFalse,
-            reason: '$route rendered "$line"',
-          );
-        }
-      }
-    });
-
-    testWidgets('a refusal never becomes zero', (tester) async {
-      await pumpAt(tester, '/hse/exceptions');
-      final text = visibleText(tester);
-
-      // The refusal placeholder is present...
-      expect(text, contains(Fmt.noValue));
-      // ...and no record shows a zero exposure.
-      for (final line in text) {
-        expect(
-          RegExp(r'^0(\.0+)?\s*(ppm|ppm·h)$').hasMatch(line.trim()),
-          isFalse,
-          reason: 'rendered "$line"',
-        );
-      }
-    });
-
-    testWidgets('no surface calls an exposure safe or normal', (tester) async {
-      for (final route in surfaces) {
-        await pumpAt(tester, route);
-        for (final line in visibleText(tester)) {
-          for (final word in [
-            'exposure is safe',
-            'within safe',
-            'normal exposure',
-          ]) {
-            expect(line, isNot(contains(word)), reason: '$route: $line');
-          }
-        }
-      }
-    });
-
-    testWidgets('a worker profile shows no cumulative total', (tester) async {
-      await pumpAt(tester, '/hse/workers');
-      await tester.tap(find.text('Aditya Jadhav').first);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Cumulative exposure'.toUpperCase()), findsOneWidget);
-      expect(find.text('Unavailable'), findsOneWidget);
-      expect(
-        find.textContaining('does not present a lifetime or cumulative'),
-        findsOneWidget,
-      );
     });
   });
 

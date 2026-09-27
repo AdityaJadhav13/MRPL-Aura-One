@@ -265,7 +265,7 @@ void main() {
       expect(find.byType(FloatingNavigationBar), findsOneWidget);
     });
 
-    for (final route in ['/result', '/measurement', '/verify', '/hse/record']) {
+    for (final route in ['/result', '/measurement', '/verify']) {
       testWidgets('$route without its record explains itself, never throws', (
         tester,
       ) async {
