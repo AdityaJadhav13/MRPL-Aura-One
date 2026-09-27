@@ -126,8 +126,9 @@ void main() {
         'lib/features/hse/presentation/hse_review_screens.dart': 2,
         'lib/features/hse/presentation/hse_screens.dart': 2,
         'lib/features/safety/presentation/safety_screens.dart': 1,
-        // Includes the clock provider's own definition.
-        'lib/features/workflow/application/workflow_controller.dart': 4,
+        // The one sanctioned wall-clock read: the clock provider itself.
+        'lib/core/time/clock.dart': 1,
+        'lib/features/workflow/application/workflow_controller.dart': 3,
         'lib/features/workflow/application/work_context_controller.dart': 1,
         'lib/features/workflow/data/simulation_catalog.dart': 1,
         'lib/features/workflow/presentation/prework_check_screen.dart': 1,

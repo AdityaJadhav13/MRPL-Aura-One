@@ -25,7 +25,14 @@ final class MeasurementRecord {
     required this.scannedAt,
     required this.domain,
     this.captureId,
-  });
+    this.workerId,
+    this.sessionId,
+    this.supersedesId,
+    this.supersessionReason,
+  }) : assert(
+         (supersedesId == null) == (supersessionReason == null),
+         'a superseding record states which record it replaces and why',
+       );
 
   final String id;
   final MeasurementResult result;
@@ -43,6 +50,19 @@ final class MeasurementRecord {
   /// The archived capture — original photograph, features, quality report —
   /// behind a real scan. Null for a simulated one, which has no photograph.
   final String? captureId;
+
+  /// The worker the record belongs to. Null only for records made before
+  /// records were keyed to people.
+  final String? workerId;
+
+  /// The monitoring session the record closes.
+  final String? sessionId;
+
+  /// The record this one supersedes, when it is a re-read or a
+  /// recalculation. The earlier record is never edited or removed: both stay,
+  /// and this link says which is current (§26, §93).
+  final String? supersedesId;
+  final String? supersessionReason;
 
   Duration get coverage => endedAt.difference(startedAt);
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../features/workflow/domain/workflow_state.dart';
+import 'connectivity.dart';
 import 'doseband.dart';
 import 'provenance.dart';
 
@@ -72,46 +73,49 @@ enum MonitoringSessionState {
 /// Legal monitoring-session transitions. As with the DoseBand policy, the UI
 /// asks; it never writes a state.
 abstract final class MonitoringSessionPolicy {
-  static const Map<MonitoringSessionState, Set<MonitoringSessionState>> _next =
-      {
-        MonitoringSessionState.notStarted: {MonitoringSessionState.active},
-        MonitoringSessionState.active: {
-          MonitoringSessionState.readyForFinalRead,
-          MonitoringSessionState.partial,
-          MonitoringSessionState.interrupted,
-          MonitoringSessionState.bandReplaced,
-        },
-        MonitoringSessionState.partial: {
-          MonitoringSessionState.readyForFinalRead,
-        },
-        MonitoringSessionState.bandReplaced: {
-          MonitoringSessionState.active,
-          MonitoringSessionState.readyForFinalRead,
-        },
-        MonitoringSessionState.readyForFinalRead: {
-          MonitoringSessionState.readComplete,
-          MonitoringSessionState.finalReadMissing,
-          MonitoringSessionState.invalidRead,
-        },
-        MonitoringSessionState.readComplete: {
-          MonitoringSessionState.reviewed,
-          MonitoringSessionState.closed,
-        },
-        MonitoringSessionState.invalidRead: {
-          MonitoringSessionState.reviewed,
-          MonitoringSessionState.closed,
-        },
-        MonitoringSessionState.finalReadMissing: {
-          MonitoringSessionState.reviewed,
-          MonitoringSessionState.closed,
-        },
-        MonitoringSessionState.interrupted: {
-          MonitoringSessionState.reviewed,
-          MonitoringSessionState.closed,
-        },
-        MonitoringSessionState.reviewed: {MonitoringSessionState.closed},
-        MonitoringSessionState.closed: {},
-      };
+  static const Map<MonitoringSessionState, Set<MonitoringSessionState>>
+  _next = {
+    // Closed from not-started: the assignment was cancelled before any
+    // monitoring happened, so there is no window and nothing to read.
+    MonitoringSessionState.notStarted: {
+      MonitoringSessionState.active,
+      MonitoringSessionState.closed,
+    },
+    MonitoringSessionState.active: {
+      MonitoringSessionState.readyForFinalRead,
+      MonitoringSessionState.partial,
+      MonitoringSessionState.interrupted,
+      MonitoringSessionState.bandReplaced,
+    },
+    MonitoringSessionState.partial: {MonitoringSessionState.readyForFinalRead},
+    MonitoringSessionState.bandReplaced: {
+      MonitoringSessionState.active,
+      MonitoringSessionState.readyForFinalRead,
+    },
+    MonitoringSessionState.readyForFinalRead: {
+      MonitoringSessionState.readComplete,
+      MonitoringSessionState.finalReadMissing,
+      MonitoringSessionState.invalidRead,
+    },
+    MonitoringSessionState.readComplete: {
+      MonitoringSessionState.reviewed,
+      MonitoringSessionState.closed,
+    },
+    MonitoringSessionState.invalidRead: {
+      MonitoringSessionState.reviewed,
+      MonitoringSessionState.closed,
+    },
+    MonitoringSessionState.finalReadMissing: {
+      MonitoringSessionState.reviewed,
+      MonitoringSessionState.closed,
+    },
+    MonitoringSessionState.interrupted: {
+      MonitoringSessionState.reviewed,
+      MonitoringSessionState.closed,
+    },
+    MonitoringSessionState.reviewed: {MonitoringSessionState.closed},
+    MonitoringSessionState.closed: {},
+  };
 
   static Set<MonitoringSessionState> nextFrom(MonitoringSessionState from) =>
       _next[from]!;
@@ -127,6 +131,36 @@ abstract final class MonitoringSessionPolicy {
       : LifecycleTransition.refused(from, to);
 }
 
+/// Where and on what a monitoring period was worked — the part of the work
+/// context the organisation views need (§13). A snapshot: it records what was
+/// in force during the period, and is not re-derived from later edits.
+@immutable
+final class WorkSummary {
+  const WorkSummary({
+    required this.siteId,
+    required this.siteName,
+    required this.departmentId,
+    required this.departmentName,
+    this.workAreaId,
+    this.workAreaName,
+    this.shiftId,
+    this.shiftName,
+    this.activity,
+  });
+
+  final String siteId;
+  final String siteName;
+  final String departmentId;
+  final String departmentName;
+  final String? workAreaId;
+  final String? workAreaName;
+  final String? shiftId;
+  final String? shiftName;
+
+  /// Job or activity title, when one was recorded.
+  final String? activity;
+}
+
 /// One worker's monitoring period with one DoseBand.
 @immutable
 final class MonitoringSession {
@@ -136,10 +170,13 @@ final class MonitoringSession {
     required this.state,
     required this.provenance,
     this.dosebandId,
+    this.assignmentId,
     this.workContextId,
+    this.work,
     this.startedAt,
     this.endedAt,
     this.measurementId,
+    this.syncState = SyncState.localOnly,
   });
 
   final String sessionId;
@@ -148,8 +185,14 @@ final class MonitoringSession {
   /// Null until a DoseBand is assigned.
   final String? dosebandId;
 
+  /// The claim this period runs under.
+  final String? assignmentId;
+
   /// Shift / work-context reference.
   final String? workContextId;
+
+  /// Site, department, area, shift and activity, as recorded for the period.
+  final WorkSummary? work;
 
   final MonitoringSessionState state;
   final DateTime? startedAt;
@@ -159,6 +202,11 @@ final class MonitoringSession {
   final String? measurementId;
 
   final RecordProvenance provenance;
+
+  /// The fifth status axis (§48). Independent of every other: a sync failure
+  /// says nothing about the reading. Only [SyncState.producibleToday] can
+  /// occur in this build.
+  final SyncState syncState;
 
   /// The monitoring window. Null when it cannot be established — including a
   /// window that runs backwards, which is evidence the clock moved. Never
@@ -170,6 +218,48 @@ final class MonitoringSession {
     final d = e.difference(s);
     return d.isNegative ? null : d;
   }
+
+  /// Returns the session in [to], or null if the lifecycle does not allow it.
+  MonitoringSession? advanceTo(
+    MonitoringSessionState to, {
+    DateTime? startedAt,
+    DateTime? endedAt,
+    String? measurementId,
+  }) => switch (MonitoringSessionPolicy.transition(state, to)) {
+    TransitionAccepted(:final state) => copyWith(
+      state: state,
+      startedAt: startedAt,
+      endedAt: endedAt,
+      measurementId: measurementId,
+    ),
+    TransitionRefused() => null,
+  };
+
+  /// Field copy. Deliberately no way to *clear* a timestamp or measurement:
+  /// once recorded, they are part of the record.
+  MonitoringSession copyWith({
+    MonitoringSessionState? state,
+    String? dosebandId,
+    String? assignmentId,
+    WorkSummary? work,
+    DateTime? startedAt,
+    DateTime? endedAt,
+    String? measurementId,
+    SyncState? syncState,
+  }) => MonitoringSession(
+    sessionId: sessionId,
+    workerId: workerId,
+    state: state ?? this.state,
+    provenance: provenance,
+    dosebandId: dosebandId ?? this.dosebandId,
+    assignmentId: assignmentId ?? this.assignmentId,
+    workContextId: workContextId,
+    work: work ?? this.work,
+    startedAt: startedAt ?? this.startedAt,
+    endedAt: endedAt ?? this.endedAt,
+    measurementId: measurementId ?? this.measurementId,
+    syncState: syncState ?? this.syncState,
+  );
 }
 
 /// Maps the persisted local workflow stage onto the canonical lifecycle.

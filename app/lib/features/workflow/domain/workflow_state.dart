@@ -48,6 +48,8 @@ final class ShiftSession {
     this.endedAt,
     this.result,
     this.captureId,
+    this.sessionId,
+    this.assignmentId,
   }) : assert(
          badge == null || physicalBadge == null,
          'a session holds a simulated specimen or a physical badge, never both',
@@ -72,6 +74,13 @@ final class ShiftSession {
 
   /// The archived capture that produced [result], for a physical scan.
   final String? captureId;
+
+  /// The organisational monitoring session this device-local period mirrors,
+  /// in the operations store. Null for a simulated period, which has none.
+  final String? sessionId;
+
+  /// The DoseBand claim the period runs under.
+  final String? assignmentId;
   final DateTime? startedAt;
   final DateTime? endedAt;
 
@@ -126,6 +135,8 @@ final class ShiftSession {
     DateTime? endedAt,
     MeasurementResult? result,
     String? captureId,
+    String? sessionId,
+    String? assignmentId,
   }) {
     // Assigning one kind of badge clears the other. A session carrying both
     // would leave "which badge was exposed?" to whichever field a screen
@@ -141,6 +152,8 @@ final class ShiftSession {
       endedAt: endedAt ?? this.endedAt,
       result: result ?? this.result,
       captureId: captureId ?? this.captureId,
+      sessionId: sessionId ?? this.sessionId,
+      assignmentId: assignmentId ?? this.assignmentId,
     );
   }
 }

@@ -34,13 +34,14 @@ abstract final class SessionCodec {
   /// different schema is discarded, not migrated: until there is a released
   /// version to migrate *from*, a migration path would be speculative code
   /// guarding against a case that has never existed.
-  static const int schema = 3;
+  static const int schema = 4;
 
-  /// Schemas this build can read. Version 3 is a strict superset of 2 — it
-  /// adds `physical_badge` and `capture_id`, both optional — so a version-2
-  /// snapshot decodes unchanged. That is not speculative migration code; it
-  /// is the absence of any change to read.
-  static const Set<int> readable = <int>{2, 3};
+  /// Schemas this build can read. Each version is a strict superset of the
+  /// one before — 3 added `physical_badge` and `capture_id`, 4 added
+  /// `session_id` and `assignment_id`, all optional — so an older snapshot
+  /// decodes unchanged. That is not speculative migration code; it is the
+  /// absence of any change to read.
+  static const Set<int> readable = <int>{2, 3, 4};
 
   // ---------------------------------------------------------------- encoding
 
@@ -58,6 +59,8 @@ abstract final class SessionCodec {
     // restart mid-monitoring must not lose which badge is being worn.
     'physical_badge': s.physicalBadge?.toJson(),
     'capture_id': s.captureId,
+    'session_id': s.sessionId,
+    'assignment_id': s.assignmentId,
     'started_at': s.startedAt?.toIso8601String(),
     'ended_at': s.endedAt?.toIso8601String(),
     'result': s.result == null ? null : _encodeResult(s.result!),
@@ -159,6 +162,22 @@ abstract final class SessionCodec {
     };
   }
 
+  // ------------------------------------------------- shared record encoding
+
+  /// The same encoders, for the operations store's measurement records, so a
+  /// record and a session serialise a context or a result identically and
+  /// one set of round-trip tests covers both.
+  static Map<String, Object?> encodeContext(WorkContext c) => _encodeContext(c);
+
+  static WorkContext? decodeContext(Object? raw) => _decodeContext(raw);
+
+  static Map<String, Object?> encodeResult(MeasurementResult r) =>
+      _encodeResult(r);
+
+  static MeasurementResult? decodeResult(Object? raw) => _decodeResult(raw);
+
+  static BadgeSpecimen? decodeSpecimen(Object? raw) => _decodeBadge(raw);
+
   // ---------------------------------------------------------------- decoding
 
   static ShiftSession? decode(Object? raw) {
@@ -182,6 +201,13 @@ abstract final class SessionCodec {
     final captureId = raw['capture_id'];
     if (captureId != null && captureId is! String) return null;
 
+    // Schema 4. Absent from older snapshots, which predate the operations
+    // store; such a session simply has no organisational record to follow.
+    final sessionId = raw['session_id'];
+    if (sessionId != null && sessionId is! String) return null;
+    final assignmentId = raw['assignment_id'];
+    if (assignmentId != null && assignmentId is! String) return null;
+
     final startedAt = _decodeDate(raw['started_at']);
     if (startedAt == null && raw['started_at'] != null) return null;
 
@@ -200,6 +226,8 @@ abstract final class SessionCodec {
       endedAt: endedAt,
       result: result,
       captureId: captureId as String?,
+      sessionId: sessionId as String?,
+      assignmentId: assignmentId as String?,
     );
 
     // A snapshot can be well-formed JSON and still describe a session that the

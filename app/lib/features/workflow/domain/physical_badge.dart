@@ -5,11 +5,18 @@ enum BadgeIdentitySource {
   /// Typed by the worker. Nothing verified it: no QR was read, no inventory
   /// was consulted. MEASUREMENT-INTEGRATION-02 §9.
   manualEntry,
+
+  /// Read from the band's QR and resolved by this device's DoseBand registry.
+  /// The registry is the on-device operations store, not a central server:
+  /// the identity is checked against the local inventory, and nothing else
+  /// (PRODUCT BUILD v1 §8, §9).
+  localRegistry,
 }
 
 extension BadgeIdentitySourceLabel on BadgeIdentitySource {
   String get label => switch (this) {
     BadgeIdentitySource.manualEntry => 'Manual entry',
+    BadgeIdentitySource.localRegistry => 'Scanned QR — on-device registry',
   };
 }
 
@@ -56,6 +63,7 @@ final class PhysicalBadge implements BadgeIdentity {
     required this.identifiedAt,
     this.batchId,
     this.formulationId,
+    this.expiresOn,
     this.source = BadgeIdentitySource.manualEntry,
   });
 
@@ -64,6 +72,10 @@ final class PhysicalBadge implements BadgeIdentity {
 
   final String? batchId;
   final String? formulationId;
+
+  /// The lot's printed expiry, when a registry supplied it. Null for a typed
+  /// identity, which carries no lot record.
+  final DateTime? expiresOn;
   final BadgeIdentitySource source;
   final DateTime identifiedAt;
 
@@ -73,22 +85,29 @@ final class PhysicalBadge implements BadgeIdentity {
   @override
   String? get formulation => formulationId;
 
-  /// Not known: no inventory is connected, and a manually typed badge carries
-  /// no printed-expiry record.
+  /// Known only when a registry supplied the lot record. A manually typed
+  /// badge carries no printed-expiry record, and the expiry patch's colour is
+  /// never read as one.
   @override
-  DateTime? get expiry => null;
+  DateTime? get expiry => expiresOn;
 
   @override
   bool get isSimulated => false;
 
   @override
-  String get identityProvenance =>
-      '${source.label} — not verified against any inventory';
+  String get identityProvenance => switch (source) {
+    BadgeIdentitySource.manualEntry =>
+      '${source.label} — not verified against any inventory',
+    BadgeIdentitySource.localRegistry =>
+      '${source.label} — checked against the inventory on this device, '
+          'not a central server',
+  };
 
   Map<String, Object?> toJson() => <String, Object?>{
     'badge_id': badgeId,
     'batch_id': batchId,
     'formulation_id': formulationId,
+    'expires_on': expiresOn?.toUtc().toIso8601String(),
     'source': source.name,
     'identified_at': identifiedAt.toUtc().toIso8601String(),
   };
@@ -109,6 +128,7 @@ final class PhysicalBadge implements BadgeIdentity {
       badgeId: id,
       batchId: raw['batch_id'] as String?,
       formulationId: raw['formulation_id'] as String?,
+      expiresOn: DateTime.tryParse(raw['expires_on'] as String? ?? ''),
       source: source,
       identifiedAt: at,
     );

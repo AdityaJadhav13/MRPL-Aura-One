@@ -7,6 +7,8 @@ import 'core/dev/home_state_preview.dart';
 import 'core/env/environment.dart';
 import 'core/router/app_router.dart';
 import 'features/auth/application/auth_controller.dart';
+import 'features/operations/application/operations_repository.dart';
+import 'features/operations/data/operations_store.dart';
 import 'features/workflow/application/workflow_controller.dart';
 import 'features/workflow/data/file_workflow_store.dart';
 import 'features/workflow/data/workflow_store.dart';
@@ -43,6 +45,17 @@ Future<void> bootstrap(EnvironmentConfig config) async {
     store = InMemoryWorkflowStore();
   }
 
+  // The operations store — directory, inventory, sessions, records, reviews,
+  // audit — falls back the same way, for the same reason.
+  OperationsStore operations;
+  try {
+    operations = await FileOperationsStore.open();
+  } on Object catch (error, stack) {
+    debugPrint('Persistent operations store unavailable: $error');
+    debugPrintStack(stackTrace: stack);
+    operations = InMemoryOperationsStore();
+  }
+
   // Development-only: seeds a Home state and picks a start route when the
   // matching dart-defines are set. Compiled out of production by the same
   // flag that removes the gallery and the capture tool.
@@ -57,6 +70,7 @@ Future<void> bootstrap(EnvironmentConfig config) async {
       overrides: [
         environmentConfigProvider.overrideWithValue(config),
         workflowStoreProvider.overrideWithValue(store),
+        operationsStoreProvider.overrideWithValue(operations),
       ],
       child: DoseBandApp(
         config: config,

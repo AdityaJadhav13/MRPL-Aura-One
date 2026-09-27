@@ -41,5 +41,8 @@ extension EnterpriseSourceProvenance on EnterpriseDataSource {
 extension BadgeIdentitySourceProvenance on BadgeIdentitySource {
   RecordProvenance get provenance => switch (this) {
     BadgeIdentitySource.manualEntry => RecordProvenance.manualEntry,
+    // The identity is whatever the local inventory holds, and that inventory
+    // is the presentation dataset until a server supplies one.
+    BadgeIdentitySource.localRegistry => RecordProvenance.presentationSeeded,
   };
 }

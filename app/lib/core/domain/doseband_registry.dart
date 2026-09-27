@@ -75,6 +75,14 @@ final class ClaimNotFound extends ClaimResult {
   const ClaimNotFound();
 }
 
+/// The worker already holds a DoseBand whose monitoring period has not been
+/// finished. One worker wears one band at a time; a replacement goes through
+/// the controlled replacement flow, not a second claim (PRODUCT BUILD v1
+/// §18).
+final class ClaimWorkerHasActiveBand extends ClaimResult {
+  const ClaimWorkerHasActiveBand();
+}
+
 /// The authority could not be reached, so no claim was made. The band has
 /// **not** been assigned; nothing may proceed as though it had.
 final class ClaimAuthorityUnavailable extends ClaimResult {

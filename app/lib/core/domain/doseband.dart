@@ -253,6 +253,27 @@ final class DoseBand {
 
   bool get isSimulated => provenance == RecordProvenance.simulated;
 
+  /// The band claimed under [assignmentId], or null unless it is available.
+  /// The only way a band acquires an assignment.
+  DoseBand? claimedUnder(String assignmentId) =>
+      switch (DoseBandLifecyclePolicy.transition(
+        lifecycle,
+        DoseBandLifecycle.assigned,
+      )) {
+        TransitionAccepted(:final state) => DoseBand(
+          dosebandId: dosebandId,
+          lifecycle: state,
+          provenance: provenance,
+          lotId: lotId,
+          formulationId: formulationId,
+          expiry: expiry,
+          assignmentId: assignmentId,
+          calibrationApplicabilityId: calibrationApplicabilityId,
+          geometryVersion: geometryVersion,
+        ),
+        TransitionRefused() => null,
+      };
+
   /// Returns the band in [to], or null if the lifecycle does not allow it.
   DoseBand? advanceTo(DoseBandLifecycle to) =>
       switch (DoseBandLifecyclePolicy.transition(lifecycle, to)) {
