@@ -3,12 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/components/buttons.dart';
-import '../../../../core/components/identity.dart';
 import '../../../../core/components/product_fields.dart';
 import '../../../../core/components/product_page.dart';
 import '../../../../core/components/product_status.dart';
 import '../../../../core/components/step_scaffold.dart';
-import '../../../../core/components/wordmark.dart';
 import '../../../../core/design/brand_assets.dart';
 import '../../../../core/design/theme.dart';
 import '../../../../core/design/tokens.dart';
@@ -16,7 +14,7 @@ import '../../../operations/application/operations_repository.dart';
 import '../../application/auth_controller.dart';
 import '../../domain/auth_models.dart';
 import '../../domain/identity.dart';
-import '../widgets/mrpl_brandmark.dart';
+import '../widgets/corporate_brand.dart';
 
 /// Sign in (PRODUCT BUILD v1 §56).
 ///
@@ -71,16 +69,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   }
 
   Future<void> _presentationAccounts() async {
-    final personId = await showModalBottomSheet<String>(
+    final choice = await showModalBottomSheet<(String, AppRole)>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (_) => const _PresentationAccountsSheet(),
     );
-    if (personId == null || !mounted) return;
-    final failure = await ref
-        .read(authControllerProvider.notifier)
-        .signInAsPresentation(personId);
+    if (choice == null || !mounted) return;
+    final auth = ref.read(authControllerProvider.notifier);
+    final failure = await auth.signInAsPresentation(choice.$1);
+    // A multi-role account lands in its first workspace; the card chosen may
+    // be its other one, which is a controlled switch between its own roles.
+    if (failure == null) await auth.switchWorkspace(choice.$2);
     if (mounted) _land(failure);
   }
 
@@ -101,120 +101,153 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       child: Scaffold(
         backgroundColor: p.surfacePage,
         body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Gaps.screenGutter,
-                vertical: Space.lg,
-              ),
+          bottom: false,
+          child: LayoutBuilder(
+            builder: (context, viewport) => SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: AutofillGroup(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const _Masthead(),
-                      const SizedBox(height: Space.xl),
-                      Semantics(
-                        header: true,
-                        child: Text(
-                          'Sign in',
-                          style: t.display.copyWith(color: p.textPrimary),
-                        ),
+                constraints: BoxConstraints(minHeight: viewport.maxHeight),
+                // The form, then the refinery skyline and brand sweep of the
+                // approved entry screens: at the foot of the screen when the
+                // form is short, after it when it is not — never over it.
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Gaps.screenGutter,
+                        Space.lg,
+                        Gaps.screenGutter,
+                        Space.lg,
                       ),
-                      const SizedBox(height: Space.xs),
-                      Text(
-                        'Use your employee or contractor ID.',
-                        style: t.body.copyWith(color: p.textSecondary),
-                      ),
-                      const SizedBox(height: Space.lg),
-                      if (notConnected) ...[
-                        const StatusBanner(
-                          tone: StatusTone.info,
-                          icon: Icons.link_off,
-                          title: 'Organisation sign-in is not connected',
-                          message:
-                              'This build has no identity service to check '
-                              'accounts against, so nobody can sign in yet.',
-                        ),
-                        const SizedBox(height: Space.base),
-                      ],
-                      if (auth.failure case final failure?) ...[
-                        _FailureBanner(failure: failure),
-                        const SizedBox(height: Space.base),
-                      ],
-                      ProductTextField(
-                        label: 'Employee or contractor ID',
-                        controller: _id,
-                        error: _idError,
-                        enabled: !busy,
-                        prefixIcon: Icons.badge_outlined,
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.username],
-                      ),
-                      const SizedBox(height: Space.base),
-                      ProductTextField(
-                        label: 'Password',
-                        controller: _password,
-                        error: _passwordError,
-                        enabled: !busy,
-                        obscureText: _obscure,
-                        prefixIcon: Icons.lock_outline,
-                        textInputAction: TextInputAction.done,
-                        autofillHints: const [AutofillHints.password],
-                        onSubmitted: (_) => _submit(),
-                        suffix: IconButton(
-                          tooltip: _obscure ? 'Show password' : 'Hide password',
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                          icon: Icon(
-                            _obscure
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: Space.lg),
-                      DoseBandButton.primary(
-                        label: busy ? 'Signing in…' : 'Sign in',
-                        loading: busy,
-                        onPressed: busy ? null : _submit,
-                      ),
-                      const SizedBox(height: Space.lg),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 18,
-                            color: p.textSecondary,
-                          ),
-                          const SizedBox(width: Space.sm),
-                          Expanded(
-                            child: Text(
-                              notConnected
-                                  ? 'MRPL identity integration is not '
-                                        'connected.'
-                                  : 'Signing in to ${provider.description.toLowerCase()}. '
-                                        'MRPL identity integration is not '
-                                        'connected.',
-                              style: t.caption.copyWith(color: p.textSecondary),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 440),
+                          child: AutofillGroup(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const _Masthead(),
+                                const SizedBox(height: Space.lg),
+                                Semantics(
+                                  header: true,
+                                  child: Text(
+                                    'Sign in',
+                                    style: t.heading.copyWith(
+                                      color: p.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: Space.xs),
+                                Text(
+                                  'Use your employee or contractor ID.',
+                                  style: t.body.copyWith(
+                                    color: p.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: Space.lg),
+                                if (notConnected) ...[
+                                  const StatusBanner(
+                                    tone: StatusTone.info,
+                                    icon: Icons.link_off,
+                                    title:
+                                        'Organisation sign-in is not connected',
+                                    message:
+                                        'This build has no identity service to check '
+                                        'accounts against, so nobody can sign in yet.',
+                                  ),
+                                  const SizedBox(height: Space.base),
+                                ],
+                                if (auth.failure case final failure?) ...[
+                                  _FailureBanner(failure: failure),
+                                  const SizedBox(height: Space.base),
+                                ],
+                                ProductTextField(
+                                  label: 'Employee or contractor ID',
+                                  controller: _id,
+                                  error: _idError,
+                                  enabled: !busy,
+                                  prefixIcon: Icons.badge_outlined,
+                                  textInputAction: TextInputAction.next,
+                                  autofillHints: const [AutofillHints.username],
+                                ),
+                                const SizedBox(height: Space.base),
+                                ProductTextField(
+                                  label: 'Password',
+                                  controller: _password,
+                                  error: _passwordError,
+                                  enabled: !busy,
+                                  obscureText: _obscure,
+                                  prefixIcon: Icons.lock_outline,
+                                  textInputAction: TextInputAction.done,
+                                  autofillHints: const [AutofillHints.password],
+                                  onSubmitted: (_) => _submit(),
+                                  suffix: IconButton(
+                                    tooltip: _obscure
+                                        ? 'Show password'
+                                        : 'Hide password',
+                                    onPressed: () =>
+                                        setState(() => _obscure = !_obscure),
+                                    icon: Icon(
+                                      _obscure
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: Space.lg),
+                                DoseBandButton.primary(
+                                  label: busy ? 'Signing in…' : 'Sign in',
+                                  loading: busy,
+                                  onPressed: busy ? null : _submit,
+                                ),
+                                const SizedBox(height: Space.lg),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 18,
+                                      color: p.textSecondary,
+                                    ),
+                                    const SizedBox(width: Space.sm),
+                                    Expanded(
+                                      child: Text(
+                                        notConnected
+                                            ? 'MRPL identity integration is not '
+                                                  'connected.'
+                                            : 'Signing in to ${provider.description.toLowerCase()}. '
+                                                  'MRPL identity integration is not '
+                                                  'connected.',
+                                        style: t.caption.copyWith(
+                                          color: p.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (presentation) ...[
+                                  const SizedBox(height: Space.sm),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: DoseBandButton.tertiary(
+                                      label: 'Presentation accounts',
+                                      icon: Icons.people_outline,
+                                      onPressed: busy
+                                          ? null
+                                          : _presentationAccounts,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                      if (presentation) ...[
-                        const SizedBox(height: Space.sm),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: DoseBandButton.tertiary(
-                            label: 'Presentation accounts',
-                            icon: Icons.people_outline,
-                            onPressed: busy ? null : _presentationAccounts,
-                          ),
                         ),
-                      ],
-                    ],
-                  ),
+                      ),
+                    ),
+                    CorporateFooterWave(
+                      height: 64 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -225,52 +258,74 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   }
 }
 
-/// The refinery, cropped to a strip, above the brand on white. No overlay:
-/// nothing is printed on the photograph, so it needs no scrim (§132).
+/// The organisation header over a refinery strip carrying the DoseBand
+/// lockup — the same identity as the splash and the Home header. The lockup
+/// sits on a solid scrim, not a gradient (§132).
 class _Masthead extends StatelessWidget {
   const _Masthead();
 
   @override
   Widget build(BuildContext context) {
-    final p = context.product;
     final t = context.type;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ExcludeSemantics(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(Radii.md),
-            child: SizedBox(
-              height: 120,
-              child: Image.asset(
-                BrandAssets.refineryBackdrop,
-                fit: BoxFit.cover,
-                alignment: const Alignment(0, 0.3),
-                filterQuality: FilterQuality.medium,
-              ),
+        const AuthBrandHeader(markSize: 48),
+        const SizedBox(height: Space.lg),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(Radii.lg),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 112),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ExcludeSemantics(
+                    child: Image.asset(
+                      BrandAssets.refineryBackdrop,
+                      fit: BoxFit.cover,
+                      alignment: const Alignment(0, 0.35),
+                      filterQuality: FilterQuality.medium,
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: ColoredBox(color: context.product.scrim),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(Space.base),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'DoseBand',
+                        style: t.display.copyWith(
+                          color: Colors.white,
+                          height: 1.1,
+                        ),
+                      ),
+                      Text(
+                        'OCCUPATIONAL EXPOSURE MONITORING',
+                        style: t.caption.copyWith(
+                          color: Colors.white,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: Space.sm),
+                      Container(
+                        width: 44,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: context.corporate.accent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(height: Space.lg),
-        Row(
-          children: [
-            const MrplBrandmark(size: 44),
-            const SizedBox(width: Space.md),
-            // Scales down rather than wrapping: a brand name broken across
-            // two lines at large text reads as a defect.
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: const Wordmark(compact: true),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: Space.sm),
-        Text(
-          'Occupational H₂S exposure monitoring',
-          style: t.caption.copyWith(color: p.textSecondary),
         ),
       ],
     );
@@ -327,6 +382,14 @@ class _PresentationAccountsSheet extends ConsumerWidget {
     final p = context.product;
     final t = context.type;
     final people = ref.watch(operationsProvider).value?.people ?? const [];
+    // One card per workspace, in the approved role-entry style. Each card
+    // opens a presentation account that *holds* that role — the role is
+    // still the account's, never chosen freely.
+    final entries = [
+      for (final role in AppRole.values)
+        for (final person in people)
+          if (person.roles.contains(role)) (role, person),
+    ];
     return SafeArea(
       child: ListView(
         shrinkWrap: true,
@@ -346,22 +409,94 @@ class _PresentationAccountsSheet extends ConsumerWidget {
           ),
           const SizedBox(height: Space.xs),
           Text(
-            'Sample accounts for demonstrating each workspace. Not MRPL '
-            'accounts.',
+            'Sample accounts on this device for demonstrating each workspace. '
+            'Not MRPL accounts; no organisation sign-in is connected.',
             style: t.caption.copyWith(color: p.textSecondary),
           ),
           const SizedBox(height: Space.base),
-          for (final person in people)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              minTileHeight: kMinTouchTarget,
-              leading: IdentityAvatar(name: person.displayName, size: 40),
-              title: Text(person.displayName),
-              subtitle: Text(person.roles.map((r) => r.label).join(' · ')),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).pop(person.personId),
+          for (final (role, person) in entries) ...[
+            _RoleCard(
+              role: role,
+              name: person.displayName,
+              onTap: () => Navigator.of(context).pop((person.personId, role)),
             ),
+            const SizedBox(height: Space.sm),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _RoleCard extends StatelessWidget {
+  const _RoleCard({
+    required this.role,
+    required this.name,
+    required this.onTap,
+  });
+
+  final AppRole role;
+  final String name;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final corporate = context.corporate;
+    final t = context.type;
+    return Material(
+      color: corporate.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.lg),
+        side: BorderSide(color: corporate.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: kMinTouchTarget + 16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Space.base,
+              vertical: Space.md,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  switch (role) {
+                    AppRole.worker => Icons.engineering,
+                    AppRole.supervisor => Icons.groups,
+                    AppRole.hseOfficer => Icons.verified_user,
+                    AppRole.management => Icons.bar_chart,
+                    AppRole.administrator => Icons.settings,
+                  },
+                  size: 30,
+                  color: role == AppRole.worker
+                      ? corporate.accent
+                      : corporate.primaryDeep,
+                ),
+                const SizedBox(width: Space.base),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        role.label,
+                        style: t.heading.copyWith(color: corporate.textPrimary),
+                      ),
+                      Text(
+                        '$name · ${role.description}',
+                        style: t.caption.copyWith(
+                          color: corporate.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: corporate.textSecondary),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

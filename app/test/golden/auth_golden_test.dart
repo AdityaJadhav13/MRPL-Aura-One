@@ -146,4 +146,35 @@ void main() {
       matchesGoldenFile('goldens/auth-sign-in-compact-large-text.png'),
     );
   });
+
+  // Corrective §3A: the recovered splash at the edges of the size matrix.
+  for (final (name, size, scale) in <(String, Size, double)>[
+    ('auth-splash-320-text200', const Size(320, 568), 2),
+    ('auth-splash-landscape-844x390', const Size(844, 390), 1),
+    ('auth-splash-tablet-800x1280', const Size(800, 1280), 1),
+  ]) {
+    testWidgets('splash · $name', (tester) async {
+      await pumpAt(
+        tester,
+        '/splash',
+        restoring: true,
+        size: size,
+        textScale: scale,
+      );
+      expect(tester.takeException(), isNull);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/$name.png'),
+      );
+    });
+  }
+
+  testWidgets('sign-in · 320 × 568', (tester) async {
+    await pumpAt(tester, '/sign-in', size: const Size(320, 568));
+    expect(tester.takeException(), isNull);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/auth-sign-in-320.png'),
+    );
+  });
 }
