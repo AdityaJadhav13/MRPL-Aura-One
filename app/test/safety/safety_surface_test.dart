@@ -299,18 +299,21 @@ void main() {
     testWidgets('toolbox viewing does not acknowledge a talk', (tester) async {
       await pumpAt(tester, '/safety/toolbox');
       final text = visibleText(tester).join(' ');
-      expect(text, contains('does not acknowledge a toolbox talk'));
+      expect(text, contains('no document library is connected'));
+      expect(text, contains('not a record of training or competence'));
       expect(text, isNot(contains('training complete')));
+      expect(text, isNot(contains('demo-')));
     });
 
-    testWidgets('SDS entries are marked demo and carry no revision', (
-      tester,
-    ) async {
+    testWidgets('SDS opens no placeholder sheet; it points at the site '
+        'register', (tester) async {
       await pumpAt(tester, '/safety/sds');
-      expect(find.text('DEMONSTRATION DATA'), findsOneWidget);
-      expect(find.text('Demo'), findsWidgets);
-      // A revision number is what makes a fabricated sheet credible.
-      expect(find.text('Unavailable'), findsWidgets);
+      final text = visibleText(tester).join(' ');
+      // Worker directive §42: a resource must not open a fake document.
+      expect(text, contains('does not hold safety data sheets'));
+      expect(text, contains('approved sds register'));
+      expect(text, isNot(contains('demo-')));
+      expect(find.text('DEMONSTRATION DATA'), findsNothing);
     });
 
     test('no demo document uses a realistic organisation number', () {
@@ -394,10 +397,31 @@ void main() {
             'jsa approved',
             'mrpl verified',
             'emergency cleared',
+            // Worker directive §37: honest about integrations without
+            // calling the product a prototype on every screen.
+            'prototype',
           ]) {
             expect(line, isNot(contains(claim)), reason: '$route: $line');
           }
         }
+      }
+    });
+  });
+
+  group('the DoseBand limitation (Worker directive §39)', () {
+    testWidgets('names everything DoseBand does not replace', (tester) async {
+      await pumpAt(tester, '/safety');
+      final text = visibleText(tester).join(' ');
+      for (final control in [
+        'passive, cumulative',
+        'portable h₂s detectors',
+        'fixed gas detection',
+        'site alarms',
+        'approved ppe',
+        'permit-to-work',
+        'site emergency procedures',
+      ]) {
+        expect(text, contains(control), reason: control);
       }
     });
   });

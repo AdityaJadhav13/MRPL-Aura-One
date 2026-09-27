@@ -154,11 +154,10 @@ class H2sInformationScreen extends StatelessWidget {
             'A reading describes one badge over one period. It does not '
                 'describe the area generally, other people nearby, or any '
                 'other time.',
-            'Quantitative H₂S calibration is not yet available in this '
-                'prototype. No part of this application currently produces a '
-                'ppm·h figure from a real badge, and anything resembling one '
-                'shown during a demonstration is simulated and labelled as '
-                'such.',
+            'Quantitative H₂S calibration is not yet available. DoseBand '
+                'does not yet produce a ppm·h figure from a real badge; a '
+                'real scan is recorded with no reading, and anything '
+                'resembling a figure is simulated and labelled as such.',
           ],
         ),
 
@@ -867,87 +866,33 @@ class PpeScreen extends StatelessWidget {
 // ===========================================================================
 
 /// Toolbox and briefing material.
-class ToolboxResourcesScreen extends StatefulWidget {
+///
+/// No document library is connected, so this screen says so and points at
+/// the real source. It used to list demonstration entries; a resource
+/// button must not open a document that does not exist (Worker directive
+/// §42).
+class ToolboxResourcesScreen extends StatelessWidget {
   const ToolboxResourcesScreen({super.key});
 
   @override
-  State<ToolboxResourcesScreen> createState() => _ToolboxResourcesScreenState();
-}
-
-class _ToolboxResourcesScreenState extends State<ToolboxResourcesScreen> {
-  SafetyCategory? _category;
-
-  @override
-  Widget build(BuildContext context) {
-    final documents = SafetyDemoCatalog.toolboxResources()
-        .where((d) => _category == null || d.category == _category)
-        .toList();
-    final categories = SafetyDemoCatalog.toolboxResources()
-        .map((d) => d.category)
-        .toSet()
-        .toList();
-
-    return SafetyScaffold(
-      title: 'Toolbox resources',
-      subtitle: 'Briefing material',
-      bottom: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _CategoryChip(
-              label: 'All',
-              selected: _category == null,
-              onTap: () => setState(() => _category = null),
-            ),
-            for (final category in categories)
-              _CategoryChip(
-                label: category.label,
-                selected: _category == category,
-                onTap: () => setState(() => _category = category),
-              ),
-          ],
-        ),
+  Widget build(BuildContext context) => const SafetyScaffold(
+    title: 'Toolbox resources',
+    subtitle: 'Briefing material',
+    children: [
+      NotConfiguredCard(
+        what: 'Toolbox and briefing library',
+        explanation:
+            'No document library is connected to DoseBand, so there is no '
+            'briefing material to show. DoseBand does not write its own.',
+        instead:
+            'Use the toolbox-talk material your supervisor or site HSE '
+            'provides.',
+        icon: Icons.groups_outlined,
       ),
-      children: [
-        const DemoDataBanner(
-          message:
-              'These are demonstration entries so the library can be '
-              'reviewed. They are not organisation documents and they have '
-              'no contents.',
-        ),
-        const SizedBox(height: Space.base),
-        for (final document in documents)
-          SafetyDocumentCard(document: document),
-        const SizedBox(height: Space.sm),
-        const _ViewingIsNotTrainingNotice(),
-      ],
-    );
-  }
-}
-
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: Space.sm),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        showCheckmark: true,
-        onSelected: (_) => onTap(),
-      ),
-    );
-  }
+      SizedBox(height: Space.base),
+      _ViewingIsNotTrainingNotice(),
+    ],
+  );
 }
 
 /// Opening a document is not attending a talk.
@@ -967,10 +912,9 @@ class _ViewingIsNotTrainingNotice extends StatelessWidget {
           const SizedBox(width: Space.sm),
           Expanded(
             child: Text(
-              'Opening a resource here does not acknowledge a toolbox talk '
-              'and does not record training or competence. Those are '
-              'different things, kept elsewhere, and nothing you do on this '
-              'screen affects them.',
+              'Acknowledging a toolbox talk in your work context is not a '
+              'record of training or competence. Those are kept by your '
+              'organisation, not by DoseBand.',
               style: t.caption.copyWith(color: corporate.textSecondary),
             ),
           ),
@@ -981,115 +925,31 @@ class _ViewingIsNotTrainingNotice extends StatelessWidget {
 }
 
 /// Safety data sheets.
-class SdsScreen extends StatefulWidget {
+///
+/// DoseBand holds none: an out-of-date or invented sheet read as current is
+/// a hazard in its own right. The screen points at the site's approved
+/// register instead of listing placeholders.
+class SdsScreen extends StatelessWidget {
   const SdsScreen({super.key});
 
   @override
-  State<SdsScreen> createState() => _SdsScreenState();
-}
-
-class _SdsScreenState extends State<SdsScreen> {
-  String _query = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final documents = SafetyDemoCatalog.safetyDataSheets()
-        .where(
-          (d) =>
-              _query.isEmpty ||
-              d.title.toLowerCase().contains(_query.toLowerCase()) ||
-              (d.substance ?? '').toLowerCase().contains(_query.toLowerCase()),
-        )
-        .toList();
-
-    return SafetyScaffold(
-      title: 'Safety data sheets',
-      subtitle: 'Substance documents',
-      bottom: CorporateSearchField(
-        hint: 'Search substance or title',
-        onChanged: (v) => setState(() => _query = v),
+  Widget build(BuildContext context) => const SafetyScaffold(
+    title: 'Safety data sheets',
+    subtitle: 'Substance documents',
+    children: [
+      NotConfiguredCard(
+        what: 'Safety data sheet library',
+        explanation:
+            'DoseBand does not hold safety data sheets and no SDS repository '
+            'is connected. An out-of-date or invented sheet read as current '
+            'would be a hazard in its own right.',
+        instead:
+            'Use your site’s approved SDS register — including the sheet for '
+            'hydrogen sulphide — through your supervisor or HSE department.',
+        icon: Icons.description_outlined,
       ),
-      children: [
-        const DemoDataBanner(
-          message:
-              'Demonstration entries only. DoseBand does not hold safety '
-              'data sheets: an out-of-date or invented sheet read as current '
-              'is a hazard in its own right.',
-        ),
-        const SizedBox(height: Space.base),
-        if (documents.isEmpty)
-          const InfoCard(child: Text('No documents match this search.'))
-        else
-          for (final document in documents)
-            SafetyDocumentCard(
-              document: document,
-              onTap: () => _showDocumentActions(context, document),
-            ),
-      ],
-    );
-  }
-
-  /// The actions a real sheet would offer, all unavailable.
-  void _showDocumentActions(BuildContext context, SafetyDocument document) {
-    final corporate = context.corporate;
-    final t = context.type;
-
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: corporate.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(CorporateRadii.xl),
-        ),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(Space.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                document.title,
-                style: t.heading.copyWith(color: corporate.textPrimary),
-              ),
-              const SizedBox(height: Space.xs),
-              const ContentSourceChip(SafetyContentSource.demo),
-              const SizedBox(height: Space.base),
-              Text(
-                'This is a demonstration entry with no contents. When a '
-                'document repository is connected these actions will open, '
-                'download and share the real sheet.',
-                style: t.body.copyWith(color: corporate.textSecondary),
-              ),
-              const SizedBox(height: Space.base),
-              for (final action in const <(IconData, String)>[
-                (Icons.visibility_outlined, 'View'),
-                (Icons.download_outlined, 'Download for offline use'),
-                (Icons.share_outlined, 'Share if authorised'),
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(bottom: Space.sm),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      // Disabled, not silently inert.
-                      onPressed: null,
-                      icon: Icon(action.$1),
-                      label: Text(action.$2),
-                    ),
-                  ),
-                ),
-              Text(
-                'Unavailable — no document repository is connected.',
-                style: t.caption.copyWith(color: corporate.textSecondary),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    ],
+  );
 }
 
 /// Offline availability.
@@ -1100,7 +960,6 @@ class OfflineDocumentsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final corporate = context.corporate;
     final t = context.type;
-    final documents = SafetyDemoCatalog.allDocuments();
 
     return SafetyScaffold(
       title: 'Offline documents',
@@ -1167,13 +1026,6 @@ class OfflineDocumentsScreen extends StatelessWidget {
           ),
         ),
 
-        const SectionHeader(
-          title: 'Documents',
-          subtitle: 'None available offline',
-        ),
-        for (final document in documents.take(4))
-          SafetyDocumentCard(document: document),
-        const SizedBox(height: Space.sm),
         InfoCard(
           child: Text(
             'Storage used is not shown because nothing is stored. A figure '

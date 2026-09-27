@@ -375,11 +375,12 @@ class NotAnAlarmNotice extends StatelessWidget {
                   if (!compact) ...[
                     const SizedBox(height: 2),
                     Text(
-                      'It measures total exposure over a period and is read '
-                      'afterwards. It cannot detect gas now, it will not warn '
-                      'you, and it does not replace portable or fixed gas '
-                      'detectors. Follow approved site gas-detection and '
-                      'emergency procedures.',
+                      'DoseBand is a passive, cumulative occupational-exposure '
+                      'monitor, read after the period. It cannot detect gas '
+                      'now and will not warn you. It does not replace '
+                      'certified portable H₂S detectors, fixed gas detection, '
+                      'site alarms, approved PPE, Permit-to-Work controls or '
+                      'site emergency procedures.',
                       style: t.caption.copyWith(color: corporate.textPrimary),
                     ),
                   ],
