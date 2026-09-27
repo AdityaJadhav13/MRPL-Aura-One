@@ -54,6 +54,10 @@ import '../env/environment.dart';
 import '../../features/management/presentation/management_screens.dart';
 import '../../features/supervisor/presentation/supervisor_screens.dart';
 import '../components/product_navigation.dart';
+import '../../features/doseband/presentation/doseband_check_screen.dart';
+import '../../features/doseband/presentation/pre_use_capture_screen.dart';
+import '../../features/doseband/presentation/qr_scan_screen.dart';
+import '../../features/history/record_route.dart';
 import 'router_gate.dart';
 import 'workspace_shell.dart';
 import 'worker_shell.dart';
@@ -149,6 +153,36 @@ GoRouter buildRouter(
           returnRoute: '/history',
           build: (record) =>
               InstrumentTheme(child: MeasurementDetailScreen(record: record)),
+        ),
+      ),
+
+      // DoseBand scan → check → assign (PRODUCT BUILD v1 §7–§12).
+      GoRoute(
+        path: '/doseband/scan',
+        builder: (_, state) => QrScanScreen(
+          purpose: QrScanPurpose.parse(state.uri.queryParameters['purpose']),
+        ),
+      ),
+      GoRoute(
+        path: '/doseband/check/:id',
+        builder: (_, state) =>
+            DoseBandCheckScreen(dosebandId: state.pathParameters['id']!),
+        routes: [
+          GoRoute(
+            path: 'photo',
+            builder: (_, state) => InstrumentTheme(
+              child: PreUseCaptureScreen(
+                dosebandId: state.pathParameters['id']!,
+              ),
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/history/record/:id',
+        builder: (_, state) => WorkerRecordRoute(
+          recordId: state.pathParameters['id']!,
+          carried: state.extra,
         ),
       ),
 
@@ -409,7 +443,10 @@ GoRouter buildRouter(
             '/supervisor/exceptions',
             (_) => const SupervisorExceptionsScreen(),
           ),
-          _branch('/supervisor/more', (_) => const SupervisorMoreScreen()),
+          _branch(
+            '/supervisor/more',
+            (_) => SupervisorMoreScreen(config: config),
+          ),
         ],
       ),
       GoRoute(
@@ -435,7 +472,10 @@ GoRouter buildRouter(
             '/management/reports',
             (_) => const ManagementReportsScreen(),
           ),
-          _branch('/management/more', (_) => const ManagementMoreScreen()),
+          _branch(
+            '/management/more',
+            (_) => ManagementMoreScreen(config: config),
+          ),
         ],
       ),
 

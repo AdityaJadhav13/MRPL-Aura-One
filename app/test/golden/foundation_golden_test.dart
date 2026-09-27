@@ -11,10 +11,10 @@ import 'package:h2s_doseband/core/components/product_states.dart';
 import 'package:h2s_doseband/core/design/theme.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/dev/component_catalog_screen.dart';
-import 'package:h2s_doseband/features/workflow/application/workflow_controller.dart';
 import 'package:h2s_doseband/main.dart';
 
 import '../support/responsive.dart';
+import '../support/signed_in.dart';
 
 const _dev = EnvironmentConfig(
   environment: AppEnvironment.dev,
@@ -41,9 +41,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         // Pinned: Home renders today's date.
-        overrides: [
-          clockProvider.overrideWithValue(() => DateTime(2026, 9, 27, 8, 4)),
-        ],
+        // Signed in as the route's owner, over the presentation dataset.
+        overrides: routeOverrides(at, now: DateTime(2026, 9, 27, 8, 4)),
         child: DoseBandApp(
           key: ValueKey(at),
           config: _dev,

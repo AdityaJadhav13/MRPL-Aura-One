@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:h2s_doseband/core/domain/doseband.dart';
+import 'package:h2s_doseband/core/domain/monitoring_session.dart';
+import 'package:h2s_doseband/core/domain/provenance.dart';
 import 'package:h2s_doseband/core/router/route_gate.dart';
+import 'package:h2s_doseband/features/operations/domain/assignment.dart';
+import 'package:h2s_doseband/features/workflow/domain/workflow_state.dart';
 import 'package:h2s_doseband/core/time/clock.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/features/auth/domain/auth_models.dart';
@@ -98,5 +102,57 @@ List<Override> routeOverrides(String route, {DateTime? now}) {
     role: RouteGate.workspaceOf(route),
     seed: PresentationDataset.build(t),
     now: t,
+  );
+}
+
+/// The operations store as it would be for [s]: a registered open period
+/// has its assignment and session there too, or reconciliation would
+/// (rightly) clear the device session as closed elsewhere.
+OperationsSnapshot seedForSession(ShiftSession s, DateTime now) {
+  final base = quietDataset(now);
+  final open =
+      s.stage == ShiftStage.monitoring || s.stage == ShiftStage.awaitingScan;
+  if (s.sessionId == null || !open) return base;
+  final band = base.bands['DB-2609-0010']!;
+  return base.copyWith(
+    bands: {
+      ...base.bands,
+      band.dosebandId: DoseBand(
+        dosebandId: band.dosebandId,
+        lifecycle: s.stage == ShiftStage.monitoring
+            ? DoseBandLifecycle.monitoring
+            : DoseBandLifecycle.readyForFinalRead,
+        provenance: band.provenance,
+        lotId: band.lotId,
+        formulationId: band.formulationId,
+        expiry: band.expiry,
+        assignmentId: 'ASG-1',
+        geometryVersion: band.geometryVersion,
+      ),
+    },
+    assignments: [
+      DoseBandAssignment(
+        assignmentId: 'ASG-1',
+        dosebandId: band.dosebandId,
+        workerId: PresentationDataset.aditya,
+        sessionId: 'SES-1',
+        claimedAt: s.startedAt ?? now,
+        state: AssignmentState.active,
+      ),
+    ],
+    sessions: [
+      MonitoringSession(
+        sessionId: 'SES-1',
+        workerId: PresentationDataset.aditya,
+        state: s.stage == ShiftStage.monitoring
+            ? MonitoringSessionState.active
+            : MonitoringSessionState.readyForFinalRead,
+        provenance: RecordProvenance.realLocal,
+        dosebandId: band.dosebandId,
+        assignmentId: 'ASG-1',
+        startedAt: s.startedAt,
+        endedAt: s.endedAt,
+      ),
+    ],
   );
 }

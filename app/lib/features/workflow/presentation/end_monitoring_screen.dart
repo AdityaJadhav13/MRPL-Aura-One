@@ -32,11 +32,15 @@ class EndMonitoringScreen extends ConsumerWidget {
     return StepScaffold(
       title: 'End monitoring',
       primaryAction: DoseBandButton.primary(
-        label: 'End and read badge',
+        label: 'End monitoring and scan',
         icon: Icons.arrow_forward,
         onPressed: () async {
           await ref.read(shiftSessionProvider.notifier).endMonitoring();
-          if (context.mounted) context.push('/read');
+          if (!context.mounted) return;
+          // A registered DoseBand is identified by its QR before the final
+          // photograph, so the reading is attached to the band actually worn.
+          final registered = session.sessionId != null;
+          context.push(registered ? '/doseband/scan?purpose=final' : '/read');
         },
       ),
       secondaryAction: DoseBandButton.secondary(

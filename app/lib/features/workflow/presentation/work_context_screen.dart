@@ -128,8 +128,8 @@ class _WorkContextScreenState extends ConsumerState<WorkContextScreen> {
     return StepScaffold(
       title: 'Work context',
       primaryAction: DoseBandButton.primary(
-        label: 'Continue to badge',
-        icon: Icons.arrow_forward,
+        label: 'Save today’s work',
+        icon: Icons.check,
         // Gated by the shared policy, so this button and the checklist on the
         // next screen can never disagree about what "complete" means.
         onPressed: !readiness.contextIsComplete
@@ -138,7 +138,15 @@ class _WorkContextScreenState extends ConsumerState<WorkContextScreen> {
                 final built = draft.build();
                 if (built == null) return;
                 await ref.read(shiftSessionProvider.notifier).setContext(built);
-                if (context.mounted) context.push('/assign');
+                if (!context.mounted) return;
+                // Opened from the DoseBand check, it returns there; opened
+                // from Home, it returns Home. Either way the next step is the
+                // worker's, not a detour.
+                if (context.canPop()) {
+                  context.pop(true);
+                } else {
+                  context.go('/home');
+                }
               },
       ),
       children: [

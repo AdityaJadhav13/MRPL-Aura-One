@@ -1,212 +1,144 @@
 import 'package:flutter/foundation.dart';
 
-import '../../workflow/domain/work_context_validator.dart';
 import '../../workflow/domain/workflow_state.dart';
 
-/// Where the worker is in the journey, as Home needs to talk about it.
+/// Worker Home's states (PRODUCT BUILD v1 §15).
 ///
-/// These are not new workflow stages. They are a **projection** of the real
-/// `ShiftStage`, plus the two things the stage alone cannot express: whether
-/// the work context is complete enough to proceed, and whether the monitored
-/// period's clock can be trusted.
+/// * A — [noDoseBand]
+/// * B — validating: the DoseBand check screen itself, which shows its
+///   progress step by step; Home is never shown mid-check.
+/// * C — [monitoringActive]
+/// * D — [readyForFinalRead]
+/// * E — [completed]
 ///
-/// One state-aware Home renders all of them. The architecture stays put — hero,
-/// identity, shift, context, monitoring, action, strip, quick actions — and
-/// only the content and the available action change. A screen whose layout
-/// reorganises itself between states teaches the worker nothing, because there
-/// is no stable place to look.
+/// [doseBandAssigned] exists only for the development simulation, which
+/// still walks the older assign → pre-work → start steps. [requiresAttention]
+/// is the untrusted-clock case, which outranks everything.
 enum HomeStage {
-  /// HOME-01 — nothing recorded yet.
-  noContext,
-
-  /// HOME-02 — a context exists but does not satisfy the validator.
-  contextIncomplete,
-
-  /// HOME-03 — context complete, no badge.
-  awaitingBadge,
-
-  /// HOME-04/05 — a badge is assigned, pre-work not yet confirmed.
-  badgeAssigned,
-
-  /// HOME-06 — every requirement met.
-  readyForDosimetry,
-
-  /// HOME-07 — the badge is being worn.
+  noDoseBand,
+  doseBandAssigned,
   monitoringActive,
-
-  /// HOME-08 — the period ended; the badge still needs its final scan.
-  scanRequired,
-
-  /// HOME-09 — a reading exists.
-  resultAvailable,
-
-  /// HOME-10 — something needs a person to look at it. Today this means the
-  /// exposure window cannot be trusted, which is the one condition Home can
-  /// detect on its own.
+  readyForFinalRead,
+  completed,
   requiresAttention,
 }
 
-/// What Home should offer next.
-///
-/// Every action here is one the workflow genuinely permits from the current
-/// stage. Home never offers a shortcut that skips a step — the controller
-/// would refuse it, and a button that throws is worse than no button.
-@immutable
-final class HomeAction {
-  const HomeAction({required this.label, required this.route, this.icon});
-
-  final String label;
-  final String route;
-  final String? icon;
-}
-
-/// Everything Home needs to render, derived once.
-///
-/// Built in one place so the card, the button and the strip cannot disagree
-/// about what is happening — three widgets each deciding for themselves is how
-/// a screen ends up saying "not started" above a button that says "end
-/// monitoring".
 @immutable
 final class HomePresentation {
   const HomePresentation({
     required this.stage,
+    required this.title,
+    required this.message,
     required this.actionLabel,
     required this.actionRoute,
-    required this.statusStrip,
-    required this.monitoringTitle,
-    required this.monitoringState,
+    this.secondaryLabel,
+    this.secondaryRoute,
   });
 
   final HomeStage stage;
 
-  /// The single large contextual action.
+  /// What is true now, in a few words.
+  final String title;
+
+  /// The next instruction.
+  final String message;
+
   final String actionLabel;
   final String actionRoute;
-
-  /// The narrow line under the action. Describes **DoseBand's workflow state
-  /// only** — never the atmosphere, the permit or the worker's safety.
-  final String statusStrip;
-
-  /// Heading on the monitoring card.
-  final String monitoringTitle;
-
-  /// The card's one-line state, e.g. "Not started".
-  final String monitoringState;
+  final String? secondaryLabel;
+  final String? secondaryRoute;
 
   bool get isMonitoring => stage == HomeStage.monitoringActive;
 
-  /// Derives the projection from real application state.
-  ///
-  /// [readiness] comes from `WorkContextValidator`, so Home cannot invent its
-  /// own idea of "ready" — it asks the same policy the pre-work check uses.
+  /// Pure: the same session and instant always give the same Home.
   factory HomePresentation.from({
     required ShiftSession session,
-    required WorkContextReadiness readiness,
     required DateTime now,
   }) {
-    // An untrusted window outranks everything else. A worker whose clock moved
-    // needs to know that before they are told how long they have been
-    // monitoring, because the answer to that question is "we cannot say".
+    // An untrusted window outranks everything else: the worker needs to know
+    // the duration cannot be stated before being told what it is.
     final windowUntrusted =
         session.startedAt != null && session.coverageAt(now) == null;
-
     if (windowUntrusted && session.stage != ShiftStage.complete) {
       return const HomePresentation(
         stage: HomeStage.requiresAttention,
-        actionLabel: 'End monitoring and read badge',
+        title: 'Monitoring time cannot be trusted',
+        message:
+            'The phone’s clock moved while monitoring was running, so the '
+            'monitoring window cannot be stated. End monitoring and scan the '
+            'DoseBand — the result will say the window is unknown.',
+        actionLabel: 'End monitoring and scan',
         actionRoute: '/end',
-        statusStrip:
-            'The monitored period cannot be timed. End the period and read '
-            'the badge — the exposure window will be reported as unknown.',
-        monitoringTitle: 'DoseBand monitoring',
-        monitoringState: 'Duration not trustworthy',
       );
     }
 
+    final registered = session.sessionId != null;
+    final completedToday =
+        session.stage == ShiftStage.complete &&
+        _sameDay(session.endedAt ?? now, now);
+
     return switch (session.stage) {
-      ShiftStage.noShift => const HomePresentation(
-        stage: HomeStage.noContext,
-        actionLabel: 'Start work context',
-        actionRoute: '/work-context',
-        statusStrip:
-            'Record your work context before a DoseBand can be assigned.',
-        monitoringTitle: 'DoseBand monitoring',
-        monitoringState: 'Not started',
+      ShiftStage.noShift || ShiftStage.contextSet => HomePresentation(
+        stage: HomeStage.noDoseBand,
+        title: 'No DoseBand assigned',
+        message: session.stage == ShiftStage.contextSet
+            ? 'Today’s work is recorded. Take an unused DoseBand and scan it '
+                  'to start monitoring.'
+            : 'Take an unused DoseBand and scan it. You will confirm today’s '
+                  'work before it is assigned.',
+        actionLabel: 'Scan new DoseBand',
+        actionRoute: '/doseband/scan',
       ),
-
-      ShiftStage.contextSet when !readiness.contextIsComplete =>
-        const HomePresentation(
-          stage: HomeStage.contextIncomplete,
-          actionLabel: 'Complete work context',
-          actionRoute: '/work-context',
-          statusStrip:
-              'Work context is incomplete. Finish it before assigning a '
-              'DoseBand.',
-          monitoringTitle: 'DoseBand monitoring',
-          monitoringState: 'Not started',
-        ),
-
-      ShiftStage.contextSet => const HomePresentation(
-        stage: HomeStage.awaitingBadge,
-        actionLabel: 'Assign DoseBand',
-        actionRoute: '/assign',
-        statusStrip:
-            'Work context recorded. Assign the DoseBand you have been issued.',
-        monitoringTitle: 'DoseBand monitoring',
-        monitoringState: 'Badge not assigned',
-      ),
-
-      ShiftStage.badgeAssigned => const HomePresentation(
-        stage: HomeStage.badgeAssigned,
+      ShiftStage.badgeAssigned ||
+      ShiftStage.readyForDosimetry => const HomePresentation(
+        stage: HomeStage.doseBandAssigned,
+        title: 'DoseBand assigned',
+        message: 'Complete the pre-work check to start monitoring.',
         actionLabel: 'Pre-work check',
         actionRoute: '/prework',
-        statusStrip:
-            'DoseBand assigned. Complete the pre-work dosimetry check.',
-        monitoringTitle: 'DoseBand monitoring',
-        monitoringState: 'Ready for pre-work check',
       ),
-
-      ShiftStage.readyForDosimetry => const HomePresentation(
-        stage: HomeStage.readyForDosimetry,
-        actionLabel: 'Start monitoring',
-        actionRoute: '/prework',
-        statusStrip:
-            'Ready for dosimetry. This confirms DoseBand has what it needs — '
-            'it does not authorise work.',
-        monitoringTitle: 'DoseBand monitoring',
-        monitoringState: 'Ready for dosimetry',
-      ),
-
       ShiftStage.monitoring => const HomePresentation(
         stage: HomeStage.monitoringActive,
-        actionLabel: 'End monitoring',
+        title: 'Monitoring active',
+        message:
+            'Wear the DoseBand as your site instructs. It records cumulative '
+            'exposure for later reading; it cannot warn you. Your H₂S alarm '
+            'does that.',
+        actionLabel: 'Complete monitoring & scan',
         actionRoute: '/end',
-        statusStrip:
-            'Monitoring active. The DoseBand is recording cumulative '
-            'exposure and cannot warn you about anything.',
-        monitoringTitle: 'Monitoring active',
-        monitoringState: 'Active',
       ),
-
-      ShiftStage.awaitingScan => const HomePresentation(
-        stage: HomeStage.scanRequired,
-        actionLabel: 'Scan DoseBand',
-        actionRoute: '/read',
-        statusStrip: 'Monitoring ended. Scan the badge to produce a reading.',
-        monitoringTitle: 'DoseBand monitoring',
-        monitoringState: 'Awaiting badge scan',
+      ShiftStage.awaitingScan => HomePresentation(
+        stage: HomeStage.readyForFinalRead,
+        title: 'Ready for final scan',
+        message: 'Monitoring has ended. Scan the DoseBand you wore.',
+        actionLabel: 'Scan assigned DoseBand',
+        actionRoute: registered ? '/doseband/scan?purpose=final' : '/read',
       ),
-
+      ShiftStage.complete when completedToday => HomePresentation(
+        stage: HomeStage.completed,
+        title: 'Today’s monitoring complete',
+        message:
+            'Remove the DoseBand and dispose of it following your site '
+            'procedure. It is not reused.',
+        actionLabel: 'View today’s record',
+        actionRoute: session.captureId == null
+            ? '/history'
+            : '/history/record/${session.captureId}',
+        secondaryLabel: 'Scan new DoseBand',
+        secondaryRoute: '/doseband/scan',
+      ),
       ShiftStage.complete => const HomePresentation(
-        stage: HomeStage.resultAvailable,
-        actionLabel: 'Start new work context',
-        actionRoute: '/work-context',
-        statusStrip:
-            'Reading complete. Start a new work context when issued '
-            'your next DoseBand.',
-        monitoringTitle: 'DoseBand monitoring',
-        monitoringState: 'Reading complete',
+        stage: HomeStage.noDoseBand,
+        title: 'No DoseBand assigned',
+        message:
+            'Your last monitoring period is complete. Take an unused DoseBand '
+            'and scan it to start today’s.',
+        actionLabel: 'Scan new DoseBand',
+        actionRoute: '/doseband/scan',
       ),
     };
   }
+
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 }

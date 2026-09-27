@@ -109,12 +109,72 @@ class _ResultScreenState extends State<ResultScreen> {
               'Model': provenance.calibrationModelId ?? '—',
           },
         ),
+        if (!simulated) ...[
+          const SizedBox(height: Space.base),
+          _RealScanSummary(record: record),
+        ],
         if (status.carriesDose) ...[
           const SizedBox(height: Space.base),
           _ValidNote(),
           const SizedBox(height: Space.sm),
           const _NoProductionCalibrationNote(),
         ],
+      ],
+    );
+  }
+}
+
+/// For a real photograph: the four questions a worker has after a scan
+/// (PRODUCT BUILD v1 §142) — was the photo usable, did a calibration apply,
+/// what state is the record in, and what now. No matrices, no ΔE arrays.
+class _RealScanSummary extends StatelessWidget {
+  const _RealScanSummary({required this.record});
+
+  final MeasurementRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colours;
+    final t = context.type;
+    final status = record.result.status;
+    final photoUsable = !const {
+      ResultStatus.poorImage,
+      ResultStatus.referencePatchFailure,
+    }.contains(status);
+    final calibrated = record.result is Valid || record.result is Censored;
+    Widget row(String label, String value) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: Space.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: t.caption.copyWith(color: c.textSecondary)),
+          Text(value, style: t.body.copyWith(color: c.textPrimary)),
+        ],
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        row(
+          'Photograph',
+          photoUsable
+              ? 'Captured and processed on this phone.'
+              : 'Captured, but it could not be measured: '
+                    '${status == ResultStatus.referencePatchFailure ? 'the reference colours did not verify.' : 'the image quality was not sufficient.'}',
+        ),
+        row(
+          'Calibration',
+          calibrated
+              ? 'Applied.'
+              : 'Not available. Optical measurement completed; quantitative '
+                    'H₂S calibration is not available for this configuration.',
+        ),
+        row('Record', 'Saved on this phone. Not sent anywhere.'),
+        row(
+          'Next',
+          'Remove the DoseBand and dispose of it following your site '
+              'procedure. It is not reused.',
+        ),
       ],
     );
   }

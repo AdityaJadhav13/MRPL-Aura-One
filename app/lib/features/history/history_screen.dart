@@ -1,24 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:measurement/measurement.dart';
 
-import '../../core/components/pills.dart';
-import '../../core/components/states.dart';
-import '../../core/design/status_presentation.dart';
+import '../../core/components/markers.dart';
+import '../../core/components/product_page.dart';
+import '../../core/components/product_states.dart';
+import '../../core/components/workspace_components.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
 import '../../core/util/format.dart';
-import '../result/result_presentation.dart';
+import '../operations/application/operations_providers.dart';
+import '../operations/domain/measurement_state.dart';
+import '../operations/domain/review.dart';
+import '../operations/presentation/ops_chips.dart';
+import '../workflow/application/workflow_controller.dart';
 import 'application/history_controller.dart';
 import 'domain/measurement_record.dart';
 
-/// Exposure history.
+enum HistoryPeriod {
+  week('7 days'),
+  month('30 days'),
+  custom('Custom');
+
+  const HistoryPeriod(this.label);
+
+  final String label;
+}
+
+/// Worker History (PRODUCT BUILD v1 §27, §28).
 ///
-/// A restrained timeline of completed measurements. Numeric, below-range,
-/// above-range and no-reading records are told apart by icon and label, never by
-/// colour alone. Every record is simulated in this phase and marked so; the data
-/// domain is never ambiguous (directive §21/§65).
+/// One row per monitoring period's record. Values appear only where a
+/// validated result exists; every other state is a word. There is no total,
+/// no average and no "lifetime" figure: individual records are kept so that a
+/// validated occupational summary can be computed properly later — summing
+/// unvalidated records into a dose would be a number nobody can defend.
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
@@ -26,209 +41,155 @@ class HistoryScreen extends ConsumerStatefulWidget {
   ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-enum _Filter { all, valid, belowRange, aboveRange, noReading }
-
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
-  _Filter _filter = _Filter.all;
+  HistoryPeriod _period = HistoryPeriod.month;
+  DateTimeRange? _custom;
 
-  bool _matches(MeasurementRecord r) {
-    final s = r.result.status;
-    return switch (_filter) {
-      _Filter.all => true,
-      _Filter.valid => s.carriesDose,
-      _Filter.belowRange => s == ResultStatus.belowQuantificationLimit,
-      _Filter.aboveRange =>
-        s.isCensored && s != ResultStatus.belowQuantificationLimit,
-      _Filter.noReading => s.isRefusal,
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colours;
-    final all = ref.watch(historyProvider);
-    final records = all.where(_matches).toList();
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('History')),
-      body: all.isEmpty
-          ? const EmptyState(
-              icon: Icons.history,
-              title: 'No measurements yet',
-              message:
-                  'Completed badge readings appear here. Start a monitored '
-                  'period from Home to create one.',
-            )
-          : Column(
-              children: [
-                _FilterBar(
-                  active: _filter,
-                  onChanged: (f) => setState(() => _filter = f),
-                ),
-                Expanded(
-                  child: records.isEmpty
-                      ? const EmptyState(
-                          icon: Icons.filter_alt_off_outlined,
-                          title: 'Nothing matches',
-                          message: 'No records match this filter.',
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(Space.base),
-                          itemCount: records.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: Space.sm),
-                          itemBuilder: (_, i) =>
-                              _HistoryRow(record: records[i]),
-                        ),
-                ),
-                // Stated from the records themselves. This used to read "All
-                // records are simulated data" unconditionally, which became
-                // false the moment a real scan could land here.
-                if (all.any((r) => r.domain == DataDomain.simulated))
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Space.base,
-                      vertical: Space.sm,
-                    ),
-                    color: c.surfaceSunken,
-                    child: Text(
-                      all.every((r) => r.domain == DataDomain.simulated)
-                          ? 'All records are simulated data.'
-                          : 'Records marked SIMULATED are simulated data. '
-                                'Others are real scans of a physical badge.',
-                      style: context.type.caption.copyWith(
-                        color: c.statusSimulated,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+  Future<void> _pickRange(DateTime now) async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 5),
+      lastDate: now,
+      initialDateRange:
+          _custom ??
+          DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now),
     );
+    if (picked != null) {
+      setState(() {
+        _custom = picked;
+        _period = HistoryPeriod.custom;
+      });
+    }
   }
-}
-
-class _FilterBar extends StatelessWidget {
-  const _FilterBar({required this.active, required this.onChanged});
-
-  final _Filter active;
-  final ValueChanged<_Filter> onChanged;
-
-  static const _labels = {
-    _Filter.all: 'All',
-    _Filter.valid: 'Valid',
-    _Filter.belowRange: 'Below range',
-    _Filter.aboveRange: 'Above range',
-    _Filter.noReading: 'No reading',
-  };
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colours;
-    return SizedBox(
-      height: 52,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: Space.base),
-        children: [
-          for (final entry in _labels.entries)
-            Padding(
-              padding: const EdgeInsets.only(right: Space.sm, top: Space.sm),
-              child: ChoiceChip(
-                label: Text(entry.value),
-                selected: active == entry.key,
-                showCheckmark: false,
-                labelStyle: context.type.label.copyWith(
-                  color: active == entry.key ? c.textOnAccent : c.textSecondary,
-                ),
-                backgroundColor: c.surfaceElevated,
-                selectedColor: c.measurementAccent,
-                side: BorderSide(color: c.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Radii.control),
-                ),
-                onSelected: (_) => onChanged(entry.key),
-              ),
-            ),
-        ],
+    final now = ref.watch(clockProvider)();
+    final today = DateTime(now.year, now.month, now.day);
+    final all = ref.watch(historyProvider);
+    final (DateTime from, DateTime to) = switch (_period) {
+      HistoryPeriod.week => (
+        today.subtract(const Duration(days: 6)),
+        today.add(const Duration(days: 1)),
       ),
+      HistoryPeriod.month => (
+        today.subtract(const Duration(days: 29)),
+        today.add(const Duration(days: 1)),
+      ),
+      HistoryPeriod.custom => (
+        _custom?.start ?? today,
+        (_custom?.end ?? today).add(const Duration(days: 1)),
+      ),
+    };
+    final records = all
+        .where((r) => !r.scannedAt.isBefore(from) && r.scannedAt.isBefore(to))
+        .toList();
+    final view = ref.watch(workerViewProvider).value;
+
+    return ProductPage(
+      title: 'History',
+      showBack: false,
+      children: [
+        ChoiceChips<HistoryPeriod>(
+          options: HistoryPeriod.values,
+          selected: _period,
+          labelOf: (p) => p == HistoryPeriod.custom && _custom != null
+              ? '${Fmt.date(_custom!.start)} – ${Fmt.date(_custom!.end)}'
+              : p.label,
+          onSelected: (p) {
+            if (p == HistoryPeriod.custom) {
+              _pickRange(now);
+            } else {
+              setState(() => _period = p);
+            }
+          },
+        ),
+        const SizedBox(height: Space.base),
+        if (all.isEmpty)
+          const StateView(
+            kind: StateKind.empty,
+            title: 'No records yet',
+            message:
+                'Each completed monitoring period adds one record here, after '
+                'its final scan.',
+          )
+        else if (records.isEmpty)
+          const StateView(
+            kind: StateKind.noResults,
+            message: 'No records in this period.',
+          )
+        else
+          RowList(
+            children: [
+              for (final r in records)
+                _HistoryRow(record: r, reviewed: view?.reviewOf(r)),
+            ],
+          ),
+        const SizedBox(height: Space.base),
+        Text(
+          '${records.length} record${records.length == 1 ? '' : 's'} shown. '
+          'Records are kept individually; no totals are calculated.',
+          style: context.type.caption.copyWith(
+            color: context.product.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _HistoryRow extends StatelessWidget {
-  const _HistoryRow({required this.record});
+  const _HistoryRow({required this.record, required this.reviewed});
 
   final MeasurementRecord record;
+  final HseReview? reviewed;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colours;
+    final p = context.product;
     final t = context.type;
-    final status = record.result.status;
-    final p = StatusPresentation.of(status, c);
-    final view = ResultView.of(record.result);
-    final readout = view.value == null
-        ? '- - -'
-        : '${view.prefix ?? ''}${view.value}';
-
-    return Material(
-      color: c.surfaceElevated,
-      borderRadius: BorderRadius.circular(Radii.control),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(Radii.control),
-        onTap: () => context.push('/measurement', extra: record),
-        child: Container(
-          padding: const EdgeInsets.all(Space.base),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Radii.control),
-            border: Border.all(color: c.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final r = record;
+    final review = reviewed;
+    return InkWell(
+      onTap: () => context.push('/history/record/${r.id}', extra: r),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: kMinTouchTarget),
+        child: Padding(
+          padding: const EdgeInsets.all(Space.md),
+          child: Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  StatusPill(label: p.label, icon: p.icon, colour: p.colour),
-                  Text(
-                    '$readout ${status.carriesDose ? 'ppm·h' : ''}',
-                    style: t.readoutBody.copyWith(color: c.textPrimary),
-                  ),
-                ],
-              ),
-              const SizedBox(height: Space.sm),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    record.badge.badgeId,
-                    style: t.readoutSmall.copyWith(color: c.textSecondary),
-                  ),
-                  Text(
-                    Fmt.stamp(record.scannedAt),
-                    style: t.caption.copyWith(color: c.textSecondary),
-                  ),
-                ],
-              ),
-              const SizedBox(height: Space.xs),
-              // Local, per row. With real and simulated scans in one list, a
-              // simulated quantity must be identifiable where it is shown —
-              // a footer banner no longer covers it. Category A.
-              Text(
-                record.domain == DataDomain.simulated
-                    ? 'SIMULATED — not a real H₂S measurement'
-                    : '${record.badge.identityProvenance.split(' — ').first}'
-                          ' · real photograph',
-                style: t.caption.copyWith(
-                  color: record.domain == DataDomain.simulated
-                      ? c.statusSimulated
-                      : c.textSecondary,
-                  fontWeight: record.domain == DataDomain.simulated
-                      ? FontWeight.w600
-                      : null,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${Fmt.date(r.scannedAt)} · ${r.context.shift.name}',
+                      style: t.bodyStrong.copyWith(color: p.textPrimary),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${r.badge.badgeId} · ${Fmt.duration(r.endedAt.isBefore(r.startedAt) ? null : r.coverage)}',
+                      style: t.readoutSmall.copyWith(color: p.textSecondary),
+                    ),
+                    const SizedBox(height: Space.xs),
+                    Text(
+                      MeasurementStateText.exposureCell(r.result),
+                      style: t.body.copyWith(color: p.textPrimary),
+                    ),
+                    const SizedBox(height: Space.xs),
+                    Wrap(
+                      spacing: Space.xs,
+                      runSpacing: Space.xs,
+                      children: [
+                        MeasurementStateChip(r.result),
+                        if (review != null) ReviewStateChip(review.state),
+                        if (r.badge.isSimulated) const SimulationMarker(),
+                      ],
+                    ),
+                  ],
                 ),
               ),
+              Icon(Icons.chevron_right, color: p.textSecondary),
             ],
           ),
         ),

@@ -14,6 +14,7 @@ import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/time/clock.dart';
 import '../../../core/util/format.dart';
+import '../../../core/env/environment.dart';
 import '../../account/presentation/workspace_more_screen.dart';
 import '../../operations/application/day_status.dart';
 import '../../operations/application/operations_providers.dart';
@@ -687,10 +688,12 @@ extension on String {
 
 /// The supervisor's More page.
 class SupervisorMoreScreen extends StatelessWidget {
-  const SupervisorMoreScreen({super.key});
+  const SupervisorMoreScreen({required this.config, super.key});
+
+  final EnvironmentConfig config;
 
   @override
-  Widget build(BuildContext context) => const WorkspaceMoreScreen();
+  Widget build(BuildContext context) => WorkspaceMoreScreen(config: config);
 }
 
 /// Parses `?status=` for the team list.

@@ -99,18 +99,18 @@ void main() {
       for (final label in ['Home', 'History', 'Scan', 'Safety', 'Profile']) {
         expect(find.text(label), findsWidgets, reason: '$label is missing');
       }
-      // No shift and no history yet: the honest empty state, not a fake shift.
-      expect(find.text('DOSEBAND MONITORING'), findsOneWidget);
+      // No DoseBand and no history yet: the honest state A, not a fake shift.
+      expect(find.text('No DoseBand assigned'), findsOneWidget);
     });
 
     testWidgets('each destination is reachable', (tester) async {
       await pumpShell(tester, _dev);
 
       await tapDestination(tester, 'History');
-      expect(find.text('No measurements yet'), findsOneWidget);
+      expect(find.text('No records yet'), findsOneWidget);
 
       await tapDestination(tester, 'Scan');
-      expect(find.text('Assign a badge to begin'), findsOneWidget);
+      expect(find.text('Scan new DoseBand'), findsOneWidget);
 
       await tapDestination(tester, 'Safety');
       expect(
@@ -122,7 +122,7 @@ void main() {
       expect(find.text('Environment'), findsOneWidget);
 
       await tapDestination(tester, 'Home');
-      expect(find.text('DOSEBAND MONITORING'), findsOneWidget);
+      expect(find.text('No DoseBand assigned'), findsOneWidget);
     });
   });
 

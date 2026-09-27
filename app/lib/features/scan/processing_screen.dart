@@ -87,7 +87,7 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
       // declared outcome. A physical badge never reaches this screen.
       domain: DataDomain.simulated,
     );
-    ref.read(historyProvider.notifier).add(record);
+    ref.read(simulatedHistoryProvider.notifier).add(record);
     if (mounted) context.pushReplacement('/result', extra: record);
   }
 

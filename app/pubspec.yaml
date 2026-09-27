@@ -40,7 +40,6 @@ dependencies:
   device_info_plus: ^13.2.0
   share_plus: ^13.3.0
   zxing2: ^0.2.4
-  qr: ^4.0.0
   package_info_plus: ^10.2.1
 
 dev_dependencies:

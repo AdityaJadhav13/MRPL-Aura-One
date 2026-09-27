@@ -1,33 +1,35 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../operations/application/operations_providers.dart';
 import '../domain/measurement_record.dart';
 
-/// The measurement history.
+/// The signed-in worker's measurement history, newest first.
 ///
-/// Starts empty — no fake production exposure records are ever seeded
-/// (directive §65). The simulated worker journey populates it, so the empty
-/// state is real and the records that appear are genuinely the ones the demo
-/// produced, each in the simulated domain and marked as such.
+/// Two sources, kept apart on purpose:
 ///
-/// In-memory for now; Phase 6 moves it behind the persistent store.
-final historyProvider =
-    NotifierProvider<HistoryController, List<MeasurementRecord>>(
-      HistoryController.new,
+/// * the worker's own records in the operations store — persisted, and the
+///   same records the supervisor and HSE see;
+/// * records from the development simulation, held in memory only and
+///   marked simulated. They are never written to the store: a simulated
+///   specimen must not enter the organisation's records (§25, §138).
+///
+/// No fake records are seeded; an empty history is a true empty history.
+final historyProvider = Provider<List<MeasurementRecord>>((ref) {
+  final own = ref.watch(workerViewProvider).value?.history() ?? const [];
+  final simulated = ref.watch(simulatedHistoryProvider);
+  return [...own, ...simulated]
+    ..sort((a, b) => b.scannedAt.compareTo(a.scannedAt));
+});
+
+/// Development-simulation records, in memory.
+final simulatedHistoryProvider =
+    NotifierProvider<SimulatedHistory, List<MeasurementRecord>>(
+      SimulatedHistory.new,
     );
 
-class HistoryController extends Notifier<List<MeasurementRecord>> {
+class SimulatedHistory extends Notifier<List<MeasurementRecord>> {
   @override
   List<MeasurementRecord> build() => const [];
 
-  void add(MeasurementRecord record) {
-    // Newest first.
-    state = [record, ...state];
-  }
-
-  MeasurementRecord? byId(String id) {
-    for (final r in state) {
-      if (r.id == id) return r;
-    }
-    return null;
-  }
+  void add(MeasurementRecord record) => state = [record, ...state];
 }

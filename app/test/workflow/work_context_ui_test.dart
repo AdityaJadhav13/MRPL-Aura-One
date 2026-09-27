@@ -154,7 +154,7 @@ void main() {
       tester,
     ) async {
       await pumpAt(tester, '/work-context');
-      expect(_onPressedOf(tester, 'Continue to badge'), isNull);
+      expect(_onPressedOf(tester, 'Save today’s work'), isNull);
     });
   });
 
@@ -256,7 +256,7 @@ void main() {
       // No way to edit anything.
       expect(find.byType(TextField), findsNothing);
       expect(find.byType(ChoiceChip), findsNothing);
-      expect(find.text('Continue to badge'), findsNothing);
+      expect(find.text('Save today’s work'), findsNothing);
     });
 
     testWidgets('the badge cannot be reassigned from a stale route', (
@@ -308,11 +308,9 @@ void main() {
       await pumpAt(tester, '/home');
       await tester.pump(const Duration(milliseconds: 200));
 
-      // Home was rebuilt in UI-SURFACE-01: it renders its own dashboard
-      // sections rather than the WorkContextSummary group headers.
-      expect(find.text("TODAY'S SHIFT"), findsOneWidget);
-      expect(find.text('WORK CONTEXT'), findsOneWidget);
-      expect(find.text('MONITORING ACTIVE'), findsOneWidget);
+      // Home (PRODUCT BUILD v1 §15): the state card and today's work.
+      expect(find.text('Today’s work'), findsOneWidget);
+      expect(find.text('Monitoring active'), findsOneWidget);
       // The restored context's own values are on screen.
       expect(
         find.text(SimulationCatalog.demoContext().site.name),
@@ -333,12 +331,10 @@ void main() {
           startedAt: DateTime(2026, 9, 25, 6),
         ),
       );
-      await pumpAt(tester, '/home');
+      await pumpAt(tester, '/home', personId: PresentationDataset.aditya);
       await tester.pump(const Duration(milliseconds: 200));
-      // The rebuilt identity card puts the employment type and the worker ID
-      // on one line, and the employing contractor on the next.
-      expect(find.textContaining('Contractor · ID'), findsOneWidget);
-      expect(find.text('XYZ Engineering'), findsOneWidget);
+      // Home's identity line: worker ID and, for a contractor, the employer.
+      expect(find.text('CT-45832 · XYZ Engineering'), findsOneWidget);
     });
   });
 

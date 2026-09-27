@@ -10,6 +10,7 @@ import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
 import '../../../core/env/app_info.dart';
 import '../../../core/env/app_version.dart';
+import '../../../core/env/environment.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_models.dart';
 import '../../operations/application/operations_providers.dart';
@@ -34,8 +35,13 @@ class MoreLink {
 /// switch for a multi-role account, the workspace's secondary pages, what
 /// this build is, and sign-out.
 class WorkspaceMoreScreen extends ConsumerWidget {
-  const WorkspaceMoreScreen({this.links = const [], super.key});
+  const WorkspaceMoreScreen({
+    required this.config,
+    this.links = const [],
+    super.key,
+  });
 
+  final EnvironmentConfig config;
   final List<MoreLink> links;
 
   @override
@@ -67,7 +73,10 @@ class WorkspaceMoreScreen extends ConsumerWidget {
               ],
             ],
           ),
-        const PageSection(title: 'This build', children: [BuildFacts()]),
+        PageSection(
+          title: 'This build',
+          children: [BuildFacts(config: config)],
+        ),
         const SignOutButton(),
       ],
     );
@@ -140,13 +149,13 @@ class WorkspaceSwitcher extends ConsumerWidget {
 
 /// What this build is, from the installed package — not typed into a screen.
 class BuildFacts extends ConsumerWidget {
-  const BuildFacts({super.key});
+  const BuildFacts({required this.config, super.key});
+
+  final EnvironmentConfig config;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(environmentConfigProvider);
     final installed = ref.watch(installedPackageProvider).value;
-    final identity = ref.watch(identityProviderProvider);
     return SectionCard(
       children: [
         FactRow(
@@ -161,7 +170,12 @@ class BuildFacts extends ConsumerWidget {
         if (installed != null)
           FactRow(label: 'Package', value: installed.packageName, mono: true),
         FactRow(label: 'Environment', value: config.environment.name),
-        FactRow(label: 'Sign-in', value: identity.description),
+        FactRow(
+          label: 'Sign-in',
+          value: config.simulationAvailable
+              ? 'Presentation accounts on this device'
+              : 'Organisation sign-in (not connected)',
+        ),
         const FactRow(
           label: 'Records',
           value: 'Stored on this device. No central server is connected.',
