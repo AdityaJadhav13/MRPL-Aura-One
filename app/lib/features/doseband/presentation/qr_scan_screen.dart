@@ -192,6 +192,9 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        // The theme's title style names its own (dark) colour, which wins
+        // over foregroundColor; on the camera's black it has to be white.
+        titleTextStyle: context.type.heading.copyWith(color: Colors.white),
         title: Semantics(header: true, child: Text(title)),
       ),
       body: Column(
