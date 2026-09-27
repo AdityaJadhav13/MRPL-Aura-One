@@ -5,7 +5,7 @@ import 'package:h2s_doseband/core/components/buttons.dart';
 import 'package:h2s_doseband/core/design/theme.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
-import 'package:h2s_doseband/features/auth/domain/auth_models.dart';
+import 'package:h2s_doseband/features/operations/data/presentation_dataset.dart';
 import 'package:h2s_doseband/features/workflow/application/workflow_controller.dart';
 import 'package:h2s_doseband/features/workflow/data/simulation_catalog.dart';
 import 'package:h2s_doseband/features/workflow/presentation/badge_verification_screen.dart';
@@ -15,6 +15,8 @@ import 'package:h2s_doseband/features/workflow/domain/worker_identity.dart';
 import 'package:h2s_doseband/features/workflow/domain/workflow_state.dart';
 import 'package:h2s_doseband/main.dart';
 
+import '../support/signed_in.dart';
+
 const _dev = EnvironmentConfig(
   environment: AppEnvironment.dev,
   supabaseUrl: '',
@@ -22,35 +24,6 @@ const _dev = EnvironmentConfig(
 );
 
 BadgeSpecimen _badge() => SimulationCatalog.specimens().first;
-
-/// Signs a demo worker in, so the work-context form inherits an identity and a
-/// site exactly as it does after the real auth flow.
-class _SignedIn extends AuthController {
-  _SignedIn(this.userType, this.contractorCompany);
-
-  final AuthUserType userType;
-  final String? contractorCompany;
-
-  @override
-  AuthState build() => AuthState(
-    identity: DemoIdentity(
-      userId: userType == AuthUserType.employee ? 'EMP-4471' : 'CON-8802',
-      displayName: userType == AuthUserType.employee
-          ? 'Ravi Kumar'
-          : 'Contract Worker',
-      userType: userType,
-      source: AuthSource.demo,
-      contractorCompany: contractorCompany,
-    ),
-    site: const Site(
-      id: 'mangalore-refinery',
-      name: 'Mangalore Refinery',
-      locality: 'Katipalla, Mangalore',
-      kind: SiteKind.refinery,
-    ),
-    role: AppRole.worker,
-  );
-}
 
 /// The enabled state of a [DoseBandButton] by its label.
 ///
@@ -78,8 +51,7 @@ void main() {
   Future<void> pumpAt(
     WidgetTester tester,
     String location, {
-    AuthUserType userType = AuthUserType.employee,
-    String? contractorCompany,
+    String personId = PresentationDataset.lavitra,
     Size size = const Size(390, 5000),
     double textScale = 1,
   }) async {
@@ -92,9 +64,7 @@ void main() {
         overrides: [
           environmentConfigProvider.overrideWithValue(_dev),
           workflowStoreProvider.overrideWithValue(store),
-          authControllerProvider.overrideWith(
-            () => _SignedIn(userType, contractorCompany),
-          ),
+          ...signedInOverrides(personId: personId),
         ],
         child: MediaQuery(
           data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
@@ -117,8 +87,8 @@ void main() {
 
     testWidgets('shows the signed-in worker', (tester) async {
       await pumpAt(tester, '/work-context');
-      expect(find.text('Ravi Kumar'), findsOneWidget);
-      expect(find.text('EMP-4471'), findsOneWidget);
+      expect(find.text('Lavitra Satam'), findsOneWidget);
+      expect(find.text('E-10231'), findsOneWidget);
       expect(find.text('Employee'), findsOneWidget);
     });
 
@@ -128,7 +98,11 @@ void main() {
     });
 
     testWidgets('asks a contractor for a contractor company', (tester) async {
-      await pumpAt(tester, '/work-context', userType: AuthUserType.contractor);
+      await pumpAt(
+        tester,
+        '/work-context',
+        personId: PresentationDataset.aditya,
+      );
       expect(find.text('Contractor company'), findsOneWidget);
     });
 

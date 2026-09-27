@@ -2,26 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/components/buttons.dart';
+import '../../../../core/components/identity.dart';
+import '../../../../core/components/product_fields.dart';
+import '../../../../core/components/product_page.dart';
+import '../../../../core/components/product_status.dart';
+import '../../../../core/components/step_scaffold.dart';
+import '../../../../core/components/wordmark.dart';
 import '../../../../core/design/brand_assets.dart';
-import '../../../../core/design/corporate_colors.dart';
 import '../../../../core/design/theme.dart';
-import '../../../../core/design/typography.dart';
 import '../../../../core/design/tokens.dart';
+import '../../../operations/application/operations_repository.dart';
 import '../../application/auth_controller.dart';
-import '../../data/demo_account.dart';
-import '../../data/demo_auth_repository.dart';
 import '../../domain/auth_models.dart';
-import '../widgets/auth_background.dart';
-import '../widgets/auth_brand_header.dart';
-import '../widgets/auth_controls.dart';
-import '../widgets/auth_form_fields.dart';
-import '../widgets/demo_access_card.dart';
+import '../../domain/identity.dart';
+import '../widgets/mrpl_brandmark.dart';
 
-/// Sign in.
+/// Sign in (PRODUCT BUILD v1 §56).
 ///
-/// **UI-only. No identity verification occurs.** Required fields are checked
-/// for emptiness and the flow advances; nothing is sent anywhere, and the
-/// password is never stored, logged or persisted. See [DemoAuthRepository].
+/// White-first, one form: ID and password. No role picker — the role comes
+/// from the account — and no block of printed credentials. What the person is
+/// signing in against is stated in one plain line, because it is not the
+/// organisation's identity system and must not look like it.
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
 
@@ -30,381 +32,337 @@ class SignInScreen extends ConsumerStatefulWidget {
 }
 
 class _SignInScreenState extends ConsumerState<SignInScreen> {
-  final _userId = TextEditingController();
-  final _company = TextEditingController();
+  final _id = TextEditingController();
   final _password = TextEditingController();
-
-  AuthUserType _userType = AuthUserType.employee;
   bool _obscure = true;
-  bool _remember = true;
-  Map<String, String> _errors = const <String, String>{};
-
-  /// Set when the form was complete but the values were not the demo account.
-  /// Separate from [_errors], which is per-field.
-  String? _rejection;
+  String? _idError;
+  String? _passwordError;
 
   @override
   void dispose() {
-    _userId.dispose();
-    _company.dispose();
+    _id.dispose();
     _password.dispose();
     super.dispose();
   }
 
-  bool get _isContractor => _userType == AuthUserType.contractor;
-
-  void _submit() {
-    final result = ref
+  Future<void> _submit() async {
+    final id = _id.text.trim();
+    final password = _password.text;
+    setState(() {
+      _idError = id.isEmpty ? 'Enter your employee or contractor ID' : null;
+      _passwordError = password.isEmpty ? 'Enter your password' : null;
+    });
+    if (_idError != null || _passwordError != null) return;
+    FocusScope.of(context).unfocus();
+    final failure = await ref
         .read(authControllerProvider.notifier)
-        .submitSignIn(
-          userType: _userType,
-          userId: _userId.text,
-          password: _password.text,
-          contractorCompany: _company.text,
-        );
+        .signIn(loginId: id, password: password);
+    // The password leaves the screen's memory whatever happened.
+    _password.clear();
+    if (!mounted) return;
+    _land(failure);
+  }
 
-    switch (result) {
-      case DemoAuthIncomplete(:final fieldErrors):
-        setState(() {
-          _errors = fieldErrors;
-          _rejection = null;
-        });
-      case DemoAuthRejected(:final message):
-        setState(() {
-          _errors = const <String, String>{};
-          _rejection = message;
-        });
-        _password.clear();
-      case DemoAuthAccepted():
-        setState(() {
-          _errors = const <String, String>{};
-          _rejection = null;
-        });
-        // The password controller is cleared immediately: there is no reason
-        // for it to outlive the submission, and a field left populated is a
-        // field that can be read off a resumed screen.
-        _password.clear();
-        FocusScope.of(context).unfocus();
-        context.go('/select-site');
+  void _land(SignInFailure? failure) {
+    final session = ref.read(authControllerProvider).session;
+    if (failure == null && session != null) {
+      context.go(session.activeRole.landingRoute);
     }
   }
 
-  /// Fills the form with the published demo account.
-  ///
-  /// Present so an evaluator never has to guess credentials. It switches the
-  /// segmented control too, because the demo account is a contractor and a
-  /// half-filled form would be worse than none.
-  void _useDemoCredentials() {
-    setState(() {
-      _userType = DemoAccount.userType;
-      _userId.text = DemoAccount.workerId;
-      _company.text = DemoAccount.contractorCompany;
-      _password.text = DemoAccount.password;
-      _errors = const <String, String>{};
-      _rejection = null;
-    });
+  Future<void> _presentationAccounts() async {
+    final personId = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => const _PresentationAccountsSheet(),
+    );
+    if (personId == null || !mounted) return;
+    final failure = await ref
+        .read(authControllerProvider.notifier)
+        .signInAsPresentation(personId);
+    if (mounted) _land(failure);
   }
 
   @override
   Widget build(BuildContext context) {
-    final corporate = context.corporate;
+    final p = context.product;
     final t = context.type;
-    final allowSkip = ref.watch(authDemoConfigProvider).allowSkip;
+    final auth = ref.watch(authControllerProvider);
+    final provider = ref.watch(identityProviderProvider);
+    final presentation = ref.watch(presentationAccessProvider);
+    final busy = auth.status == AuthStatus.signingIn;
+    final notConnected = provider is NotConnectedIdentityProvider;
 
-    return Scaffold(
-      backgroundColor: corporate.surface,
-      // The card must ride up with the keyboard rather than be covered by it.
-      resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: <Widget>[
-          // A restrained industrial band behind the identity block. Low
-          // opacity: it should register as texture, not as a photograph
-          // competing with the form.
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 300,
-            child: ShaderMask(
-              shaderCallback: (rect) => LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: <Color>[
-                  Colors.white,
-                  Colors.white.withValues(alpha: 0),
-                ],
-                stops: const <double>[0.10, 0.62],
-              ).createShader(rect),
-              blendMode: BlendMode.dstIn,
-              child: Opacity(
-                opacity: 0.30,
-                child: Image.asset(
-                  BrandAssets.refineryBackdrop,
-                  fit: BoxFit.cover,
-                  alignment: const Alignment(0, 0.35),
-                  filterQuality: FilterQuality.medium,
-                ),
+    // Corporate register: the primary action is brand green, as everywhere
+    // outside a measurement screen.
+    return StepRegisterScope(
+      register: StepRegister.corporate,
+      child: Scaffold(
+        backgroundColor: p.surfacePage,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: Gaps.screenGutter,
+                vertical: Space.lg,
               ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: const CorporateFooterWave(height: 88),
-          ),
-          SafeArea(
-            child: Column(
-              children: <Widget>[
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(
-                      Space.lg,
-                      Space.base,
-                      Space.lg,
-                      Space.sm,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        const AuthBrandHeader(),
-                        const SizedBox(height: Space.lg),
-                        const DoseBandLockup(fontSize: 32),
-                        const SizedBox(height: Space.lg),
-                        _signInCard(context, corporate, t),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: AutofillGroup(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _Masthead(),
+                      const SizedBox(height: Space.xl),
+                      Semantics(
+                        header: true,
+                        child: Text(
+                          'Sign in',
+                          style: t.display.copyWith(color: p.textPrimary),
+                        ),
+                      ),
+                      const SizedBox(height: Space.xs),
+                      Text(
+                        'Use your employee or contractor ID.',
+                        style: t.body.copyWith(color: p.textSecondary),
+                      ),
+                      const SizedBox(height: Space.lg),
+                      if (notConnected) ...[
+                        const StatusBanner(
+                          tone: StatusTone.info,
+                          icon: Icons.link_off,
+                          title: 'Organisation sign-in is not connected',
+                          message:
+                              'This build has no identity service to check '
+                              'accounts against, so nobody can sign in yet.',
+                        ),
+                        const SizedBox(height: Space.base),
                       ],
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 44,
-                  child: allowSkip
-                      ? Align(
-                          alignment: Alignment.centerRight,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: Space.md),
-                            child: AuthSkipButton(onPressed: _skip),
+                      if (auth.failure case final failure?) ...[
+                        _FailureBanner(failure: failure),
+                        const SizedBox(height: Space.base),
+                      ],
+                      ProductTextField(
+                        label: 'Employee or contractor ID',
+                        controller: _id,
+                        error: _idError,
+                        enabled: !busy,
+                        prefixIcon: Icons.badge_outlined,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.username],
+                      ),
+                      const SizedBox(height: Space.base),
+                      ProductTextField(
+                        label: 'Password',
+                        controller: _password,
+                        error: _passwordError,
+                        enabled: !busy,
+                        obscureText: _obscure,
+                        prefixIcon: Icons.lock_outline,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.password],
+                        onSubmitted: (_) => _submit(),
+                        suffix: IconButton(
+                          tooltip: _obscure ? 'Show password' : 'Hide password',
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                          icon: Icon(
+                            _obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                           ),
-                        )
-                      : null,
+                        ),
+                      ),
+                      const SizedBox(height: Space.lg),
+                      DoseBandButton.primary(
+                        label: busy ? 'Signing in…' : 'Sign in',
+                        loading: busy,
+                        onPressed: busy ? null : _submit,
+                      ),
+                      const SizedBox(height: Space.lg),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: p.textSecondary,
+                          ),
+                          const SizedBox(width: Space.sm),
+                          Expanded(
+                            child: Text(
+                              notConnected
+                                  ? 'MRPL identity integration is not '
+                                        'connected.'
+                                  : 'Signing in to ${provider.description.toLowerCase()}. '
+                                        'MRPL identity integration is not '
+                                        'connected.',
+                              style: t.caption.copyWith(color: p.textSecondary),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (presentation) ...[
+                        const SizedBox(height: Space.sm),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: DoseBandButton.tertiary(
+                            label: 'Presentation accounts',
+                            icon: Icons.people_outline,
+                            onPressed: busy ? null : _presentationAccounts,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Widget _signInCard(
-    BuildContext context,
-    MrplCorporateColors corporate,
-    DoseBandTypography t,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(Space.lg),
-      decoration: BoxDecoration(
-        color: corporate.surface,
-        borderRadius: BorderRadius.circular(CorporateRadii.lg),
-        border: Border.all(color: corporate.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Expanded(
-                child: Semantics(
-                  header: true,
-                  child: Text(
-                    'Sign In',
-                    style: t.heading.copyWith(
-                      color: corporate.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+/// The refinery, cropped to a strip, above the brand on white. No overlay:
+/// nothing is printed on the photograph, so it needs no scrim (§132).
+class _Masthead extends StatelessWidget {
+  const _Masthead();
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.product;
+    final t = context.type;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ExcludeSemantics(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(Radii.md),
+            child: SizedBox(
+              height: 120,
+              child: Image.asset(
+                BrandAssets.refineryBackdrop,
+                fit: BoxFit.cover,
+                alignment: const Alignment(0, 0.3),
+                filterQuality: FilterQuality.medium,
               ),
-              const DemoModeBadge(compact: true),
-            ],
+            ),
           ),
-          const SizedBox(height: 2),
-          // Full width, so it does not wrap around the badge.
-          Text(
-            'Access your DoseBand workspace',
-            style: t.body.copyWith(color: corporate.textSecondary),
-          ),
-          const SizedBox(height: Space.base),
-
-          EmployeeContractorToggle(
-            options: <String>[
-              AuthUserType.employee.label,
-              AuthUserType.contractor.label,
-            ],
-            selectedIndex: _userType.index,
-            onChanged: (i) => setState(() {
-              _userType = AuthUserType.values[i];
-              _errors = const <String, String>{};
-            }),
-          ),
-          const SizedBox(height: Space.base),
-
-          AuthTextField(
-            controller: _userId,
-            icon: Icons.person_outline,
-            hintText: _isContractor
-                ? 'Worker / Contractor ID'
-                : 'User ID / Employee ID',
-            errorText: _errors[AuthField.userId],
-            keyboardType: TextInputType.text,
-            textInputAction: TextInputAction.next,
-            autofillHints: const <String>[AutofillHints.username],
-          ),
-
-          if (_isContractor) ...<Widget>[
-            const SizedBox(height: Space.md),
-            AuthTextField(
-              controller: _company,
-              icon: Icons.business_outlined,
-              hintText: 'Contractor Company',
-              errorText: _errors[AuthField.contractorCompany],
-              textInputAction: TextInputAction.next,
+        ),
+        const SizedBox(height: Space.lg),
+        Row(
+          children: [
+            const MrplBrandmark(size: 44),
+            const SizedBox(width: Space.md),
+            // Scales down rather than wrapping: a brand name broken across
+            // two lines at large text reads as a defect.
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: const Wordmark(compact: true),
+              ),
             ),
           ],
+        ),
+        const SizedBox(height: Space.sm),
+        Text(
+          'Occupational H₂S exposure monitoring',
+          style: t.caption.copyWith(color: p.textSecondary),
+        ),
+      ],
+    );
+  }
+}
 
-          const SizedBox(height: Space.md),
-          AuthTextField(
-            controller: _password,
-            icon: Icons.lock_outline,
-            hintText: 'Password',
-            errorText: _errors[AuthField.password],
-            obscure: _obscure,
-            onToggleObscure: () => setState(() => _obscure = !_obscure),
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _submit(),
-          ),
+class _FailureBanner extends StatelessWidget {
+  const _FailureBanner({required this.failure});
 
-          const SizedBox(height: Space.sm),
-          // Wrap rather than Row: at large text scales these two controls
-          // cannot share a line on a narrow phone, and reflowing to two lines
-          // is better than truncating "Remember me" to "Rem...".
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: Space.sm,
-            children: <Widget>[
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Semantics(
-                    label: 'Remember me',
-                    checked: _remember,
-                    child: Checkbox(
-                      value: _remember,
-                      onChanged: (v) => setState(() => _remember = v ?? false),
-                      activeColor: corporate.selectedBorder,
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                  const SizedBox(width: Space.sm),
-                  Text(
-                    'Remember me',
-                    style: t.caption.copyWith(color: corporate.textPrimary),
-                  ),
-                ],
-              ),
-              TextButton(
-                onPressed: () => showNotConnectedSheet(
-                  context,
-                  icon: Icons.lock_reset_outlined,
-                  title: 'Password recovery',
-                  message:
-                      'Password recovery will be available when organisation '
-                      'identity integration is connected. Nothing has been '
-                      'sent, and no account exists to recover — this '
-                      'prototype signs in against a published demo account '
-                      'only.',
-                  integration: 'Organisation identity',
-                ),
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(0, 44),
-                  padding: const EdgeInsets.symmetric(horizontal: Space.xs),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  foregroundColor: corporate.primary,
-                ),
-                child: Text(
-                  'Forgot password?',
-                  style: t.caption.copyWith(color: corporate.primary),
-                ),
-              ),
-            ],
-          ),
+  final SignInFailure failure;
 
-          if (_rejection case final message?) ...[
-            const SizedBox(height: Space.md),
-            SignInRejectionNotice(message: message),
-          ],
+  @override
+  Widget build(BuildContext context) => switch (failure) {
+    SignInFailure.invalidCredentials => const StatusBanner(
+      tone: StatusTone.critical,
+      icon: Icons.error_outline,
+      title: 'ID or password not recognised',
+      message: 'Check both and try again.',
+    ),
+    SignInFailure.accountSuspended => const StatusBanner(
+      tone: StatusTone.attention,
+      icon: Icons.block,
+      title: 'This account is suspended',
+      message: 'Ask your administrator to restore it.',
+    ),
+    SignInFailure.offline => const StatusBanner(
+      tone: StatusTone.info,
+      icon: Icons.cloud_off_outlined,
+      title: "You're offline",
+      message: 'Signing in needs a connection. Try again when online.',
+    ),
+    SignInFailure.serverUnavailable => const StatusBanner(
+      tone: StatusTone.info,
+      icon: Icons.dns_outlined,
+      title: 'Sign-in service not responding',
+      message: 'Nothing is wrong with your account. Try again shortly.',
+    ),
+    SignInFailure.notConnected => const StatusBanner(
+      tone: StatusTone.info,
+      icon: Icons.link_off,
+      title: 'Organisation sign-in is not connected',
+      message: 'This build cannot check organisation accounts.',
+    ),
+  };
+}
 
-          const SizedBox(height: Space.sm),
-          AuthPrimaryButton(label: 'Sign In', onPressed: _submit),
+/// The presentation accounts, one tap each. Offered only where the build
+/// allows it — never in production — and presented as what it is.
+class _PresentationAccountsSheet extends ConsumerWidget {
+  const _PresentationAccountsSheet();
 
-          const SizedBox(height: Space.base),
-          DemoAccessCard(onUseCredentials: _useDemoCredentials),
-
-          const SizedBox(height: Space.base),
-          Row(
-            children: <Widget>[
-              Expanded(child: Divider(color: corporate.border)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Space.md),
-                child: Text(
-                  'or',
-                  style: t.caption.copyWith(color: corporate.textSecondary),
-                ),
-              ),
-              Expanded(child: Divider(color: corporate.border)),
-            ],
-          ),
-          const SizedBox(height: Space.base),
-
-          AuthSecondaryButton(
-            label: 'Sign in with Gate Pass QR',
-            icon: Icons.qr_code_2,
-            // Shown because the layout must accommodate it, but it verifies
-            // nothing. Tapping says so rather than faking a scan.
-            onPressed: () => showNotConnectedSheet(
-              context,
-              icon: Icons.qr_code_2,
-              title: 'Gate Pass sign-in',
-              message:
-                  'A gate pass is issued by site security. DoseBand cannot '
-                  'read or verify one: no gate-pass integration exists, so '
-                  'scanning a code here could only claim an identity it had '
-                  'not checked. The control is shown because the flow is '
-                  'designed around it.',
-              integration: 'Gate pass',
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = context.product;
+    final t = context.type;
+    final people = ref.watch(operationsProvider).value?.people ?? const [];
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(
+          Gaps.screenGutter,
+          0,
+          Gaps.screenGutter,
+          Space.lg,
+        ),
+        children: [
+          Semantics(
+            header: true,
+            child: Text(
+              'Presentation accounts',
+              style: t.heading.copyWith(color: p.textPrimary),
             ),
           ),
-
-          const SizedBox(height: Space.base),
+          const SizedBox(height: Space.xs),
           Text(
-            'Access is subject to organization security and acceptable-use '
-            'requirements. This prototype performs no identity verification.',
-            textAlign: TextAlign.center,
-            style: t.caption.copyWith(
-              color: corporate.textSecondary,
-              height: 1.4,
-            ),
+            'Sample accounts for demonstrating each workspace. Not MRPL '
+            'accounts.',
+            style: t.caption.copyWith(color: p.textSecondary),
           ),
+          const SizedBox(height: Space.base),
+          for (final person in people)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              minTileHeight: kMinTouchTarget,
+              leading: IdentityAvatar(name: person.displayName, size: 40),
+              title: Text(person.displayName),
+              subtitle: Text(person.roles.map((r) => r.label).join(' · ')),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).pop(person.personId),
+            ),
         ],
       ),
     );
-  }
-
-  void _skip() {
-    ref.read(authControllerProvider.notifier).skipAuthentication();
-    context.go('/home');
   }
 }

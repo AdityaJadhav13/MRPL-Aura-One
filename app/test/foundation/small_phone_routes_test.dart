@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
-import 'package:h2s_doseband/features/workflow/application/workflow_controller.dart';
 import 'package:h2s_doseband/main.dart';
 
 import '../support/prohibited_claims.dart';
 import '../support/responsive.dart';
+import '../support/signed_in.dart';
 
 const _dev = EnvironmentConfig(
   environment: AppEnvironment.dev,
@@ -34,9 +34,7 @@ void main() {
             ProviderScope(
               overrides: [
                 environmentConfigProvider.overrideWithValue(_dev),
-                clockProvider.overrideWithValue(
-                  () => DateTime(2026, 9, 27, 8, 4),
-                ),
+                ...routeOverrides(route, now: DateTime(2026, 9, 27, 8, 4)),
               ],
               child: DoseBandApp(
                 key: ValueKey('$route@$scale'),

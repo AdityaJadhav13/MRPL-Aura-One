@@ -26,6 +26,8 @@ class ProductTextField extends StatelessWidget {
     this.keyboardType,
     this.textInputAction,
     this.prefixIcon,
+    this.suffix,
+    this.autofillHints,
     this.onChanged,
     this.onSubmitted,
     super.key,
@@ -35,6 +37,12 @@ class ProductTextField extends StatelessWidget {
   final TextEditingController? controller;
   final String? hint;
   final String? helper;
+
+  /// A trailing control inside the field — e.g. a password visibility
+  /// toggle. Replaced by the progress indicator while [loading].
+  final Widget? suffix;
+
+  final Iterable<String>? autofillHints;
 
   /// Replaces [helper] while present. Says what is wrong and how to fix it.
   final String? error;
@@ -67,6 +75,7 @@ class ProductTextField extends StatelessWidget {
       textInputAction: textInputAction,
       onChanged: onChanged,
       onSubmitted: onSubmitted,
+      autofillHints: autofillHints,
       style: t.body.copyWith(color: enabled ? p.textPrimary : p.textDisabled),
       // Keeps the field above the keyboard with room for its helper line.
       scrollPadding: const EdgeInsets.all(Space.xxl),
@@ -89,7 +98,7 @@ class ProductTextField extends StatelessWidget {
                   ),
                 ),
               )
-            : null,
+            : suffix,
       ),
     );
   }

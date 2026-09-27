@@ -1,22 +1,15 @@
 import 'package:flutter/foundation.dart';
 
-/// Which identity route a person signed in through.
-enum AuthUserType {
-  employee('Employee'),
-  contractor('Contractor');
-
-  const AuthUserType(this.label);
-
-  final String label;
-}
+import 'identity.dart';
 
 /// Where a session's identity actually came from.
 ///
-/// Only [demo] is reachable today. The other values exist so that the day a
-/// real integration lands, a session that came from it is distinguishable from
-/// one that did not — rather than every session looking equally authentic.
+/// [demo] is the presentation directory on this device. The others exist so
+/// that a session from a real integration is distinguishable from one that
+/// was not — rather than every session looking equally authentic.
 enum AuthSource {
-  /// UI-only. **No identity verification occurred.**
+  /// The presentation accounts on this device. A password was checked, but
+  /// against presentation accounts, not an organisation directory.
   demo,
 
   /// A real organisational identity provider. Not connected.
@@ -28,55 +21,42 @@ enum AuthSource {
 
 /// An application role.
 ///
-/// **This is application role modelling, not an identity-provider mapping.**
-/// Nothing here corresponds to a group, claim or entitlement in any MRPL
-/// system; role-to-IAM mapping is a future integration.
+/// **Application role modelling, not an identity-provider mapping.** Nothing
+/// here corresponds to a group, claim or entitlement in any MRPL system.
+///
+/// A role comes from the person's directory record; nobody chooses one at
+/// sign-in (PRODUCT BUILD v1 §54). A person holding several roles switches
+/// between them explicitly, and only between those.
 enum AppRole {
   worker(
     'Worker',
-    'Scan DoseBand, view your history and access safety information',
+    'Scan your DoseBand, see your history and safety information',
   ),
-  hseOfficer(
-    'HSE Officer',
-    'Review records, manage workers and HSE operations',
-  ),
-  supervisor('Supervisor', 'Team monitoring and approvals'),
-  management('Management', 'Reports, dashboards and oversight'),
-  administrator('Administrator', 'System configuration and user management');
+  supervisor('Supervisor', 'Your team’s monitoring today'),
+  hseOfficer('HSE Officer', 'Exposure records, reviews and reports'),
+  management('Management', 'De-identified monitoring and trends'),
+  administrator('Administrator', 'People, DoseBand inventory and system');
 
   const AppRole(this.label, this.description);
 
   final String label;
   final String description;
 
-  /// Whether this role has a built interface yet.
-  ///
-  /// Worker, HSE officer and administrator have their own shells. Supervisor
-  /// and management do not: they reach an honest placeholder rather than being
-  /// dropped into somebody else's interface, which would show them a tool
-  /// built for a different job and imply it was theirs.
-  bool get hasImplementedWorkspace => switch (this) {
-    AppRole.worker || AppRole.hseOfficer || AppRole.administrator => true,
-    AppRole.supervisor || AppRole.management => false,
-  };
-
-  /// Where selecting this role lands.
-  ///
-  /// Declared here rather than in the screen so the role model and the routing
-  /// cannot drift apart — adding a role is a compile error until its landing
-  /// place is decided.
+  /// Where this role's workspace starts. Declared here so the role model and
+  /// the routing cannot drift apart.
   String get landingRoute => switch (this) {
     AppRole.worker => '/home',
+    AppRole.supervisor => '/supervisor',
     AppRole.hseOfficer => '/hse',
+    AppRole.management => '/management',
     AppRole.administrator => '/admin',
-    AppRole.supervisor || AppRole.management => '/workspace/$name',
   };
 }
 
-/// What kind of place a site is. Drives the card's icon.
+/// What kind of place a site is. Drives a card's icon.
 enum SiteKind { refinery, office, retail, project, terminal }
 
-/// A selectable work location.
+/// A work location.
 @immutable
 final class Site {
   const Site({
@@ -89,17 +69,8 @@ final class Site {
 
   final String id;
   final String name;
-
-  /// Free-text locality shown under the name, e.g. "Katipalla, Mangalore".
   final String locality;
-
   final SiteKind kind;
-
-  /// A bundled photograph for the card's thumbnail.
-  ///
-  /// Null where no licensed image has been supplied for that site, in which
-  /// case the card draws an illustrated plate for its [kind] instead. Supply
-  /// an asset here and the card uses it with no other change.
   final String? imageAsset;
 
   @override
@@ -109,111 +80,70 @@ final class Site {
   int get hashCode => id.hashCode;
 }
 
-/// A signed-in session.
+/// A signed-in person, acting in one of their roles.
 ///
-/// [isDemo] is not decoration. A demo session must be visibly and
-/// programmatically distinguishable from a real one everywhere it surfaces, so
-/// that nothing downstream can treat an unverified identity as verified.
+/// Holds **no credential**: not the password, not a token. Only who, and as
+/// what — which is also all that is persisted for session restore.
 @immutable
-final class AuthSession {
-  const AuthSession({
-    required this.userId,
+final class AppSession {
+  const AppSession({
+    required this.personId,
     required this.displayName,
-    required this.userType,
-    required this.site,
-    required this.role,
+    required this.roles,
+    required this.activeRole,
     required this.source,
-    this.contractorCompany,
   });
 
-  final String userId;
+  final String personId;
   final String displayName;
-  final AuthUserType userType;
-  final Site site;
-  final AppRole role;
+
+  /// Every role the directory grants, in workspace order.
+  final List<AppRole> roles;
+
+  /// The workspace in use. Always one of [roles].
+  final AppRole activeRole;
+
   final AuthSource source;
-  final String? contractorCompany;
 
-  /// True while no real identity provider has verified anything — which is
-  /// every session today.
-  bool get isDemo => source == AuthSource.demo;
+  bool get canSwitchWorkspace => roles.length > 1;
 
-  AuthSession copyWith({Site? site, AppRole? role}) => AuthSession(
-    userId: userId,
-    displayName: displayName,
-    userType: userType,
-    site: site ?? this.site,
-    role: role ?? this.role,
-    source: source,
-    contractorCompany: contractorCompany,
-  );
+  /// True for every session today: nothing verifies against an organisation.
+  bool get isPresentation => source == AuthSource.demo;
+
+  AppSession withRole(AppRole role) {
+    if (!roles.contains(role)) {
+      throw ArgumentError.value(role, 'role', 'not granted to $personId');
+    }
+    return AppSession(
+      personId: personId,
+      displayName: displayName,
+      roles: roles,
+      activeRole: role,
+      source: source,
+    );
+  }
 }
 
-/// Progress through the authentication flow.
-///
-/// Site and role are chosen after sign-in, so a partially complete session is
-/// a real state rather than a set of nullable fields on a session object.
+enum AuthStatus {
+  /// Not yet known: the stored session has not been read.
+  unknown,
+  signedOut,
+  signingIn,
+  signedIn,
+}
+
 @immutable
 final class AuthState {
-  const AuthState({this.identity, this.site, this.role});
+  const AuthState({required this.status, this.session, this.failure});
 
-  /// Set once sign-in (or skip) has produced an identity.
-  final DemoIdentity? identity;
-  final Site? site;
-  final AppRole? role;
+  static const AuthState unknown = AuthState(status: AuthStatus.unknown);
+  static const AuthState signedOut = AuthState(status: AuthStatus.signedOut);
 
-  bool get isSignedIn => identity != null;
+  final AuthStatus status;
+  final AppSession? session;
 
-  /// Complete enough to enter the application.
-  AuthSession? get session {
-    final i = identity;
-    final s = site;
-    final r = role;
-    if (i == null || s == null || r == null) return null;
-    return AuthSession(
-      userId: i.userId,
-      displayName: i.displayName,
-      userType: i.userType,
-      site: s,
-      role: r,
-      source: i.source,
-      contractorCompany: i.contractorCompany,
-    );
-  }
+  /// Why the last sign-in attempt failed, until the next attempt.
+  final SignInFailure? failure;
 
-  AuthState copyWith({
-    DemoIdentity? identity,
-    Site? site,
-    AppRole? role,
-    bool clear = false,
-  }) {
-    if (clear) return const AuthState();
-    return AuthState(
-      identity: identity ?? this.identity,
-      site: site ?? this.site,
-      role: role ?? this.role,
-    );
-  }
-}
-
-/// An identity produced without verifying anything.
-///
-/// Named for what it is. There is no `Identity` type for this to be mistaken
-/// for, and there will not be one until something actually verifies a
-/// credential.
-@immutable
-final class DemoIdentity {
-  const DemoIdentity({
-    required this.userId,
-    required this.displayName,
-    required this.userType,
-    required this.source,
-    this.contractorCompany,
-  });
-
-  final String userId;
-  final String displayName;
-  final AuthUserType userType;
-  final AuthSource source;
-  final String? contractorCompany;
+  bool get isSignedIn => status == AuthStatus.signedIn && session != null;
 }

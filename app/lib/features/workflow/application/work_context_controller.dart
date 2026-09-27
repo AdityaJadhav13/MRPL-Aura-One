@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/auth_controller.dart';
-import '../../auth/domain/auth_models.dart';
+import '../../operations/application/operations_repository.dart';
 import '../data/work_context_repository.dart';
 import '../domain/enterprise_value.dart';
 import '../domain/permit_context.dart';
@@ -35,47 +35,44 @@ final workContextDraftProvider =
 class WorkContextDraftController extends Notifier<WorkContextDraft> {
   @override
   WorkContextDraft build() {
-    // Re-opening an already-committed context (the worker went back a step)
-    // must show what was committed, not an empty form.
+    // Re-opening an already-committed context (the worker went back a step,
+    // or is starting the next period) shows what was committed.
     final session = ref.watch(shiftSessionProvider).value;
     final committed = session?.context;
     if (committed != null) return WorkContextDraft.from(committed);
+    return _fromDirectory() ?? WorkContextDraft.empty;
+  }
 
+  /// Starts the form from the signed-in person's directory record: who they
+  /// are, and their usual site, department, area and shift. The worker still
+  /// confirms the shift and area and records the job, permit and JSA.
+  WorkContextDraft? _fromDirectory() {
+    final actor = ref.watch(currentActorProvider);
+    final directory = ref.watch(operationsProvider).value;
+    final person = actor == null ? null : directory?.person(actor.personId);
+    if (person == null) return null;
+    const repo = DemoWorkContextRepository();
+    final site = ref
+        .watch(availableSitesProvider)
+        .where((s) => s.id == person.siteId)
+        .firstOrNull;
     return WorkContextDraft(
-      worker: _workerFromAuth(ref.watch(authControllerProvider)),
-      site: _siteFromAuth(ref.watch(authControllerProvider)),
+      worker: WorkerIdentity(
+        workerId: person.personId,
+        displayName: person.displayName,
+        workerType: person.workerType,
+        // No identity provider is connected, so every identity is
+        // presentation data whatever the sign-in screen checked.
+        source: EnterpriseDataSource.demo,
+        contractorCompany: person.contractorCompany,
+      ),
+      site: site == null ? null : SiteRef(id: site.id, name: site.name),
+      department: repo.departmentById(person.departmentId),
+      workArea: repo.workAreaById(person.defaultWorkAreaId ?? ''),
+      shift: repo.shiftById(person.defaultShiftId ?? ''),
     );
   }
 
-  /// Snapshots the signed-in identity into workflow provenance.
-  ///
-  /// A copy, taken once. The monitored period must keep describing the worker
-  /// it belonged to even if somebody else signs in on the same handset later —
-  /// a shared site phone makes that an ordinary Tuesday, not an edge case.
-  static WorkerIdentity? _workerFromAuth(AuthState auth) {
-    final identity = auth.identity;
-    if (identity == null) return null;
-    return WorkerIdentity(
-      workerId: identity.userId,
-      displayName: identity.displayName,
-      workerType: switch (identity.userType) {
-        AuthUserType.employee => WorkerType.employee,
-        AuthUserType.contractor => WorkerType.contractor,
-      },
-      // No identity provider is connected, so every identity is demo data
-      // whatever the sign-in screen collected.
-      source: EnterpriseDataSource.demo,
-      contractorCompany: identity.contractorCompany,
-    );
-  }
-
-  static SiteRef? _siteFromAuth(AuthState auth) {
-    final site = auth.site;
-    return site == null ? null : SiteRef(id: site.id, name: site.name);
-  }
-
-  /// Changing the site drops a work area belonging to the old one, rather than
-  /// leaving an area attached to a site it does not belong to.
   void setSite(SiteRef site) {
     final keepArea = state.workArea?.siteId == site.id;
     state = state.copyWith(site: site, clearWorkArea: !keepArea);

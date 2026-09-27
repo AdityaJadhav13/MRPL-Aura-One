@@ -7,6 +7,7 @@ import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/main.dart';
 
 import '../support/prohibited_claims.dart';
+import '../support/signed_in.dart';
 
 const _dev = EnvironmentConfig(
   environment: AppEnvironment.dev,
@@ -25,9 +26,10 @@ const _notch = EdgeInsets.only(top: 59, bottom: 34);
 const _priorityScreens = <String>[
   '/splash',
   '/sign-in',
-  '/select-site',
-  '/select-role',
   '/home',
+  '/supervisor',
+  '/supervisor/team',
+  '/management',
   '/work-context',
   '/active',
   '/result',
@@ -59,7 +61,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [environmentConfigProvider.overrideWithValue(_dev)],
+        overrides: [
+          environmentConfigProvider.overrideWithValue(_dev),
+          ...routeOverrides(route),
+        ],
         child: MediaQuery(
           data: MediaQueryData(
             textScaler: TextScaler.linear(textScale),

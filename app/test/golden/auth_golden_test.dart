@@ -1,12 +1,19 @@
 @Tags(['golden'])
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:h2s_doseband/core/design/brand_assets.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
+import 'package:h2s_doseband/features/auth/domain/auth_models.dart';
+import 'package:h2s_doseband/features/auth/domain/identity.dart';
+import 'package:h2s_doseband/features/operations/application/operations_repository.dart';
+import 'package:h2s_doseband/features/operations/data/operations_store.dart';
+import 'package:h2s_doseband/features/operations/data/presentation_dataset.dart';
 import 'package:h2s_doseband/main.dart';
 
 const _dev = EnvironmentConfig(
@@ -14,38 +21,67 @@ const _dev = EnvironmentConfig(
   supabaseUrl: '',
   supabaseAnonKey: '',
 );
+const _prod = EnvironmentConfig(
+  environment: AppEnvironment.prod,
+  supabaseUrl: '',
+  supabaseAnonKey: '',
+);
 
-/// Goldens for the corporate authentication shell.
-///
-/// These are the visual review artefact for the flow: four screens that have
-/// to read as one product. Rendered at the design target, light theme.
+/// A controller showing a refused attempt, for the failure golden.
+class _Refused extends AuthController {
+  @override
+  AuthState build() => const AuthState(
+    status: AuthStatus.signedOut,
+    failure: SignInFailure.invalidCredentials,
+  );
+}
+
+/// A controller whose stored session is still being read, so the splash is
+/// what is on screen.
+class _Restoring extends AuthController {
+  @override
+  Future<void> restore() => Completer<void>().future;
+}
+
+/// Goldens for launch and sign-in (PRODUCT BUILD v1 §55, §56): white-first,
+/// no gradient, no credential block, no role picker.
 void main() {
   Future<void> pumpAt(
     WidgetTester tester,
     String location, {
-    Brightness brightness = Brightness.light,
+    EnvironmentConfig config = _dev,
     Size size = const Size(390, 844),
+    double textScale = 1,
+    bool refused = false,
+    bool restoring = false,
   }) async {
     tester.view.physicalSize = Size(size.width * 2, size.height * 2);
     tester.view.devicePixelRatio = 2;
-    tester.platformDispatcher.platformBrightnessTestValue = brightness;
     addTearDown(tester.view.reset);
-    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [environmentConfigProvider.overrideWithValue(_dev)],
-        child: DoseBandApp(
-          key: ValueKey(location),
-          config: _dev,
-          initialLocation: location,
+        overrides: [
+          environmentConfigProvider.overrideWithValue(config),
+          operationsStoreProvider.overrideWithValue(
+            InMemoryOperationsStore(
+              PresentationDataset.build(DateTime(2026, 9, 27, 10, 30)),
+            ),
+          ),
+          if (refused) authControllerProvider.overrideWith(_Refused.new),
+          if (restoring) authControllerProvider.overrideWith(_Restoring.new),
+        ],
+        child: MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+          child: DoseBandApp(
+            key: ValueKey(location),
+            config: config,
+            initialLocation: location,
+          ),
         ),
       ),
     );
-    // Decode the brand photographs for real before capturing. Asset decoding
-    // is real IO, so without this a golden shows whatever had finished —
-    // which used to depend on test order (the dark splash ran first and
-    // warmed the cache until the dark variants were removed).
+    // Decode the brand photographs for real before capturing.
     final context = tester.element(find.byType(Scaffold).first);
     await tester.runAsync(
       () => Future.wait([
@@ -53,85 +89,58 @@ void main() {
         precacheImage(const AssetImage(BrandAssets.mrplLogo), context),
       ]),
     );
-    // Pump rather than settle: the splash holds a repeating progress
-    // indicator, and settling would wait for an animation that never ends.
-    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump();
   }
 
-  final screens = <String, String>{
-    'splash': '/splash',
-    'sign-in': '/sign-in',
-    'select-site': '/select-site',
-    'select-role': '/select-role',
-  };
+  testWidgets('splash', (tester) async {
+    await pumpAt(tester, '/splash', restoring: true);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/auth-splash-light.png'),
+    );
+  });
 
-  // Light only. The product ships the light theme whatever the phone's
-  // setting (APP-PRODUCT-01 §50), so an app-level "dark" render is the light
-  // screen again and would review nothing. The dark goldens were removed.
-  for (final brightness in const [Brightness.light]) {
-    for (final entry in screens.entries) {
-      testWidgets('${entry.key} · ${brightness.name}', (tester) async {
-        await pumpAt(tester, entry.value, brightness: brightness);
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/auth-${entry.key}-${brightness.name}.png'),
-        );
-        // The splash schedules its own advance; let it fire so no timer is
-        // left pending when the test binding tears down.
-        await tester.pump(const Duration(seconds: 2));
-        await tester.pump();
-      });
-    }
-  }
-
-  testWidgets('sign-in · contractor mode', (tester) async {
+  testWidgets('sign-in', (tester) async {
     await pumpAt(tester, '/sign-in');
-    await tester.tap(find.text('Contractor'));
-    await tester.pumpAndSettle();
     await expectLater(
       find.byType(MaterialApp),
-      matchesGoldenFile('goldens/auth-sign-in-contractor.png'),
+      matchesGoldenFile('goldens/auth-sign-in-light.png'),
     );
   });
 
-  testWidgets('select-site · selected', (tester) async {
-    await pumpAt(tester, '/select-site');
-    await tester.tap(find.text('Mangalore Refinery'));
-    await tester.pumpAndSettle();
+  testWidgets('sign-in · refused', (tester) async {
+    await pumpAt(tester, '/sign-in', refused: true);
     await expectLater(
       find.byType(MaterialApp),
-      matchesGoldenFile('goldens/auth-select-site-selected.png'),
+      matchesGoldenFile('goldens/auth-sign-in-refused.png'),
     );
   });
 
-  testWidgets('select-role · selected', (tester) async {
-    await pumpAt(tester, '/select-role');
-    await tester.tap(find.text('Worker'));
+  testWidgets('sign-in · production, not connected', (tester) async {
+    await pumpAt(tester, '/sign-in', config: _prod);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/auth-sign-in-not-connected.png'),
+    );
+  });
+
+  testWidgets('sign-in · presentation accounts', (tester) async {
+    await pumpAt(tester, '/sign-in');
+    await tester.tap(find.text('Presentation accounts'));
     await tester.pumpAndSettle();
     await expectLater(
       find.byType(MaterialApp),
-      matchesGoldenFile('goldens/auth-select-role-selected.png'),
+      matchesGoldenFile('goldens/auth-presentation-accounts.png'),
     );
   });
 
   testWidgets('sign-in · compact 360 at 150% text', (tester) async {
-    tester.view.physicalSize = const Size(360 * 2, 780 * 2);
-    tester.view.devicePixelRatio = 2;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [environmentConfigProvider.overrideWithValue(_dev)],
-        child: MediaQuery(
-          data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
-          child: DoseBandApp(
-            key: ValueKey('/sign-in'),
-            config: _dev,
-            initialLocation: '/sign-in',
-          ),
-        ),
-      ),
+    await pumpAt(
+      tester,
+      '/sign-in',
+      size: const Size(360, 780),
+      textScale: 1.5,
     );
-    await tester.pump(const Duration(milliseconds: 700));
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/auth-sign-in-compact-large-text.png'),

@@ -156,13 +156,23 @@ void main() {
         deviceModel: 't',
       );
       await expectLater(
-        c.completePhysicalScan(result: refusal, captureId: 'cap-1'),
+        c.completePhysicalScan(
+          result: refusal,
+          captureId: 'cap-1',
+          domain: DataDomain.field,
+        ),
         throwsStateError,
         reason: 'monitoring has not ended',
       );
 
       await c.endMonitoring();
-      await c.completePhysicalScan(result: refusal, captureId: 'cap-1');
+      final record = await c.completePhysicalScan(
+        result: refusal,
+        captureId: 'cap-1',
+        domain: DataDomain.field,
+      );
+      expect(record.id, 'cap-1');
+      expect(record.domain, DataDomain.field);
       final s = container.read(shiftSessionProvider).value!;
       expect(s.stage, ShiftStage.complete);
       expect(s.captureId, 'cap-1');

@@ -6,7 +6,10 @@ import 'core/design/theme.dart';
 import 'core/dev/home_state_preview.dart';
 import 'core/env/environment.dart';
 import 'core/router/app_router.dart';
+import 'core/router/router_gate.dart';
 import 'features/auth/application/auth_controller.dart';
+import 'features/auth/data/auth_session_store.dart';
+import 'features/operations/data/presentation_dataset.dart';
 import 'features/operations/application/operations_repository.dart';
 import 'features/operations/data/operations_store.dart';
 import 'features/workflow/application/workflow_controller.dart';
@@ -36,13 +39,21 @@ Future<void> bootstrap(EnvironmentConfig config) async {
   // falls back to the in-memory one: the app still runs the period, and only
   // loses it on a cold start, which is no worse than before persistence
   // existed. It must not be a launch failure.
-  WorkflowStore store;
+  WorkflowStoreFactory stores;
   try {
-    store = await FileWorkflowStore.open();
+    stores = await FileWorkflowStoreFactory.open();
   } on Object catch (error, stack) {
     debugPrint('Persistent session store unavailable: $error');
     debugPrintStack(stackTrace: stack);
-    store = InMemoryWorkflowStore();
+    stores = InMemoryWorkflowStoreFactory();
+  }
+
+  AuthSessionStore sessions;
+  try {
+    sessions = await FileAuthSessionStore.open();
+  } on Object catch (error) {
+    debugPrint('Sign-in session store unavailable: $error');
+    sessions = InMemoryAuthSessionStore();
   }
 
   // The operations store — directory, inventory, sessions, records, reviews,
@@ -59,31 +70,48 @@ Future<void> bootstrap(EnvironmentConfig config) async {
   // Development-only: seeds a Home state and picks a start route when the
   // matching dart-defines are set. Compiled out of production by the same
   // flag that removes the gallery and the capture tool.
-  await HomeStatePreview.seed(config, store);
+  await HomeStatePreview.seed(
+    config,
+    stores.forWorker(PresentationDataset.aditya),
+  );
+
+  // The build's environment is an argument, not a global. Everything that
+  // depends on it — including whether presentation accounts may be offered
+  // at all — reads it from here, so a test can supply a production
+  // configuration and get production behaviour.
+  final container = ProviderContainer(
+    overrides: [
+      environmentConfigProvider.overrideWithValue(config),
+      workflowStoreFactoryProvider.overrideWithValue(stores),
+      operationsStoreProvider.overrideWithValue(operations),
+      authSessionStoreProvider.overrideWithValue(sessions),
+    ],
+  );
 
   runApp(
-    ProviderScope(
-      // The build's environment is an argument, not a global. Everything that
-      // depends on it — including whether the development skip control may be
-      // rendered at all — reads it from here, so a test can supply a
-      // production configuration and get production behaviour.
-      overrides: [
-        environmentConfigProvider.overrideWithValue(config),
-        workflowStoreProvider.overrideWithValue(store),
-        operationsStoreProvider.overrideWithValue(operations),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: DoseBandApp(
         config: config,
         initialLocation: HomeStatePreview.initialRoute(config),
+        gate: AuthRouterGate(container),
       ),
     ),
   );
 }
 
 class DoseBandApp extends StatefulWidget {
-  const DoseBandApp({required this.config, this.initialLocation, super.key});
+  const DoseBandApp({
+    required this.config,
+    this.initialLocation,
+    this.gate,
+    super.key,
+  });
 
   final EnvironmentConfig config;
+
+  /// Sign-in and workspace routing. Null in tests that drive routes directly.
+  final RouterGate? gate;
 
   /// Overridden by tests to start on a specific screen, skipping the launch
   /// splash's timer and indeterminate animation. Null uses the real default.
@@ -94,9 +122,11 @@ class DoseBandApp extends StatefulWidget {
 }
 
 class _DoseBandAppState extends State<DoseBandApp> {
-  late final GoRouter _router = widget.initialLocation == null
-      ? buildRouter(widget.config)
-      : buildRouter(widget.config, initialLocation: widget.initialLocation!);
+  late final GoRouter _router = buildRouter(
+    widget.config,
+    initialLocation: widget.initialLocation ?? '/splash',
+    gate: widget.gate,
+  );
 
   @override
   Widget build(BuildContext context) {

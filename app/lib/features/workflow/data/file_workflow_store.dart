@@ -85,3 +85,25 @@ final class FileWorkflowStore implements WorkflowStore {
     if (file.existsSync()) await file.delete();
   }
 }
+
+/// A [FileWorkflowStore] per worker, in the app-support directory.
+final class FileWorkflowStoreFactory implements WorkflowStoreFactory {
+  FileWorkflowStoreFactory(this.directory);
+
+  final Directory directory;
+
+  static Future<FileWorkflowStoreFactory> open() async =>
+      FileWorkflowStoreFactory(await getApplicationSupportDirectory());
+
+  /// The identifier is reduced to a safe file-name alphabet; it is an
+  /// organisation ID, never a path.
+  @override
+  WorkflowStore forWorker(String workerId) {
+    final safe = workerId.replaceAll(RegExp('[^A-Za-z0-9_-]'), '_');
+    return FileWorkflowStore(
+      File(
+        '${directory.path}${Platform.pathSeparator}shift_session_$safe.json',
+      ),
+    );
+  }
+}

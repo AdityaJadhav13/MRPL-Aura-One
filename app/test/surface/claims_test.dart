@@ -6,6 +6,7 @@ import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/main.dart';
 
 import '../support/prohibited_claims.dart';
+import '../support/signed_in.dart';
 
 const _dev = EnvironmentConfig(
   environment: AppEnvironment.dev,
@@ -26,7 +27,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [environmentConfigProvider.overrideWithValue(_dev)],
+        overrides: [
+          environmentConfigProvider.overrideWithValue(_dev),
+          ...routeOverrides(route),
+        ],
         child: DoseBandApp(
           key: ValueKey(route),
           config: _dev,

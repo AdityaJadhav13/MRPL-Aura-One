@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/domain/auth_models.dart';
-import '../../features/auth/presentation/screens/role_selection_screen.dart';
-import '../../features/auth/presentation/screens/role_workspace_placeholder.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
-import '../../features/auth/presentation/screens/site_selection_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../components/states.dart';
 import '../design/theme.dart';
@@ -55,6 +51,11 @@ import '../../features/workflow/presentation/end_monitoring_screen.dart';
 import '../../features/workflow/presentation/prework_check_screen.dart';
 import '../../features/workflow/presentation/work_context_screen.dart';
 import '../env/environment.dart';
+import '../../features/management/presentation/management_screens.dart';
+import '../../features/supervisor/presentation/supervisor_screens.dart';
+import '../components/product_navigation.dart';
+import 'router_gate.dart';
+import 'workspace_shell.dart';
 import 'worker_shell.dart';
 
 /// The worker shell's five destinations — Home · History · Scan · Safety ·
@@ -68,39 +69,29 @@ import 'worker_shell.dart';
 /// Developer and research tools live under `/dev`, outside every workspace,
 /// and exist only where simulation is available (APP-PRODUCT-01 §91).
 ///
-/// The officer and administrator shells are Phase 9; role redirect guards need
-/// auth, which is Phase 7. Launch → login is a linear intro with no real auth
-/// yet.
+/// Every workspace sits behind [RouterGate]: signed out → sign-in; signed in
+/// → only the active role's workspace. The gate is navigation, not security —
+/// the operations services refuse unauthorised data below the UI regardless.
 GoRouter buildRouter(
   EnvironmentConfig config, {
   String initialLocation = '/splash',
+  RouterGate? gate,
 }) {
   return GoRouter(
     initialLocation: initialLocation,
+    refreshListenable: gate,
+    redirect: gate == null
+        ? null
+        : (context, state) => gate.redirect(state.uri.toString()),
     routes: [
-      // Authentication shell. MRPL-inspired corporate register; the
-      // instrument surfaces stay neutral. See docs/design/auth-flow.md.
-      GoRoute(path: '/splash', builder: (_, _) => const SplashScreen()),
+      // Launch and sign-in. The role is never chosen here: it comes from the
+      // account (PRODUCT BUILD v1 §54).
+      GoRoute(
+        path: '/splash',
+        builder: (_, state) =>
+            SplashScreen(from: state.uri.queryParameters['from']),
+      ),
       GoRoute(path: '/sign-in', builder: (_, _) => const SignInScreen()),
-      GoRoute(
-        path: '/select-site',
-        builder: (_, _) => const SiteSelectionScreen(),
-      ),
-      GoRoute(
-        path: '/select-role',
-        builder: (_, _) => const RoleSelectionScreen(),
-      ),
-      GoRoute(
-        path: '/workspace/:role',
-        builder: (_, state) {
-          final name = state.pathParameters['role'];
-          final role = AppRole.values.firstWhere(
-            (r) => r.name == name,
-            orElse: () => AppRole.worker,
-          );
-          return RoleWorkspacePlaceholder(role: role);
-        },
-      ),
 
       // Worker journey — pushed over the shell.
       GoRoute(
@@ -394,6 +385,60 @@ GoRouter buildRouter(
       ),
       GoRoute(path: '/hse/audit', builder: (_, _) => const AuditTrailScreen()),
 
+      // ------------------------------------------------ supervisor shell
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) => WorkspaceShell(
+          destinations: WorkspaceDestinations.supervisor,
+          shell: shell,
+        ),
+        branches: [
+          _branch('/supervisor', (_) => const SupervisorOverviewScreen()),
+          _branch(
+            '/supervisor/team',
+            (state) => SupervisorTeamScreen(
+              initialStatus: teamStatusParam(
+                state.uri.queryParameters['status'],
+              ),
+            ),
+          ),
+          _branch(
+            '/supervisor/monitoring',
+            (_) => const SupervisorMonitoringScreen(),
+          ),
+          _branch(
+            '/supervisor/exceptions',
+            (_) => const SupervisorExceptionsScreen(),
+          ),
+          _branch('/supervisor/more', (_) => const SupervisorMoreScreen()),
+        ],
+      ),
+      GoRoute(
+        path: '/supervisor/worker/:workerId',
+        builder: (_, state) =>
+            SupervisorWorkerScreen(workerId: state.pathParameters['workerId']!),
+      ),
+
+      // ------------------------------------------------ management shell
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) => WorkspaceShell(
+          destinations: WorkspaceDestinations.management,
+          shell: shell,
+        ),
+        branches: [
+          _branch('/management', (_) => const ManagementOverviewScreen()),
+          _branch(
+            '/management/monitoring',
+            (_) => const ManagementMonitoringScreen(),
+          ),
+          _branch('/management/trends', (_) => const ManagementTrendsScreen()),
+          _branch(
+            '/management/reports',
+            (_) => const ManagementReportsScreen(),
+          ),
+          _branch('/management/more', (_) => const ManagementMoreScreen()),
+        ],
+      ),
+
       // ------------------------------------------------------- HSE shell
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => HseShell(shell: shell),
@@ -603,6 +648,14 @@ GoRouter buildRouter(
     ],
   );
 }
+
+/// One shell branch with a single root route.
+StatefulShellBranch _branch(
+  String path,
+  Widget Function(GoRouterState state) build,
+) => StatefulShellBranch(
+  routes: [GoRoute(path: path, builder: (_, state) => build(state))],
+);
 
 /// Builds a detail screen from the record carried in `GoRouterState.extra`, or
 /// explains its absence instead of throwing.

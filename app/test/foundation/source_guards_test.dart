@@ -59,18 +59,13 @@ void _ratchet({
 }
 
 void main() {
-  test('no new UI gradients (§8, §85)', () {
+  test('no UI gradients at all (PRODUCT BUILD v1 §66, §126)', () {
+    // The legacy authentication composition held the last seven; it was
+    // rebuilt white-first and the allowance is now zero. Do not add one back.
     _ratchet(
       name: 'gradient',
       pattern: RegExp(r'\b(Linear|Radial|Sweep)Gradient\b'),
-      // All four are the authentication composition, rebuilt in P1. Home's
-      // two gradients were removed in APP-PRODUCT-01.
-      legacy: {
-        'lib/features/auth/presentation/screens/sign_in_screen.dart': 1,
-        'lib/features/auth/presentation/screens/splash_screen.dart': 2,
-        'lib/features/auth/presentation/widgets/selection_cards.dart': 1,
-        'lib/features/auth/presentation/widgets/auth_background.dart': 3,
-      },
+      legacy: const {},
     );
   });
 
@@ -83,10 +78,6 @@ void main() {
         // Research diagnostics draw overlay colours on a capture; they are
         // developer tooling, and recolouring them is not Phase 0 work.
         'lib/features/research/presentation/capture_diagnostics_screen.dart': 5,
-        // The authentication composition, rebuilt in P1.
-        'lib/features/auth/presentation/screens/splash_screen.dart': 13,
-        'lib/features/auth/presentation/widgets/selection_cards.dart': 9,
-        'lib/features/auth/presentation/widgets/auth_background.dart': 6,
         // Pre-work check, rebuilt in P2.
         'lib/features/workflow/presentation/prework_check_screen.dart': 1,
       },

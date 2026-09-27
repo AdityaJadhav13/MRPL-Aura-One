@@ -152,8 +152,9 @@ final class WorkerCommands {
     WorkSummary? work,
   }) => repository.transact((s) {
     final x = _ownSession(s, sessionId);
-    if (x.state == MonitoringSessionState.active)
+    if (x.state == MonitoringSessionState.active) {
       return (next: s, result: null);
+    }
     final at = now();
     final started = x.advanceTo(MonitoringSessionState.active, startedAt: at);
     final band = s.bands[x.dosebandId];

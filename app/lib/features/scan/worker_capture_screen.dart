@@ -13,8 +13,6 @@ import '../capture/data/camera_port_impl.dart';
 import '../capture/domain/badge_v1_references.dart';
 import '../capture/domain/capture_outcome.dart';
 import '../capture/presentation/capture_screen.dart';
-import '../history/application/history_controller.dart';
-import '../history/domain/measurement_record.dart';
 import '../research/application/research_providers.dart';
 import '../research/application/research_recorder.dart';
 import '../workflow/application/workflow_controller.dart';
@@ -258,26 +256,13 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
     }
 
     final observed = outcome;
-    await ref
+    final record = await ref
         .read(shiftSessionProvider.notifier)
         .completePhysicalScan(
           result: observed.result,
           captureId: saved.captureId,
+          domain: observed.observation.dataDomain,
         );
-
-    final scannedAt = ref.read(clockProvider)();
-    final record = MeasurementRecord(
-      id: saved.captureId,
-      result: observed.result,
-      badge: badge,
-      context: ctx,
-      startedAt: session.startedAt ?? scannedAt,
-      endedAt: session.endedAt ?? scannedAt,
-      scannedAt: scannedAt,
-      domain: observed.observation.dataDomain,
-      captureId: saved.captureId,
-    );
-    ref.read(historyProvider.notifier).add(record);
     if (mounted) context.pushReplacement('/result', extra: record);
   }
 

@@ -64,10 +64,8 @@ void main() {
       expect(AppRole.worker.landingRoute, '/home');
       expect(AppRole.hseOfficer.landingRoute, '/hse');
       expect(AppRole.administrator.landingRoute, '/admin');
-      // Unbuilt roles reach a placeholder rather than somebody else's shell.
-      expect(AppRole.supervisor.landingRoute, contains('/workspace/'));
-      expect(AppRole.management.landingRoute, contains('/workspace/'));
-      expect(AppRole.supervisor.hasImplementedWorkspace, isFalse);
+      expect(AppRole.supervisor.landingRoute, '/supervisor');
+      expect(AppRole.management.landingRoute, '/management');
     });
   });
 
@@ -366,18 +364,19 @@ void main() {
   });
 
   group('production guards', () {
-    testWidgets('the development skip is absent from a production build', (
+    testWidgets('presentation accounts are absent from a production build', (
       tester,
     ) async {
       await pumpAt(tester, '/sign-in', config: _prod);
+      expect(find.text('Presentation accounts'), findsNothing);
       expect(find.text('Skip'), findsNothing);
     });
 
-    testWidgets('the development skip exists in a development build', (
+    testWidgets('presentation accounts exist in a development build', (
       tester,
     ) async {
       await pumpAt(tester, '/sign-in');
-      expect(find.text('Skip'), findsOneWidget);
+      expect(find.text('Presentation accounts'), findsOneWidget);
     });
   });
 }
