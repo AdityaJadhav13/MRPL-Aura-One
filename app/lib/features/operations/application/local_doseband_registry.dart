@@ -165,6 +165,8 @@ final class LocalDoseBandRegistry implements DoseBandRegistry {
     required String workerId,
     PreUseRecord? preUse,
     WorkSummary? work,
+    BandIdentification identifiedBy = BandIdentification.qrCode,
+    String? qrPayload,
   }) => repository.transact((s) {
     // The claimant must be a real, active worker account. The caller passes
     // the signed-in identity; this does not take it on trust.
@@ -234,6 +236,8 @@ final class LocalDoseBandRegistry implements DoseBandRegistry {
                   claimedAt: at,
                   state: AssignmentState.active,
                   preUse: preUse,
+                  identifiedBy: identifiedBy,
+                  qrPayload: qrPayload,
                 ),
               ],
               sessions: [

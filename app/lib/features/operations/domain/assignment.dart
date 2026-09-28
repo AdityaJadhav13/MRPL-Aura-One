@@ -88,6 +88,31 @@ enum AssignmentState {
   cancelled,
 }
 
+/// How the claimed DoseBand was identified.
+enum BandIdentification {
+  /// Its printed QR carried the DoseBand serial (`DOSEBAND:1:<serial>`).
+  qrCode('Printed QR'),
+
+  /// The worker typed the printed serial.
+  typedSerial('Typed serial'),
+
+  /// Today's printed prototype QR, which does not carry a serial, mapped to
+  /// the presentation DoseBand by `PresentationQrResolver`. The raw payload
+  /// is kept on the assignment, and the final read must present the same
+  /// payload. To be removed once production QRs carry the serial.
+  presentationQrMapping('Printed prototype QR — presentation mapping'),
+
+  /// "Use Presentation DoseBand" in presentation mode: no QR was read.
+  presentationBand('Presentation DoseBand — no QR read');
+
+  const BandIdentification(this.label);
+
+  final String label;
+
+  bool get isPresentation =>
+      this == presentationQrMapping || this == presentationBand;
+}
+
 /// One claim of one DoseBand by one worker (§12). Created only by the
 /// registry's atomic claim; screens never construct one.
 @immutable
@@ -102,6 +127,8 @@ final class DoseBandAssignment {
     this.preUse,
     this.endedAt,
     this.cancelReason,
+    this.identifiedBy = BandIdentification.qrCode,
+    this.qrPayload,
   });
 
   final String assignmentId;
@@ -113,6 +140,17 @@ final class DoseBandAssignment {
   final PreUseRecord? preUse;
   final DateTime? endedAt;
   final String? cancelReason;
+
+  /// How the band was identified when it was claimed.
+  final BandIdentification identifiedBy;
+
+  /// The raw payload of the printed QR when it did not carry a serial
+  /// (presentation mapping). The final read compares against it.
+  final String? qrPayload;
+
+  /// Presentation provenance: the band's identity came from the
+  /// presentation mapping or the presentation DoseBand.
+  bool get isPresentation => identifiedBy.isPresentation;
 
   bool get isActive => state == AssignmentState.active;
 
@@ -131,5 +169,7 @@ final class DoseBandAssignment {
     preUse: preUse ?? this.preUse,
     endedAt: endedAt ?? this.endedAt,
     cancelReason: cancelReason ?? this.cancelReason,
+    identifiedBy: identifiedBy,
+    qrPayload: qrPayload,
   );
 }

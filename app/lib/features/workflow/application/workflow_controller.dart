@@ -218,6 +218,8 @@ class ShiftSessionController extends AsyncNotifier<ShiftSession> {
   Future<ClaimResult> claimAndStart({
     required DoseBand band,
     required PreUseRecord preUse,
+    BandIdentification identifiedBy = BandIdentification.qrCode,
+    String? qrPayload,
   }) async {
     final session = _current;
     final context = session.context;
@@ -240,6 +242,8 @@ class ShiftSessionController extends AsyncNotifier<ShiftSession> {
           workerId: actor.personId,
           preUse: preUse,
           work: SessionReconciliation.summaryOf(context),
+          identifiedBy: identifiedBy,
+          qrPayload: qrPayload,
         );
     if (result is! ClaimAccepted) return result;
 

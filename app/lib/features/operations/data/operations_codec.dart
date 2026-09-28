@@ -126,6 +126,8 @@ abstract final class OperationsCodec {
     'state': a.state.name,
     'ended_at': _dateOrNull(a.endedAt),
     'cancel_reason': a.cancelReason,
+    'identified_by': a.identifiedBy.name,
+    'qr_payload': a.qrPayload,
     'pre_use': a.preUse == null
         ? null
         : {
@@ -334,6 +336,11 @@ abstract final class OperationsCodec {
       state: _enum(AssignmentState.values, a['state']),
       endedAt: _dtOrNull(a['ended_at']),
       cancelReason: _strOrNull(a['cancel_reason']),
+      // Assignments written before this field were identified by QR.
+      identifiedBy: a['identified_by'] == null
+          ? BandIdentification.qrCode
+          : _enum(BandIdentification.values, a['identified_by']),
+      qrPayload: _strOrNull(a['qr_payload']),
       preUse: pre == null
           ? null
           : PreUseRecord(
