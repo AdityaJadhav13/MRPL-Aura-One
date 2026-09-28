@@ -6,7 +6,7 @@ publish_to: none
 resolution: workspace
 
 # versionName+versionCode. Bump versionCode on every upload to Play.
-version: 0.5.2+7
+version: 0.5.3+8
 
 environment:
   sdk: ^3.13.0
