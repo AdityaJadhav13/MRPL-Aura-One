@@ -26,6 +26,7 @@ import '../../features/history/domain/measurement_record.dart';
 import '../../features/history/history_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/presentation/presentation/presentation_controls_screen.dart';
 import '../../features/profile/settings_screen.dart';
 import '../../features/result/measurement_detail_screen.dart';
 import '../../features/result/result_screen.dart';
@@ -230,6 +231,15 @@ GoRouter buildRouter(
                   GoRoute(
                     path: 'settings',
                     builder: (_, _) => SettingsScreen(config: config),
+                    routes: [
+                      // SIH demonstration fallback. Registered only where
+                      // presentation accounts exist; never in production.
+                      if (config.simulationAvailable)
+                        GoRoute(
+                          path: 'presentation',
+                          builder: (_, _) => const PresentationControlsScreen(),
+                        ),
+                    ],
                   ),
                 ],
               ),

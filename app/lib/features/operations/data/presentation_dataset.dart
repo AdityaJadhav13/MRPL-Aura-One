@@ -51,6 +51,11 @@ abstract final class PresentationDataset {
   static const String geometryVersion = 'badge-v1-research';
 
   static const String currentLot = 'LOT-2609-A';
+
+  /// The one presentation DoseBand (Presentation Controls, SIH
+  /// demonstration). Always seeded available. The presentation fallback
+  /// applies to this band and never to any other.
+  static const String presentationBandId = 'DB-2609-0024';
   static const String expiredLot = 'LOT-2608-C';
   static const String unsupportedLot = 'LOT-2607-U';
 

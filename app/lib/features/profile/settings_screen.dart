@@ -9,7 +9,11 @@ import '../../core/design/tokens.dart';
 import '../../core/env/app_info.dart';
 import '../../core/env/environment.dart';
 import '../account/presentation/workspace_more_screen.dart';
+
+import 'package:go_router/go_router.dart';
+
 import '../auth/application/auth_controller.dart';
+import '../presentation/application/presentation_controller.dart';
 
 /// Worker Settings (Worker directive §10, §11, §45, §48).
 ///
@@ -34,6 +38,8 @@ class SettingsScreen extends ConsumerWidget {
         .remembersSession;
     final provider = ref.watch(identityProviderProvider);
     final installed = ref.watch(installedPackageProvider);
+    final presentationBuild = ref.watch(presentationAccessProvider);
+    final presentation = ref.watch(presentationModeProvider);
     final t = context.type;
     final p = context.product;
 
@@ -134,8 +140,24 @@ class SettingsScreen extends ConsumerWidget {
                   label: 'Connection',
                   value: 'Not connected — records stay on this phone',
                 ),
+                if (presentationBuild)
+                  FactRow(
+                    label: 'Presentation mode',
+                    value: presentation.enabled
+                        ? 'On — ${presentation.level.label}'
+                        : 'Off',
+                  ),
               ],
             ),
+            if (presentationBuild) ...[
+              const SizedBox(height: Space.md),
+              ActionCard(
+                icon: Icons.co_present_outlined,
+                title: 'Presentation controls',
+                message: 'Demonstration fallback (presentation builds only)',
+                onTap: () => context.push('/profile/settings/presentation'),
+              ),
+            ],
             const SizedBox(height: Space.sm),
             Text(
               'DoseBand is a passive, cumulative occupational-exposure '
