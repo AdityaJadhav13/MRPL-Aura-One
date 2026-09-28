@@ -1,4 +1,4 @@
-# Worker experience — 0.5.0+5
+# Worker experience — 0.5.1+6
 
 How a worker gets into DoseBand and what they find there. The Sign In,
 Select Site and Select Your Role screens are rebuilt from the approved design
@@ -12,9 +12,15 @@ Splash ─► Sign In ─┬─ existing account ──────────�
                    │                                          (several roles:
                    │                                           Select Your Role,
                    │                                           own roles only)
-                   └─ New user ─► Select Site ─► Select Your Role ─► Sign In
-                                                                  (setup mode)
+                   ├─ New user ─► Select Site ─► Select Your Role ─► Sign In
+                   │                                              (setup mode)
+                   └─ Skip ─────► Select Site ─► Select Your Role ─► that role's
+                      (presentation builds only)                     workspace
 ```
+
+**Skip** opens the presentation account that holds the chosen role at the
+chosen site, without a password. It never invents an account: a site with
+none says so. Production builds have no Skip, and the controller refuses it.
 
 A returning person with a remembered session goes from Splash straight to
 their workspace.
@@ -45,7 +51,9 @@ Enforced in the session layer (`AuthController`, `RouteGate`) on this device.
 | Forgot password? | States that account recovery is unavailable in this environment and is handled by the account administrator. Sends nothing. |
 | Presentation accounts | Development builds only. Fills the form with another sample account; the user still signs in. |
 | Google sign-in | Not shown: nothing is configured. |
-| Removed | DEMO badge, published-credentials card, Gate Pass and QR sign-in, Skip. |
+| Background | The approved faded refinery header. The fade is baked into `assets/images/sign_in_backdrop.png`, so no gradient is drawn. |
+| Skip | Bottom-right, presentation builds only; see above. |
+| Removed | DEMO badge, published-credentials card, Gate Pass and QR sign-in. |
 
 ## Inside: Home · History · Scan · Safety · Profile
 
@@ -62,11 +70,15 @@ Enforced in the session layer (`AuthController`, `RouteGate`) on this device.
 
 No ppm, no "safe", no profile details, no server notice.
 
-**Profile** is the worker's own record:
+**Profile** uses the approved rich layout, and so does every other role's
+More screen: the refinery header with Safe People / Sustainable Operations,
+then the identity card overlapping it.
 - **Identity:** an approved photograph when supplied, initials until then.
-- **Work assignment:** site, department, shift, work area, worker type,
-  contractor, designation, team, supervisor, and the masked gate pass.
-- **Work context:** as recorded by the worker; referenced, never approved.
+- **Today's shift:** site, department, shift, work area, the masked gate pass
+  when recorded, and the date. Until the worker records today's work, it
+  shows their usual assignment from the company record and says so.
+- **Work context:** PTW, JSA, toolbox talk and supervisor, as recorded by the
+  worker; referenced, never approved.
 - **Settings:** account and session; privacy; About (version and build from
   package metadata, environment, measurement engine, connection, licences);
   Sign out, which keeps every record.
