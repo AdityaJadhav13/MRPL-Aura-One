@@ -26,6 +26,7 @@ import '../../features/history/domain/measurement_record.dart';
 import '../../features/history/history_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/operations/domain/assignment.dart';
 import '../../features/presentation/presentation/presentation_controls_screen.dart';
 import '../../features/profile/settings_screen.dart';
 import '../../features/result/measurement_detail_screen.dart';
@@ -171,8 +172,15 @@ GoRouter buildRouter(
       ),
       GoRoute(
         path: '/doseband/check/:id',
-        builder: (_, state) =>
-            DoseBandCheckScreen(dosebandId: state.pathParameters['id']!),
+        builder: (_, state) => DoseBandCheckScreen(
+          dosebandId: state.pathParameters['id']!,
+          identifiedBy:
+              BandIdentification.values
+                  .where((v) => v.name == state.uri.queryParameters['via'])
+                  .firstOrNull ??
+              BandIdentification.qrCode,
+          qrPayload: state.uri.queryParameters['qr'],
+        ),
         routes: [
           GoRoute(
             path: 'photo',

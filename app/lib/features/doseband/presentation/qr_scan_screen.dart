@@ -10,7 +10,10 @@ import '../../../core/components/buttons.dart';
 import '../../../core/components/product_fields.dart';
 import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
+import '../../operations/application/operations_repository.dart';
 import '../../operations/data/presentation_dataset.dart';
+import '../../operations/domain/assignment.dart';
+import '../../presentation/domain/presentation_qr.dart';
 import '../../presentation/application/presentation_controller.dart';
 import '../../workflow/application/workflow_controller.dart';
 import '../application/doseband_providers.dart';
@@ -137,15 +140,65 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
           'This label looks damaged or incomplete. Type the serial instead.',
         );
       case QrNotDoseBand():
-        _say('That QR code is not a DoseBand. Point at the DoseBand label.');
+        unawaited(_unrecognised(text));
     }
   }
+
+  /// A QR that is not a DoseBand code. Claiming: in presentation mode it may
+  /// be today's printed prototype QR, mapped to the presentation DoseBand
+  /// (PresentationQrResolver). Final read: accepted only if it is the very
+  /// payload the active assignment was claimed with.
+  Future<void> _unrecognised(String raw) async {
+    if (_done) return;
+    if (widget.purpose == QrScanPurpose.finalRead) {
+      final assignment = await _activeAssignment();
+      if (PresentationQrResolver.matchesAssignment(
+        rawPayload: raw,
+        assignment: assignment,
+      )) {
+        await _accept(assignment!.dosebandId);
+      } else {
+        _sayWrongBand(assignment?.dosebandId);
+      }
+      return;
+    }
+    final serial = PresentationQrResolver.resolveForClaim(
+      rawPayload: raw,
+      active: ref.read(activeFallbackProvider),
+    );
+    if (serial == null) {
+      _say('That QR code is not a DoseBand. Point at the DoseBand label.');
+      return;
+    }
+    await _accept(
+      serial,
+      via: BandIdentification.presentationQrMapping,
+      payload: raw,
+    );
+  }
+
+  Future<DoseBandAssignment?> _activeAssignment() async {
+    final id = ref.read(shiftSessionProvider).value?.assignmentId;
+    if (id == null) return null;
+    final snapshot = await ref.read(operationsProvider.future);
+    return snapshot.assignment(id);
+  }
+
+  void _sayWrongBand(String? assigned) => _say(
+    'Wrong DoseBand. This DoseBand is not assigned to your active monitoring '
+    'session. Use the DoseBand assigned to you'
+    '${assigned == null ? '' : ' ($assigned)'}.',
+  );
 
   void _say(String message) {
     if (_notice != message) setState(() => _notice = message);
   }
 
-  Future<void> _accept(String dosebandId) async {
+  Future<void> _accept(
+    String dosebandId, {
+    BandIdentification via = BandIdentification.qrCode,
+    String? payload,
+  }) async {
     if (_done) return;
     if (widget.purpose == QrScanPurpose.finalRead) {
       final assigned = ref
@@ -153,11 +206,10 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
           .value
           ?.physicalBadge
           ?.badgeId;
+      // The same band, or no measurement: a photograph of another DoseBand
+      // must never be attached to this session.
       if (assigned != dosebandId) {
-        _say(
-          'This is $dosebandId. Your assigned DoseBand is '
-          '${assigned ?? 'not recorded'}. Scan the one you have been wearing.',
-        );
+        _sayWrongBand(assigned);
         return;
       }
     }
@@ -169,7 +221,15 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
     if (widget.purpose == QrScanPurpose.finalRead) {
       context.pushReplacement('/read');
     } else {
-      context.pushReplacement('/doseband/check/$dosebandId');
+      context.pushReplacement(
+        Uri(
+          path: '/doseband/check/$dosebandId',
+          queryParameters: {
+            if (via != BandIdentification.qrCode) 'via': via.name,
+            'qr': ?payload,
+          },
+        ).toString(),
+      );
     }
   }
 
@@ -180,7 +240,9 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
       showDragHandle: true,
       builder: (_) => const _TypeSerialSheet(),
     );
-    if (typed != null) await _accept(typed);
+    if (typed != null) {
+      await _accept(typed, via: BandIdentification.typedSerial);
+    }
   }
 
   @override
@@ -229,7 +291,10 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
             onPresentation:
                 ref.watch(activeFallbackProvider)?.usesPresentationIdentity ??
                     false
-                ? () => _accept(PresentationDataset.presentationBandId)
+                ? () => _accept(
+                    PresentationDataset.presentationBandId,
+                    via: BandIdentification.presentationBand,
+                  )
                 : null,
           ),
         ],

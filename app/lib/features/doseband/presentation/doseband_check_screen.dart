@@ -33,9 +33,22 @@ import '../domain/pre_use.dart';
 /// 4. **Assign** — the worker confirms; the store claims the band atomically
 ///    and monitoring starts.
 class DoseBandCheckScreen extends ConsumerStatefulWidget {
-  const DoseBandCheckScreen({required this.dosebandId, super.key});
+  const DoseBandCheckScreen({
+    required this.dosebandId,
+    this.identifiedBy = BandIdentification.qrCode,
+    this.qrPayload,
+    super.key,
+  });
 
   final String dosebandId;
+
+  /// How the scanner identified the band; recorded on the assignment.
+  final BandIdentification identifiedBy;
+
+  /// The raw printed payload, when it was mapped rather than read as a
+  /// serial (presentation mapping). Recorded so the final read can verify
+  /// the same printed code.
+  final String? qrPayload;
 
   @override
   ConsumerState<DoseBandCheckScreen> createState() =>
@@ -98,6 +111,8 @@ class _DoseBandCheckScreenState extends ConsumerState<DoseBandCheckScreen> {
                 checkedAt: ref.read(clockProvider)(),
                 opticalCheck: _optical!.status,
               ),
+              identifiedBy: widget.identifiedBy,
+              qrPayload: widget.qrPayload,
             );
       } on Object catch (e) {
         if (mounted) setState(() => _claimProblem = 'Nothing was assigned: $e');
@@ -183,12 +198,41 @@ class _DoseBandCheckScreenState extends ConsumerState<DoseBandCheckScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (band != null) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.verified_outlined,
+                        color: context.product.brandPrimary,
+                      ),
+                      const SizedBox(width: Space.sm),
+                      Expanded(
+                        child: Semantics(
+                          header: true,
+                          child: Text(
+                            'DoseBand identified',
+                            style: context.type.heading.copyWith(
+                              color: context.product.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: Space.md),
+                ],
                 SectionCard(
                   children: [
                     FactRow(
                       label: 'DoseBand',
                       value: widget.dosebandId,
                       mono: true,
+                    ),
+                    FactRow(
+                      label: 'Status',
+                      value: band == null
+                          ? 'Not in the DoseBand register'
+                          : _status(band.lifecycle),
                     ),
                     FactRow(
                       label: 'Lot',
@@ -317,7 +361,7 @@ class _DoseBandCheckScreenState extends ConsumerState<DoseBandCheckScreen> {
           ),
         ] else
           DoseBandButton.primary(
-            label: 'Assign this DoseBand',
+            label: 'Assign to me',
             icon: Icons.check,
             loading: _busy,
             onPressed: _busy ? null : () => _assign(band),
@@ -402,3 +446,12 @@ class _VerdictBanner extends StatelessWidget {
     message: verdict.message,
   );
 }
+
+/// The band's state in the worker's words.
+String _status(DoseBandLifecycle l) => switch (l) {
+  DoseBandLifecycle.available => 'Available',
+  DoseBandLifecycle.assigned ||
+  DoseBandLifecycle.monitoring ||
+  DoseBandLifecycle.readyForFinalRead => 'Already assigned',
+  _ => l.label,
+};
