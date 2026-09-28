@@ -192,6 +192,10 @@ class MonitoringStatusCard extends StatelessWidget {
                               badgeId!,
                               style: t.readoutSmall.copyWith(color: fg),
                             ),
+                            Text(
+                              'Assigned to you',
+                              style: t.caption.copyWith(color: dim),
+                            ),
                           ],
                         );
                   final stacked =

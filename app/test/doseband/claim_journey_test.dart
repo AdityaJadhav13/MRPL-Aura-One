@@ -127,7 +127,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('DoseBand ready to use'), findsOneWidget);
 
-    await tester.tap(button('Assign this DoseBand'));
+    await tester.tap(button('Assign to me'));
     await tester.pumpAndSettle();
 
     // Home C.
@@ -160,7 +160,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Cannot verify — try again'), findsOneWidget);
     expect(find.textContaining('may be fine'), findsOneWidget);
-    expect(button('Assign this DoseBand'), findsNothing);
+    expect(button('Assign to me'), findsNothing);
     final s = await container.read(operationsProvider.future);
     expect(s.bands[serial]!.lifecycle, DoseBandLifecycle.available);
   });
@@ -177,8 +177,8 @@ void main() {
         .claim(dosebandId: serial, workerId: PresentationDataset.lavitra);
     await emit(tester);
     await tester.pumpAndSettle();
-    expect(find.text('Replace DoseBand'), findsOneWidget);
-    expect(find.textContaining('already assigned'), findsOneWidget);
+    expect(find.text('DoseBand already assigned'), findsOneWidget);
+    expect(find.textContaining('already assigned'), findsWidgets);
     expect(find.textContaining('Lavitra'), findsNothing);
     expect(button('Photograph the DoseBand'), findsNothing);
   });
@@ -190,7 +190,7 @@ void main() {
     await scanLabel(tester);
     await tester.tap(button('Photograph the DoseBand'));
     await tester.pumpAndSettle();
-    await tester.tap(button('Assign this DoseBand'));
+    await tester.tap(button('Assign to me'));
     await tester.pumpAndSettle();
     await container.read(shiftSessionProvider.notifier).endMonitoring();
     await tester.pumpAndSettle();
@@ -200,10 +200,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     await emit(tester, QrCodec.render(DoseBandQr.encode('DB-2609-0013')));
-    expect(
-      find.textContaining('Your assigned DoseBand is $serial'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Wrong DoseBand'), findsOneWidget);
+    expect(find.textContaining('assigned to you ($serial)'), findsOneWidget);
     expect(find.text('Scan your assigned DoseBand'), findsOneWidget);
   });
 

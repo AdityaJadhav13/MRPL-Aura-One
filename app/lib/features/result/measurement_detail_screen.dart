@@ -52,6 +52,16 @@ class MeasurementDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(Space.base),
               children: [
                 _Section(title: 'Result', rows: resultRows),
+                // The identity chain: worker ↔ DoseBand ↔ monitoring session;
+                // the capture is under Photograph below.
+                _Section(
+                  title: 'Identity',
+                  rows: {
+                    'DoseBand': record.badge.badgeId,
+                    'Worker': record.workerId ?? record.context.worker.workerId,
+                    'Monitoring session': record.sessionId ?? '—',
+                  },
+                ),
                 _Section(
                   title: 'Session',
                   rows: {

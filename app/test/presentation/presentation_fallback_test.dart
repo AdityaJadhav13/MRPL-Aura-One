@@ -167,7 +167,7 @@ void main() {
       await tapButton(tester, 'Photograph the DoseBand');
       await tester.pumpAndSettle();
       expect(find.text('DoseBand ready to use'), findsOneWidget);
-      await tapButton(tester, 'Assign this DoseBand');
+      await tapButton(tester, 'Assign to me');
       await tester.pumpAndSettle();
       expect(find.text('MONITORING ACTIVE'), findsOneWidget);
 

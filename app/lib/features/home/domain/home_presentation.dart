@@ -104,7 +104,7 @@ final class HomePresentation {
             'Wear the DoseBand as your site instructs. It records cumulative '
             'exposure for later reading; it cannot warn you. Your H₂S alarm '
             'does that.',
-        actionLabel: 'Complete monitoring & scan',
+        actionLabel: 'Final DoseBand read',
         actionRoute: '/end',
       ),
       ShiftStage.awaitingScan => HomePresentation(

@@ -145,6 +145,20 @@ class ProfileScreen extends ConsumerWidget {
             );
           },
         ),
+        if (_currentBand(session, presentation) case final band?) ...[
+          const SizedBox(height: Space.md),
+          ProfileSectionCard(
+            title: 'Current DoseBand',
+            child: ProfileFieldGrid(
+              fields: [
+                ('DoseBand', band.id, true),
+                ('Monitoring', band.state, false),
+                if (session.startedAt != null)
+                  ('Started', Fmt.stamp(session.startedAt!), true),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: Space.md),
         ActionCard(
           icon: Icons.settings_outlined,
@@ -154,6 +168,22 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  /// The DoseBand the worker is wearing, while a period is open.
+  static ({String id, String state})? _currentBand(
+    ShiftSession session,
+    HomePresentation presentation,
+  ) {
+    final id = session.assignedBadge?.badgeId;
+    if (id == null) return null;
+    return switch (presentation.stage) {
+      HomeStage.monitoringActive => (id: id, state: 'Active'),
+      HomeStage.readyForFinalRead => (id: id, state: 'Ready for final read'),
+      HomeStage.doseBandAssigned => (id: id, state: 'Assigned'),
+      HomeStage.requiresAttention => (id: id, state: 'Needs attention'),
+      _ => null,
+    };
   }
 
   /// A gate pass is a credential reference: only the last four characters.

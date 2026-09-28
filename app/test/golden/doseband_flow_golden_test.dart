@@ -164,7 +164,7 @@ void main() {
     await scanned(tester);
     await press(tester, 'Photograph the DoseBand');
     await tester.pumpAndSettle();
-    await press(tester, 'Assign this DoseBand');
+    await press(tester, 'Assign to me');
     await tester.pumpAndSettle();
     await container.read(shiftSessionProvider.notifier).endMonitoring();
     // Let the assignment's confirmation expire, as it would have by the end

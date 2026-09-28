@@ -57,7 +57,7 @@ class PresentationWorkflow {
   final Ref _ref;
 
   /// Monitoring → ready for final read, now. The same transition the
-  /// worker's "Complete monitoring" makes; it creates no exposure and no
+  /// worker's "Final DoseBand read" makes; it creates no exposure and no
   /// measurement.
   Future<bool> advanceToFinalRead() async {
     final session = _ref.read(shiftSessionProvider).value;

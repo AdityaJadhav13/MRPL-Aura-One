@@ -89,7 +89,7 @@ void main() {
       final p = at(ShiftStage.monitoring, startedAt: _start);
       expect(p.stage, HomeStage.monitoringActive);
       expect(p.isMonitoring, isTrue);
-      expect(p.actionLabel, 'Complete monitoring & scan');
+      expect(p.actionLabel, 'Final DoseBand read');
       expect(p.actionRoute, '/end');
       expect(p.message, contains('cannot warn you'));
     });
@@ -284,7 +284,7 @@ void main() {
       expect(find.text('MONITORING ACTIVE'), findsOneWidget);
       expect(find.text('DB-2609-0010'), findsOneWidget);
       expect(find.text('3 h 42 min'), findsOneWidget);
-      expect(find.text('Complete monitoring & scan'), findsOneWidget);
+      expect(find.text('Final DoseBand read'), findsOneWidget);
     });
 
     testWidgets('an untrusted window never shows a duration', (tester) async {

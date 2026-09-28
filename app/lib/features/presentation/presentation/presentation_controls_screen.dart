@@ -129,7 +129,7 @@ class PresentationControlsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: Space.xs),
             Text(
-              'Ends the monitoring period now, as “Complete monitoring” does. '
+              'Ends the monitoring period now, as “Final DoseBand read” does. '
               'It creates no exposure and no measurement.',
               style: t.caption.copyWith(color: p.textSecondary),
             ),

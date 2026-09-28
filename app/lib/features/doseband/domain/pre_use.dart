@@ -120,7 +120,10 @@ abstract final class PreUseAssessment {
       case NotEligible(:final reason):
         return PreUseVerdict(
           outcome: PreUseOutcome.replace,
-          title: 'Replace DoseBand',
+          // Held by someone: said as such, never silently reassigned.
+          title: reason == ReplaceReason.alreadyAssigned
+              ? 'DoseBand already assigned'
+              : 'Replace DoseBand',
           message: '${reason.message} Take a different DoseBand and scan it.',
           replaceReason: reason,
         );
