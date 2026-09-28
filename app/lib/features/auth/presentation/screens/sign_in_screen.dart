@@ -90,13 +90,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     FocusScope.of(context).unfocus();
 
     final setup = ref.read(onboardingProvider);
+    final setupMode = setup.isComplete && !setup.presentation;
     final auth = ref.read(authControllerProvider.notifier);
     final failure = await auth.signIn(
       loginId: id,
       password: password,
       accountType: _accountType,
-      requestedRole: setup.isComplete ? setup.role : null,
-      siteId: setup.isComplete ? setup.site!.id : null,
+      requestedRole: setupMode ? setup.role : null,
+      siteId: setupMode ? setup.site!.id : null,
       remember: _remember,
     );
     if (!mounted) return;
@@ -163,6 +164,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final t = context.type;
     final auth = ref.watch(authControllerProvider);
     final setup = ref.watch(onboardingProvider);
+    final setupMode = setup.isComplete && !setup.presentation;
     final notConnected =
         ref.watch(identityProviderProvider) is NotConnectedIdentityProvider;
     final presentation = ref.watch(presentationAccessProvider);
@@ -196,7 +198,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               style: t.body.copyWith(color: corporate.textSecondary),
             ),
             const SizedBox(height: Space.base),
-            if (setup.isComplete) ...[
+            if (setupMode) ...[
               _SetupSummary(
                 selection: setup,
                 onChange: () => context.go('/select-site'),
@@ -288,7 +290,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               busy: busy,
               onPressed: notConnected ? null : _submit,
             ),
-            if (!setup.isComplete && !notConnected) ...[
+            if (!setupMode && !notConnected) ...[
               const SizedBox(height: Space.sm),
               _NewUser(onPressed: busy ? null : _startSetup),
             ],
@@ -297,104 +299,104 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       ),
     );
 
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    const footer = 56.0;
+
     return Scaffold(
       backgroundColor: corporate.surface,
-      body: LayoutBuilder(
-        builder: (context, viewport) => SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: viewport.maxHeight),
-            // The form, then the footer wave: at the foot of the screen when
-            // the form is short, after it when it is not — never over it.
+      body: Stack(
+        children: [
+          // The approved header photograph, faded to white. The fade lives
+          // in the image (BrandAssets.signInBackdrop), not in a gradient.
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 300,
+            child: ExcludeSemantics(
+              child: Image(
+                image: AssetImage(BrandAssets.signInBackdrop),
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                filterQuality: FilterQuality.medium,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: CorporateFooterWave(height: footer + bottomInset),
+          ),
+          SafeArea(
+            bottom: false,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  children: [
-                    const _PhotoBand(),
-                    Transform.translate(
-                      // The card overlaps the photograph's lower edge.
-                      offset: const Offset(0, -Space.lg),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Space.lg,
-                        ),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 480),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                card,
-                                if (presentation) ...[
-                                  const SizedBox(height: Space.sm),
-                                  _PresentationFootnote(
-                                    onAccounts: busy
-                                        ? null
-                                        : _presentationAccounts,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(
+                      Space.lg,
+                      Space.base,
+                      Space.lg,
+                      Space.base,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const AuthBrandHeader(markSize: 52),
+                            const SizedBox(height: Space.lg),
+                            const DoseBandLockup(fontSize: 34),
+                            const SizedBox(height: Space.lg),
+                            card,
+                            if (presentation) ...[
+                              const SizedBox(height: Space.sm),
+                              _PresentationFootnote(
+                                onAccounts: busy ? null : _presentationAccounts,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-                CorporateFooterWave(
-                  height: 56 + MediaQuery.paddingOf(context).bottom,
+                // The footer row sits exactly over the wave, so the wave
+                // never covers the form; Skip lives in it, bottom-right.
+                SizedBox(
+                  height: footer + bottomInset,
+                  child: presentation
+                      ? Align(
+                          alignment: Alignment.topRight,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              0,
+                              Space.xs,
+                              Space.md,
+                              0,
+                            ),
+                            child: AuthSkipButton(
+                              onPressed: busy ? () {} : _skip,
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
-}
 
-/// The approved sign-in header: organisation identity and the DoseBand
-/// lockup over a faint photograph of the refinery. The photograph is at a
-/// fixed low opacity on white — the approved screen faded it out with a
-/// gradient mask, which is not used (§51); the card overlaps its lower edge.
-class _PhotoBand extends StatelessWidget {
-  const _PhotoBand();
-
-  @override
-  Widget build(BuildContext context) {
-    final top = MediaQuery.paddingOf(context).top;
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: context.corporate.surface,
-        image: const DecorationImage(
-          image: AssetImage(BrandAssets.refineryBackdrop),
-          fit: BoxFit.cover,
-          alignment: Alignment(0, 0.35),
-          opacity: 0.22,
-          filterQuality: FilterQuality.medium,
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        Space.lg,
-        top + Space.lg,
-        Space.lg,
-        Space.lg + Space.lg,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AuthBrandHeader(markSize: 52),
-              SizedBox(height: Space.lg),
-              DoseBandLockup(fontSize: 34),
-            ],
-          ),
-        ),
-      ),
-    );
+  /// Skip (presentation builds only): Select Site → Select Your Role →
+  /// that role's workspace, as the presentation account holding it.
+  void _skip() {
+    ref.read(onboardingProvider.notifier).startPresentation();
+    context.go('/select-site');
   }
 }
 
@@ -640,6 +642,12 @@ class _FailureBanner extends StatelessWidget {
       icon: Icons.dns_outlined,
       title: 'Sign-in service not responding',
       message: 'Nothing is wrong with your account. Try again shortly.',
+    ),
+    SignInFailure.noPresentationAccount => const StatusBanner(
+      tone: StatusTone.attention,
+      icon: Icons.person_off_outlined,
+      title: 'No presentation account for that choice',
+      message: 'Choose another site or role.',
     ),
     SignInFailure.notConnected => const StatusBanner(
       tone: StatusTone.info,

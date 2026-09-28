@@ -99,6 +99,10 @@ enum SignInFailure {
   /// The credentials were valid, but the account is not assigned to the site
   /// that was selected during setup.
   siteNotAuthorised,
+
+  /// Presentation skip: no presentation account holds the chosen role at
+  /// the chosen site.
+  noPresentationAccount,
 }
 
 @immutable

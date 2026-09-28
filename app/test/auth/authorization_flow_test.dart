@@ -417,5 +417,80 @@ void main() {
       expect(find.textContaining('outside your access'), findsOneWidget);
       expect(find.text('DB-2609-0010'), findsNothing);
     });
+
+    // Presentation Skip: Sign In -> Select Site -> Select Your Role ->
+    // that role's workspace, as the presentation account holding the role.
+    Future<void> skipTo(WidgetTester tester, String site, String role) async {
+      await tester.tap(find.byType(AuthSkipButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(site));
+      await tester.pump();
+      await tester.tap(continueButton());
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(role));
+      await tester.tap(find.text(role));
+      await tester.pump();
+      await tester.tap(continueButton());
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Skip -> site -> Worker lands on the worker Home', (
+      tester,
+    ) async {
+      final c = await pumpAt(tester, '/sign-in');
+      await skipTo(tester, 'Mangalore Refinery', 'Worker');
+      final session = c.read(authControllerProvider).session!;
+      expect(session.personId, PresentationDataset.aditya);
+      expect(session.activeRole, AppRole.worker);
+      expect(find.text('NO DOSEBAND ASSIGNED'), findsOneWidget);
+    });
+
+    testWidgets('Skip -> site -> HSE Officer opens the HSE workspace', (
+      tester,
+    ) async {
+      final c = await pumpAt(tester, '/sign-in');
+      await skipTo(tester, 'Mangalore Refinery', 'HSE Officer');
+      final session = c.read(authControllerProvider).session!;
+      expect(session.personId, PresentationDataset.samhita);
+      expect(session.activeRole, AppRole.hseOfficer);
+    });
+
+    testWidgets('Skip never invents an account for a site that has none', (
+      tester,
+    ) async {
+      final c = await pumpAt(tester, '/sign-in');
+      await skipTo(tester, 'Corporate Office', 'Worker');
+      expect(c.read(authControllerProvider).isSignedIn, isFalse);
+      expect(
+        find.text('No presentation account for that choice'),
+        findsOneWidget,
+      );
+    });
+  });
+
+  test('production offers no Skip', () async {
+    final c = ProviderContainer(
+      overrides: [
+        environmentConfigProvider.overrideWithValue(
+          const EnvironmentConfig(
+            environment: AppEnvironment.prod,
+            supabaseUrl: '',
+            supabaseAnonKey: '',
+          ),
+        ),
+        operationsStoreProvider.overrideWithValue(
+          InMemoryOperationsStore(PresentationDataset.build(now)),
+        ),
+      ],
+    );
+    addTearDown(c.dispose);
+    final failure = await c
+        .read(authControllerProvider.notifier)
+        .signInAsPresentationRole(
+          role: AppRole.worker,
+          siteId: 'mangalore-refinery',
+        );
+    expect(failure, SignInFailure.notConnected);
+    expect(c.read(authControllerProvider).isSignedIn, isFalse);
   });
 }

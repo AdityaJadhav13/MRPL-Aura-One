@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/components/product_page.dart';
+import '../../../../core/components/product_status.dart';
 import '../../../../core/design/tokens.dart';
 import '../../application/auth_controller.dart';
 import '../../application/onboarding_controller.dart';
@@ -31,6 +33,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
   /// The account-mode choice; setup keeps its choice in [onboardingProvider].
   AppRole? _accountChoice;
   bool _busy = false;
+  bool _noAccount = false;
 
   @override
   Widget build(BuildContext context) {
@@ -66,21 +69,60 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
             SelectableRoleCard(
               role: role,
               selected: selected == role,
-              onTap: () => accountMode
-                  ? setState(() => _accountChoice = role)
-                  : ref.read(onboardingProvider.notifier).selectRole(role),
+              onTap: () {
+                setState(() => _noAccount = false);
+                accountMode
+                    ? setState(() => _accountChoice = role)
+                    : ref.read(onboardingProvider.notifier).selectRole(role);
+              },
             ),
             const SizedBox(height: Space.md),
           ],
+          if (_noAccount)
+            StatusBanner(
+              tone: StatusTone.attention,
+              icon: Icons.person_off_outlined,
+              title: 'No presentation account for that choice',
+              message:
+                  'No presentation account holds this role at the selected '
+                  'site. Choose another role, or go back and choose another '
+                  'site.',
+              action: TextButton(
+                onPressed: () => context.go('/select-site'),
+                child: const Text('Change site'),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  /// Setup: the role travels to Sign In as a request.
-  void _request(AppRole role) {
-    ref.read(onboardingProvider.notifier).selectRole(role);
-    context.go('/sign-in');
+  /// Setup: the role travels to Sign In as a request. After Skip
+  /// (presentation builds), it opens that role's presentation account.
+  Future<void> _request(AppRole role) async {
+    final onboarding = ref.read(onboardingProvider.notifier);
+    onboarding.selectRole(role);
+    final selection = ref.read(onboardingProvider);
+    if (!selection.presentation) {
+      context.go('/sign-in');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _noAccount = false;
+    });
+    final failure = await ref
+        .read(authControllerProvider.notifier)
+        .signInAsPresentationRole(role: role, siteId: selection.site!.id);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _noAccount = failure != null;
+    });
+    if (failure == null) {
+      onboarding.reset();
+      context.go(role.landingRoute);
+    }
   }
 
   /// Signed in: open the chosen one of the account's own workspaces.

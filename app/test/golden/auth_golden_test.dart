@@ -119,6 +119,7 @@ void main() {
       () => Future.wait([
         precacheImage(const AssetImage(BrandAssets.refineryBackdrop), context),
         precacheImage(const AssetImage(BrandAssets.mrplLogo), context),
+        precacheImage(const AssetImage(BrandAssets.signInBackdrop), context),
       ]),
     );
     await tester.pump();

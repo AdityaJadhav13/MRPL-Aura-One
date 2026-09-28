@@ -197,6 +197,30 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// Skip (presentation builds only): opens the presentation account that
+  /// holds [role] at [siteId], without a password.
+  ///
+  /// It exists so a demonstration can walk Select Site → Select Your Role →
+  /// workspace in a few taps. It is refused outright in production, where
+  /// no presentation accounts exist, and it never invents an account: if
+  /// none holds that role at that site, it says so. The session is marked
+  /// as a presentation session like every other in this build.
+  Future<SignInFailure?> signInAsPresentationRole({
+    required AppRole role,
+    required String siteId,
+  }) async {
+    if (!ref.read(presentationAccessProvider)) {
+      return _refuse(SignInFailure.notConnected);
+    }
+    state = const AuthState(status: AuthStatus.signingIn);
+    final directory = await ref.read(operationsProvider.future);
+    final person = directory.people
+        .where((p) => p.active && p.hasRole(role) && p.siteId == siteId)
+        .firstOrNull;
+    if (person == null) return _refuse(SignInFailure.noPresentationAccount);
+    return _establish(person, role: role, siteId: siteId, remember: true);
+  }
+
   SignInFailure _refuse(SignInFailure failure) {
     state = AuthState(status: AuthStatus.signedOut, failure: failure);
     return failure;

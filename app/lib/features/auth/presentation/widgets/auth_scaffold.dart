@@ -262,3 +262,51 @@ class AuthPrimaryButton extends StatelessWidget {
     );
   }
 }
+
+/// "Skip →", as on the approved entry screens: a small bordered control
+/// bottom-right, on its own surface so it reads over the footer wave.
+/// Offered only in presentation builds.
+class AuthSkipButton extends StatelessWidget {
+  const AuthSkipButton({required this.onPressed, super.key});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final corporate = context.corporate;
+    final t = context.type;
+    return Semantics(
+      button: true,
+      label:
+          'Skip sign-in and choose a site and role. Presentation build only.',
+      excludeSemantics: true,
+      child: TextButton(
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          onPressed();
+        },
+        style: TextButton.styleFrom(
+          foregroundColor: corporate.textSecondary,
+          backgroundColor: corporate.surface.withValues(alpha: 0.92),
+          minimumSize: const Size(88, kMinInteractive),
+          padding: const EdgeInsets.symmetric(horizontal: Space.md),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CorporateRadii.sm),
+            side: BorderSide(color: corporate.border),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Skip',
+              style: t.body.copyWith(color: corporate.textSecondary),
+            ),
+            const SizedBox(width: Space.xs),
+            Icon(Icons.arrow_forward, size: 16, color: corporate.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}

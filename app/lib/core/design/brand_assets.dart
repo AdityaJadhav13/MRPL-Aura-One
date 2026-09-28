@@ -12,4 +12,10 @@ abstract final class BrandAssets {
 
   /// Refinery at dusk, portrait. The splash backdrop.
   static const String refineryBackdrop = 'assets/images/MRPL Background.png';
+
+  /// The approved sign-in header: the refinery backdrop cropped to a
+  /// 390 × 300 band, at 30 % opacity, fading to clear by 62 % of its
+  /// height. The fade is in the image's own alpha channel — generated from
+  /// [refineryBackdrop] — so the screen draws it without a gradient.
+  static const String signInBackdrop = 'assets/images/sign_in_backdrop.png';
 }
