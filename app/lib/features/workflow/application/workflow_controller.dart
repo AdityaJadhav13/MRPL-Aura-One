@@ -330,6 +330,8 @@ class ShiftSessionController extends AsyncNotifier<ShiftSession> {
     required MeasurementResult result,
     required String captureId,
     required DataDomain domain,
+    RecordOrigin origin = RecordOrigin.measured,
+    String? originNote,
   }) async {
     final session = _current;
     final badge = session.physicalBadge;
@@ -357,6 +359,8 @@ class ShiftSessionController extends AsyncNotifier<ShiftSession> {
       captureId: captureId,
       workerId: actor?.personId ?? context.worker.workerId,
       sessionId: session.sessionId,
+      origin: origin,
+      originNote: originNote,
     );
     final ops = _ops;
     if (ops != null && session.sessionId != null) {

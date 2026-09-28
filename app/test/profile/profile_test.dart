@@ -152,6 +152,8 @@ void main() {
     final before = (await c.read(operationsProvider.future)).measurements;
     expect(before, isNotEmpty);
 
+    await tester.ensureVisible(find.text('Sign out'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Sign out'));

@@ -15,6 +15,9 @@ import '../capture/domain/capture_outcome.dart';
 import '../capture/presentation/capture_screen.dart';
 import '../research/application/research_providers.dart';
 import '../research/application/research_recorder.dart';
+import '../history/domain/measurement_record.dart';
+import '../presentation/application/presentation_controller.dart';
+import '../presentation/domain/presentation_mode.dart';
 import '../workflow/application/workflow_controller.dart';
 import '../workflow/domain/physical_badge.dart';
 import '../workflow/domain/workflow_state.dart';
@@ -52,6 +55,9 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
   String? _error;
   bool _handling = false;
   bool _starting = false;
+
+  /// Presentation fallback level 3: no camera; the reading is the fixture.
+  bool _fixtureRun = false;
 
   @override
   void initState() {
@@ -114,6 +120,18 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
                     'Nothing more is captured for it.'
               : 'Monitoring has not ended yet. End it from Home first.',
         );
+        return;
+      }
+
+      // Presentation fallback, level 3 (presentation DoseBand only): the
+      // device pipeline is not used at all.
+      final fallback = fallbackFor(
+        ref.read(activeFallbackProvider),
+        badge.badgeId,
+      );
+      if (fallback != null && fallback.skipsCamera) {
+        setState(() => _fixtureRun = true);
+        unawaited(_runFixture());
         return;
       }
 
@@ -209,6 +227,29 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
       return;
     }
 
+    // Presentation fallback, level 2 (presentation DoseBand only): the real
+    // photograph is archived above with whatever the engine made of it; the
+    // workflow continues with the presentation example, and the record says
+    // exactly that. The engine is not asked to pass anything.
+    final fallback = fallbackFor(
+      ref.read(activeFallbackProvider),
+      badge.badgeId,
+    );
+    if (fallback != null && fallback.usesPresentationInterpretation) {
+      final engine = outcome is CaptureObserved
+          ? outcome.result.status.name
+          : 'no observation (${outcome.quality.primaryFailure?.id ?? 'capture'})';
+      await _completeWithFixture(
+        captureId: saved.captureId,
+        note:
+            'Presentation fallback, level 2 (optical). The real photograph '
+            'is archived as ${saved.captureId}; the measurement engine '
+            'reported: $engine. The result shown is the presentation '
+            'example, not a measurement.',
+      );
+      return;
+    }
+
     final failure = outcome.quality.primaryFailure;
     final correctionFailed =
         outcome is CaptureObserved &&
@@ -276,6 +317,57 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
           result: observed.result,
           captureId: saved.captureId,
           domain: observed.observation.dataDomain,
+          // Level 1: a real capture and the real engine's result, for the
+          // presentation DoseBand identity.
+          origin: fallback == null
+              ? RecordOrigin.measured
+              : RecordOrigin.presentation,
+          originNote: fallback == null
+              ? null
+              : 'Presentation fallback (${fallback.label}): presentation '
+                    'DoseBand identity; real capture and real engine result.',
+        );
+    if (mounted) context.pushReplacement('/result', extra: record);
+  }
+
+  /// Level 3: no camera. A short analysing state, then the fixture.
+  Future<void> _runFixture() async {
+    await Future<void>.delayed(const Duration(milliseconds: 1600));
+    if (!mounted) return;
+    final now = ref.read(clockProvider)();
+    await _completeWithFixture(
+      captureId: 'PRES-${now.millisecondsSinceEpoch}',
+      note:
+          'Presentation fallback, level 3 (complete fixture). No camera '
+          'capture was made; the device pipeline was not used. The result '
+          'shown is the presentation example, not a measurement.',
+    );
+  }
+
+  /// Records the presentation example for the presentation DoseBand and
+  /// opens the product's own result screen on it. Presentation origin,
+  /// simulated domain: it can never be read as field data.
+  Future<void> _completeWithFixture({
+    required String captureId,
+    required String note,
+  }) async {
+    final session = ref.read(shiftSessionProvider).value;
+    if (session == null) return;
+    final now = ref.read(clockProvider)();
+    final result = PresentationResultFixture.result(
+      coverage: session.coverageAt(session.endedAt ?? now) ?? Duration.zero,
+      geometryVersion: 'badge-v1-research',
+      appVersion: appVersion,
+      deviceModel: 'Presentation',
+    );
+    final record = await ref
+        .read(shiftSessionProvider.notifier)
+        .completePhysicalScan(
+          result: result,
+          captureId: captureId,
+          domain: DataDomain.simulated,
+          origin: RecordOrigin.presentation,
+          originNote: note,
         );
     if (mounted) context.pushReplacement('/result', extra: record);
   }
@@ -296,11 +388,13 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_fixtureRun) return const _Analysing();
     final error = _error;
     if (error != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Camera unavailable')),
-        body: Padding(
+        // Scrolls: a platform error can be long.
+        body: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,4 +450,23 @@ class ReadBadgeScreen extends ConsumerWidget {
     final session = ref.watch(shiftSessionProvider).value ?? ShiftSession.none;
     return session.isPhysical ? const WorkerCaptureScreen() : simulated;
   }
+}
+
+/// "Analysing DoseBand" — shown while the level-3 fixture completes.
+class _Analysing extends StatelessWidget {
+  const _Analysing();
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Analysing DoseBand…'),
+        ],
+      ),
+    ),
+  );
 }

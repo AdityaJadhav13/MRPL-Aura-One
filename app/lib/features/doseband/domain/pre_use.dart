@@ -15,7 +15,12 @@ sealed class OpticalResult {
 /// The reader found the band: target, fiducials, geometry and the reference
 /// and sensor regions, in a photograph good enough to sample them.
 final class OpticalReadable extends OpticalResult {
-  const OpticalReadable({this.correctionCaveat});
+  const OpticalReadable({this.correctionCaveat, this.presentation = false});
+
+  /// The presentation fallback's deterministic outcome (Presentation
+  /// Controls, presentation DoseBand only). The verdict and the screen are
+  /// the product's own; the record says what it was.
+  final bool presentation;
 
   /// Set when the colour correction itself did not validate. That is a
   /// measurement-time question — it is checked again, and decided, at the
@@ -23,7 +28,9 @@ final class OpticalReadable extends OpticalResult {
   final String? correctionCaveat;
 
   @override
-  OpticalCheckStatus get status => OpticalCheckStatus.readable;
+  OpticalCheckStatus get status => presentation
+      ? OpticalCheckStatus.presentation
+      : OpticalCheckStatus.readable;
 }
 
 /// The photograph could not be read. Says nothing about the band.

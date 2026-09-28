@@ -67,7 +67,12 @@ class _ResultScreenState extends State<ResultScreen> {
     // The marker used to be inherited from the scaffold's default, which put
     // "Simulated — not a real H₂S measurement" over a real photograph's
     // honest no-calibration refusal.
-    final simulated = record.domain == DataDomain.simulated;
+    // A presentation record is simulated data too, but it is disclosed by
+    // its own note below rather than by the simulation banner (Presentation
+    // Controls, SIH demonstration build).
+    final presentationExample = record.isPresentation;
+    final simulated =
+        record.domain == DataDomain.simulated && !presentationExample;
 
     return StepScaffold(
       register: StepRegister.instrument,
@@ -109,7 +114,7 @@ class _ResultScreenState extends State<ResultScreen> {
               'Model': provenance.calibrationModelId ?? '—',
           },
         ),
-        if (!simulated) ...[
+        if (!simulated && !presentationExample) ...[
           const SizedBox(height: Space.base),
           _RealScanSummary(record: record),
         ],
@@ -117,7 +122,13 @@ class _ResultScreenState extends State<ResultScreen> {
           const SizedBox(height: Space.base),
           _ValidNote(),
           const SizedBox(height: Space.sm),
-          const _NoProductionCalibrationNote(),
+          if (presentationExample)
+            const _PresentationExampleNote()
+          else
+            const _NoProductionCalibrationNote(),
+        ] else if (presentationExample) ...[
+          const SizedBox(height: Space.base),
+          const _PresentationExampleNote(),
         ],
       ],
     );
@@ -235,6 +246,33 @@ class _NoProductionCalibrationNote extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The one line that says what a presentation result is — compact, on the
+/// result itself, so the example is never read as a calibrated
+/// measurement, without covering the product screen being demonstrated.
+class _PresentationExampleNote extends StatelessWidget {
+  const _PresentationExampleNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colours;
+    final t = context.type;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.co_present_outlined, size: 16, color: c.textSecondary),
+        const SizedBox(width: Space.sm),
+        Expanded(
+          child: Text(
+            'Presentation example — not a calibrated measurement. No '
+            'validated H₂S calibration exists yet.',
+            style: t.caption.copyWith(color: c.textSecondary),
+          ),
+        ),
+      ],
     );
   }
 }

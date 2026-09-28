@@ -10,6 +10,8 @@ import '../../../core/components/buttons.dart';
 import '../../../core/components/product_fields.dart';
 import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
+import '../../operations/data/presentation_dataset.dart';
+import '../../presentation/application/presentation_controller.dart';
 import '../../workflow/application/workflow_controller.dart';
 import '../application/doseband_providers.dart';
 import '../domain/doseband_qr.dart';
@@ -221,6 +223,14 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen>
             purpose: widget.purpose,
             notice: _notice,
             onType: _typeSerial,
+            // Presentation fallback (Presentation Controls, level 1+): the
+            // presentation DoseBand enters the same path a scanned code
+            // takes — including the final-read identity check.
+            onPresentation:
+                ref.watch(activeFallbackProvider)?.usesPresentationIdentity ??
+                    false
+                ? () => _accept(PresentationDataset.presentationBandId)
+                : null,
           ),
         ],
       ),
@@ -233,11 +243,15 @@ class _ScanPanel extends StatelessWidget {
     required this.purpose,
     required this.notice,
     required this.onType,
+    this.onPresentation,
   });
 
   final QrScanPurpose purpose;
   final String? notice;
   final VoidCallback onType;
+
+  /// Only while the presentation fallback is on.
+  final VoidCallback? onPresentation;
 
   @override
   Widget build(BuildContext context) {
@@ -273,6 +287,14 @@ class _ScanPanel extends StatelessWidget {
               ],
               const SizedBox(height: Space.md),
               _TypeSerialButton(onPressed: onType),
+              if (onPresentation != null) ...[
+                const SizedBox(height: Space.sm),
+                DoseBandButton.tertiary(
+                  label: 'Use Presentation DoseBand',
+                  icon: Icons.co_present_outlined,
+                  onPressed: onPresentation,
+                ),
+              ],
             ],
           ),
         ),

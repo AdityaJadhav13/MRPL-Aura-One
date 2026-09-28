@@ -85,3 +85,38 @@ class OfflineMarker extends StatelessWidget {
     );
   }
 }
+
+/// A presentation-origin record (SIH demonstration build): a small neutral
+/// tag beside the record's state, so the example is identifiable in a list
+/// without dressing the whole screen as a simulation.
+class PresentationTag extends StatelessWidget {
+  const PresentationTag({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colours;
+    return Semantics(
+      label: 'Presentation record, not a validated measurement',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: Space.sm, vertical: 2),
+        decoration: BoxDecoration(
+          color: c.surfaceSunken,
+          borderRadius: BorderRadius.circular(Radii.pill),
+          border: Border.all(color: c.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.co_present_outlined, size: 14, color: c.textSecondary),
+            const SizedBox(width: Space.xs),
+            Text(
+              'Presentation',
+              style: context.type.caption.copyWith(color: c.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

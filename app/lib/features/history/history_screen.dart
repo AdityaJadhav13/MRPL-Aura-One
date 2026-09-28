@@ -189,6 +189,7 @@ class _HistoryRow extends StatelessWidget {
                         MeasurementStateChip(r.result),
                         if (review != null) ReviewStateChip(review.state),
                         if (r.badge.isSimulated) const SimulationMarker(),
+                        if (r.isPresentation) const PresentationTag(),
                       ],
                     ),
                   ],

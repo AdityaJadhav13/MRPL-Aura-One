@@ -9,6 +9,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:h2s_doseband/core/env/environment.dart';
+import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/features/capture/application/capture_controller.dart';
 import 'package:h2s_doseband/features/capture/data/capture_archive.dart';
 import 'package:h2s_doseband/features/capture/domain/badge_v1_references.dart';
@@ -213,7 +215,16 @@ void main() {
       await store.save(session);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [workflowStoreProvider.overrideWithValue(store)],
+          overrides: [
+            workflowStoreProvider.overrideWithValue(store),
+            environmentConfigProvider.overrideWithValue(
+              const EnvironmentConfig(
+                environment: AppEnvironment.dev,
+                supabaseUrl: '',
+                supabaseAnonKey: '',
+              ),
+            ),
+          ],
           child: const MaterialApp(
             home: ReadBadgeScreen(simulated: Text('SIMULATED SCAN')),
           ),

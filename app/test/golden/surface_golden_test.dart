@@ -63,6 +63,7 @@ void main() {
     'worker-history': '/history',
     'worker-profile': '/profile',
     'worker-settings': '/profile/settings',
+    'worker-presentation-controls': '/profile/settings/presentation',
     'safety-hub': '/safety',
     'safety-h2s': '/safety/h2s',
     'safety-sds': '/safety/sds',
