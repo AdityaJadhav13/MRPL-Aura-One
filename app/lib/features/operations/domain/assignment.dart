@@ -65,7 +65,11 @@ enum OpticalCheckStatus {
   notReadable('Photograph not readable'),
 
   /// No optical check was performed (no camera on this device).
-  notPerformed('Not performed');
+  notPerformed('Not performed'),
+
+  /// Presentation fallback: a deterministic outcome for the presentation
+  /// DoseBand. The photograph, if one was taken, was not assessed.
+  presentation('Presentation — deterministic outcome, photograph not assessed');
 
   const OpticalCheckStatus(this.label);
 

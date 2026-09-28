@@ -136,7 +136,7 @@ final class SupervisorView {
     _access.requireWorker(workerId);
     final p = _s.person(workerId)!;
     final records =
-        _s.measurements.where((m) => m.workerId == workerId).toList()
+        _s.registerMeasurements.where((m) => m.workerId == workerId).toList()
           ..sort((a, b) => b.scannedAt.compareTo(a.scannedAt));
     return SupervisedWorkerDetail(
       person: p,

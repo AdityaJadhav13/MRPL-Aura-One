@@ -125,7 +125,7 @@ final class ManagementView {
       by[d.status] = (by[d.status] ?? 0) + 1;
     }
     final since = now.subtract(const Duration(days: 30));
-    final recent = _s.measurements
+    final recent = _s.registerMeasurements
         .where(
           (m) => m.scannedAt.isAfter(since) && _s.supersededBy(m.id) == null,
         )
@@ -190,7 +190,7 @@ final class ManagementView {
           bool inDay(DateTime? t) =>
               t != null && !t.isBefore(day) && t.isBefore(end);
           final started = _s.sessions.where((x) => inDay(x.startedAt)).length;
-          final completed = _s.measurements
+          final completed = _s.registerMeasurements
               .where((m) => inDay(m.scannedAt) && m.supersedesId == null)
               .length;
           final missing = _s.sessions

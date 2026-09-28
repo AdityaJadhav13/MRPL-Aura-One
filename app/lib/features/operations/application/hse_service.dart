@@ -133,7 +133,7 @@ final class HseView {
 
   HseOverview overview(DateTime now) {
     final since = now.subtract(const Duration(days: 7));
-    final recent = _s.measurements
+    final recent = _s.registerMeasurements
         .where((m) => _inScope(m) && m.scannedAt.isAfter(since))
         .toList();
     final open = <ReviewState, int>{};
@@ -177,7 +177,7 @@ final class HseView {
   }) {
     final q = query.trim().toLowerCase();
     final out = <RegisterRow>[];
-    for (final m in _s.measurements) {
+    for (final m in _s.registerMeasurements) {
       if (!_inScope(m)) continue;
       if (from != null && m.scannedAt.isBefore(from)) continue;
       if (to != null && !m.scannedAt.isBefore(to)) continue;

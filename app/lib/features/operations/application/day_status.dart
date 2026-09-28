@@ -204,7 +204,7 @@ abstract final class Exceptions {
       }
     }
 
-    for (final m in s.measurements) {
+    for (final m in s.registerMeasurements) {
       final w = m.workerId;
       if (w == null || !workers.contains(w)) continue;
       if (m.scannedAt.isBefore(since)) continue;

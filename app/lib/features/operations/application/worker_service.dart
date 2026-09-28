@@ -268,13 +268,16 @@ final class WorkerCommands {
               measurements: [...s.measurements, record],
               reviews: [
                 ...s.reviews,
-                HseReview(
-                  reviewId: ids.next('REV'),
-                  measurementId: record.id,
-                  state: ReviewState.pending,
-                  openedAt: at,
-                  updatedAt: at,
-                ),
+                // A presentation record is not exposure data: HSE has
+                // nothing to review.
+                if (!record.isPresentation)
+                  HseReview(
+                    reviewId: ids.next('REV'),
+                    measurementId: record.id,
+                    state: ReviewState.pending,
+                    openedAt: at,
+                    updatedAt: at,
+                  ),
               ],
             )
             .appendAudit(

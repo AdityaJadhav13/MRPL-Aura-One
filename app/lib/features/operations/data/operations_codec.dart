@@ -181,6 +181,8 @@ abstract final class OperationsCodec {
     'session_id': m.sessionId,
     'supersedes_id': m.supersedesId,
     'supersession_reason': m.supersessionReason,
+    'origin': m.origin.name,
+    'origin_note': m.originNote,
   };
 
   static Map<String, Object?> _review(HseReview r) => {
@@ -404,6 +406,11 @@ abstract final class OperationsCodec {
       sessionId: _strOrNull(m['session_id']),
       supersedesId: supersedes,
       supersessionReason: reason,
+      // Records written before origins existed are measured ones.
+      origin: m['origin'] == null
+          ? RecordOrigin.measured
+          : _enum(RecordOrigin.values, m['origin']),
+      originNote: _strOrNull(m['origin_note']),
     );
   }
 

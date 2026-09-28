@@ -67,6 +67,13 @@ final class OperationsSnapshot {
   /// Append-only. A superseding record is added alongside; nothing is
   /// replaced.
   final List<MeasurementRecord> measurements;
+
+  /// Every record that belongs in an organisational view — HSE registers,
+  /// management statistics, supervisor views, exceptions, reports and any
+  /// future dataset. Presentation records are excluded: they are the
+  /// worker's own demonstration history, never exposure data.
+  Iterable<MeasurementRecord> get registerMeasurements =>
+      measurements.where((m) => !m.isPresentation);
   final List<HseReview> reviews;
 
   /// Append-only.
