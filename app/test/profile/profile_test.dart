@@ -68,17 +68,16 @@ void main() {
     expect(find.text('Employee · ID E-10231'), findsOneWidget);
   });
 
-  testWidgets('Work assignment carries site, department, shift and area', (
+  testWidgets('Today’s shift carries site, department, shift and area', (
     tester,
   ) async {
     await pump(tester);
-    expect(find.text('WORK ASSIGNMENT'), findsOneWidget);
+    expect(find.text('TODAY’S SHIFT'), findsOneWidget);
     for (final label in ['Site', 'Department', 'Shift', 'Work area']) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
     expect(find.text('Mangalore Refinery'), findsOneWidget);
-    // Not the retired daily card's name.
-    expect(find.text('TODAY’S SHIFT'), findsNothing);
+    expect(find.text('Date'), findsOneWidget);
   });
 
   testWidgets('Work context references; it never approves', (tester) async {

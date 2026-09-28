@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:h2s_doseband/features/profile/settings_screen.dart';
 import 'package:h2s_doseband/core/components/product_navigation.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
@@ -112,10 +113,29 @@ void main() {
 
     testWidgets('Settings is reachable from Profile', (tester) async {
       await pumpAt(tester, '/profile', size: const Size(390, 844));
-      await tester.scrollUntilVisible(find.text('Settings'), 200);
+      // Profile's list is the first scrollable; Settings sits below the
+      // approved cards.
+      await tester.scrollUntilVisible(
+        find.text('Settings'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      // scrollUntilVisible stops once the row is built, which can be in the
+      // cache area just off screen; bring it fully into view to tap it.
+      await tester.ensureVisible(find.text('Settings'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Settings'));
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('Sign out'), 200);
+      await tester.scrollUntilVisible(
+        find.text('Sign out'),
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(SettingsScreen),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       expect(find.text('Sign out'), findsOneWidget);
       expect(find.textContaining('Measurement engine'), findsOneWidget);
     });

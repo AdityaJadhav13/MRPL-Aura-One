@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:h2s_doseband/core/design/brand_assets.dart';
 import 'package:h2s_doseband/core/env/environment.dart';
 import 'package:h2s_doseband/features/auth/application/auth_controller.dart';
 import 'package:h2s_doseband/core/components/product_navigation.dart';
@@ -43,6 +44,15 @@ void main() {
           config: _dev,
           initialLocation: location,
         ),
+      ),
+    );
+    // Profile and More screens carry the refinery header: decode it for
+    // real so the capture does not depend on how far decoding had got.
+    final context = tester.element(find.byType(Scaffold).first);
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage(BrandAssets.refineryBackdrop),
+        context,
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));

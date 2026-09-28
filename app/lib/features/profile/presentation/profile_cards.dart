@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/components/corporate.dart';
 import '../../../core/components/identity.dart';
+import '../../../core/design/brand_assets.dart';
 import '../../../core/design/corporate_colors.dart';
 import '../../../core/design/theme.dart';
 import '../../../core/design/tokens.dart';
@@ -13,6 +14,197 @@ import '../../../core/design/tokens.dart';
 /// and Home is left to say only what state the DoseBand is in.
 
 const String _notRecorded = 'Not recorded';
+
+/// The refinery header of every profile screen: organisation, product and
+/// the site's safety message over the photograph. Solid scrim, no gradient.
+class ProfileHero extends StatelessWidget {
+  const ProfileHero({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      LayoutBuilder(builder: (context, c) => _build(context, c.maxWidth));
+
+  Widget _build(BuildContext context, double width) {
+    final corporate = context.corporate;
+    final t = context.type;
+    // Side by side while both lockups fit on a line each; above 130 % text
+    // or on the narrowest phones, one under the other. Measured from the
+    // layout, not MediaQuery: a nested MediaQuery can report no size.
+    final stacked =
+        width < 340 || MediaQuery.textScalerOf(context).scale(1) > 1.3;
+
+    final organisation = Text(
+      'Mangalore Refinery\nand Petrochemicals Limited',
+      style: t.caption.copyWith(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        height: 1.2,
+      ),
+    );
+    Widget product(CrossAxisAlignment align, TextAlign textAlign) => Column(
+      crossAxisAlignment: align,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            'DoseBand',
+            style: t.heading.copyWith(color: Colors.white, height: 1.1),
+          ),
+        ),
+        Text(
+          'OCCUPATIONAL\nEXPOSURE MONITORING',
+          textAlign: textAlign,
+          style: t.caption.copyWith(
+            color: Colors.white.withValues(alpha: 0.86),
+            fontSize: 9,
+            letterSpacing: 0.8,
+            height: 1.3,
+          ),
+        ),
+      ],
+    );
+
+    // No fixed height: the status-bar inset, the text scale and the overlap
+    // of the identity card all vary, and a constant tuned on one screen
+    // overflows on the next.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.5,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 176),
+        child: Stack(
+          children: [
+            // Dark ground under the photograph, so white type still lands on a
+            // dark field if the asset is slow to decode.
+            const Positioned.fill(child: ColoredBox(color: Neutral.l20)),
+            Positioned.fill(
+              child: ExcludeSemantics(
+                child: Image.asset(
+                  BrandAssets.refineryBackdrop,
+                  fit: BoxFit.cover,
+                  alignment: const Alignment(0, 0.2),
+                  filterQuality: FilterQuality.medium,
+                ),
+              ),
+            ),
+            Positioned.fill(child: ColoredBox(color: context.product.scrim)),
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                // The bottom inset clears the identity card, which lifts into
+                // the header.
+                padding: const EdgeInsets.fromLTRB(
+                  Space.base,
+                  Space.sm,
+                  Space.base,
+                  Space.xl + Space.sm,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (stacked) ...[
+                      product(CrossAxisAlignment.start, TextAlign.left),
+                      const SizedBox(height: Space.sm),
+                      organisation,
+                    ] else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 6, child: organisation),
+                          const SizedBox(width: Space.sm),
+                          Expanded(
+                            flex: 5,
+                            child: product(
+                              CrossAxisAlignment.end,
+                              TextAlign.right,
+                            ),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: Space.lg),
+                    Container(
+                      height: 4,
+                      width: 44,
+                      decoration: BoxDecoration(
+                        color: corporate.accent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: Space.sm),
+                    Text(
+                      'Safe People',
+                      style: t.display.copyWith(
+                        color: Colors.white,
+                        fontSize: 24,
+                        height: 1.15,
+                      ),
+                    ),
+                    Text(
+                      'Sustainable Operations',
+                      style: t.body.copyWith(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The approved profile layout: the refinery header, and the content lifted
+/// into it so the identity card overlaps the photograph. Used by the
+/// worker's Profile and by every workspace's More screen, so each person's
+/// profile looks the same whatever their role.
+class ProfileLayout extends StatelessWidget {
+  const ProfileLayout({required this.children, super.key});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: context.corporate.surfaceMuted,
+    body: ListView(
+      // No top padding: the header runs under the status bar. The bottom
+      // inset is kept, so the last card clears a home indicator; inside a
+      // workspace shell the navigation already occupies its own slot and
+      // the inset reported here is zero.
+      padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+      children: [
+        const ProfileHero(),
+        // Lifted by the same amount the header leaves below its text, so
+        // the identity card overlaps the photograph and no gap opens.
+        Transform.translate(
+          offset: const Offset(0, -24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: Breakpoints.maxContentWidth,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Gaps.screenGutter,
+                  0,
+                  Gaps.screenGutter,
+                  Space.base,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: children,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
 /// Who is signed in: photograph (or initials until an approved one is
 /// supplied), name, worker type and ID, company, and where the records are.
@@ -70,7 +262,7 @@ class WorkerIdentityCard extends StatelessWidget {
                   ),
               ],
             );
-            const avatarSize = 64.0;
+            const avatarSize = 48.0;
             final avatar = IdentityAvatar(
               name: name ?? '?',
               photo: photo,

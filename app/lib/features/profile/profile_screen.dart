@@ -6,46 +6,58 @@ import '../../core/components/product_page.dart';
 import '../../core/components/workspace_components.dart';
 import '../../core/design/theme.dart';
 import '../../core/design/tokens.dart';
+import '../../core/util/format.dart';
 import '../auth/application/auth_controller.dart';
+import '../home/domain/home_presentation.dart';
 import '../operations/application/operations_providers.dart';
 import '../workflow/application/workflow_controller.dart';
 import '../workflow/data/work_context_repository.dart';
 import '../workflow/domain/workflow_state.dart';
 import 'presentation/profile_cards.dart';
 
-/// Worker Profile (Worker directive §6–§10, §32–§34).
+/// Worker Profile, in the approved rich layout: the refinery header, the
+/// identity card overlapping it, Today's shift and Work context — then the
+/// way into Settings.
 ///
-/// The authoritative worker screen: who they are, what they are assigned
-/// to, and the work they recorded. Built from the rich Home it replaces.
-///
-/// Every value resolves from the signed-in person's directory record —
-/// the same identity the monitoring session, the history and the DoseBand
-/// assignment use — or from the work context they recorded. Nothing is
-/// written into this widget, and a missing value reads "Not recorded".
-///
-/// App and technical information is in Settings, not here.
+/// Every value resolves from the signed-in person's directory record or the
+/// work context they recorded; a missing value reads "Not recorded".
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sites = ref.watch(availableSitesProvider);
     final session = ref.watch(shiftSessionProvider).value ?? ShiftSession.none;
+    final now = ref.watch(clockProvider)();
+    final presentation = HomePresentation.from(session: session, now: now);
+    final sites = ref.watch(availableSitesProvider);
 
-    return ProductPage(
-      title: 'Profile',
-      showBack: false,
+    // Today's work: what the worker recorded, or — until they do — the usual
+    // site, department, area and shift from their company record. A context
+    // from a period completed on an earlier day is not today's.
+    final recorded =
+        session.stage == ShiftStage.complete &&
+            presentation.stage != HomeStage.completed
+        ? null
+        : session.context;
+
+    return ProfileLayout(
       children: [
         OpsView(
           value: ref.watch(ownProfileProvider),
           builder: (context, profile) {
             final p = profile.person;
             const repo = DemoWorkContextRepository();
-            final site = sites.where((s) => s.id == p.siteId).firstOrNull;
-            // A context from a finished period is history, not today's.
-            final recorded = session.stage == ShiftStage.complete
-                ? null
-                : session.context;
+            final siteName =
+                recorded?.site.name ??
+                sites.where((s) => s.id == p.siteId).firstOrNull?.name;
+            final department =
+                recorded?.department.name ?? profile.departmentName;
+            final shift =
+                recorded?.shift.name ??
+                repo.shiftById(p.defaultShiftId ?? '')?.name;
+            final area =
+                recorded?.workArea.name ??
+                repo.workAreaById(p.defaultWorkAreaId ?? '')?.name;
             final gatePass = recorded?.worker.gatePass?.value;
 
             return Column(
@@ -61,75 +73,54 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: Space.md),
                 ProfileSectionCard(
-                  title: 'Work assignment',
+                  title: 'Today’s shift',
+                  actionLabel: recorded == null ? 'Record' : 'View details',
+                  onAction: () => context.push('/work-context'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ProfileFieldGrid(
                         fields: [
-                          ('Site', orNotRecorded(site?.name), false),
-                          (
-                            'Department',
-                            orNotRecorded(profile.departmentName),
-                            false,
-                          ),
-                          (
-                            'Shift',
-                            orNotRecorded(
-                              repo.shiftById(p.defaultShiftId ?? '')?.name,
-                            ),
-                            false,
-                          ),
-                          (
-                            'Work area',
-                            orNotRecorded(
-                              repo
-                                  .workAreaById(p.defaultWorkAreaId ?? '')
-                                  ?.name,
-                            ),
-                            false,
-                          ),
-                          ('Worker type', p.workerType.label, false),
-                          if (p.contractorCompany != null)
-                            ('Contractor', p.contractorCompany!, false),
-                          ('Designation', p.designation, false),
-                          if (profile.teamName != null)
-                            ('Team', profile.teamName!, false),
-                          if (profile.supervisorName != null)
-                            ('Supervisor', profile.supervisorName!, false),
+                          ('Site', orNotRecorded(siteName), false),
+                          ('Department', orNotRecorded(department), false),
+                          ('Shift', orNotRecorded(shift), false),
+                          ('Work area', orNotRecorded(area), false),
                           if (gatePass != null)
                             ('Gate pass', _mask(gatePass), true),
+                          ('Date', Fmt.date(now), true),
                         ],
                       ),
-                      const SizedBox(height: Space.sm),
-                      Text(
-                        'From your company record. It cannot be edited here; '
-                        'ask your supervisor or administrator to correct '
-                        'anything that is wrong.',
-                        style: context.type.caption.copyWith(
-                          color: context.corporate.textSecondary,
+                      if (recorded == null) ...[
+                        const SizedBox(height: Space.sm),
+                        Text(
+                          'Usual assignment from your company record. '
+                          'Confirm today’s work before a DoseBand is '
+                          'assigned.',
+                          style: context.type.caption.copyWith(
+                            color: context.corporate.textSecondary,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
                 const SizedBox(height: Space.md),
                 ProfileSectionCard(
                   title: 'Work context',
-                  actionLabel: recorded == null ? 'Record' : 'View all',
+                  actionLabel: recorded == null ? null : 'View all',
                   onAction: () => context.push('/work-context'),
                   child: recorded == null
-                      ? const ProfileContextRows(
+                      ? ProfileContextRows(
                           rows: [
-                            ('Job', 'Not recorded', false),
                             ('PTW', 'Not recorded', false),
                             ('JSA', 'Not recorded', false),
                             ('Toolbox talk', 'Not recorded', false),
+                            (
+                              'Supervisor',
+                              orNotRecorded(profile.supervisorName),
+                              false,
+                            ),
                           ],
-                          footnote:
-                              'Recorded before a DoseBand is assigned, so '
-                              'its record says where and on what it was '
-                              'worn.',
                         )
                       : ProfileContextRows(
                           rows: [
@@ -146,8 +137,8 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                           ],
                           footnote:
-                              'Recorded by you. DoseBand references these; it '
-                              'does not approve permits or authorise work.',
+                              'Recorded by you. Not checked against a permit '
+                              'system; DoseBand does not authorise work.',
                         ),
                 ),
               ],

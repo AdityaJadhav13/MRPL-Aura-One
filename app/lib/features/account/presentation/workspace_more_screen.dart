@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/components/buttons.dart';
-import '../../../core/components/identity.dart';
 import '../../../core/components/product_page.dart';
 import '../../../core/components/workspace_components.dart';
 import '../../../core/design/theme.dart';
@@ -14,6 +13,7 @@ import '../../../core/env/environment.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_models.dart';
 import '../../operations/application/operations_providers.dart';
+import '../../profile/presentation/profile_cards.dart';
 
 /// A link on a workspace's More page.
 @immutable
@@ -47,9 +47,9 @@ class WorkspaceMoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(authControllerProvider).session;
-    return ProductPage(
-      title: 'More',
-      showBack: false,
+    // The approved profile layout, as on the worker's Profile: refinery
+    // header, identity card over it, then this workspace's own sections.
+    return ProfileLayout(
       children: [
         const AccountCard(),
         const SizedBox(height: Gaps.section),
@@ -94,21 +94,19 @@ class AccountCard extends ConsumerWidget {
       value: ref.watch(ownProfileProvider),
       builder: (context, profile) {
         final p = profile.person;
-        return SectionCard(
-          children: [
-            IdentityHeader(
-              name: p.displayName,
-              subtitle: '${session?.activeRole.label ?? ''} · ${p.personId}',
-              detail: [p.designation, ?profile.departmentName].join(' · '),
-            ),
-          ],
+        return WorkerIdentityCard(
+          name: p.displayName,
+          typeAndId:
+              '${session?.activeRole.label ?? p.workerType.label} · '
+              'ID ${p.personId}',
+          company: [p.designation, ?profile.departmentName].join(' · '),
+          photo: p.photoAsset == null ? null : AssetImage(p.photoAsset!),
         );
       },
     );
   }
 }
 
-/// Moves between the person's own roles, and only those (§54).
 class WorkspaceSwitcher extends ConsumerWidget {
   const WorkspaceSwitcher({required this.session, super.key});
 
