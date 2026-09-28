@@ -190,7 +190,7 @@ class _PreUseCaptureScreenState extends ConsumerState<PreUseCaptureScreen>
     return CaptureScreen(
       controller: controller,
       preview: _port?.controller,
-      requireReady: true,
+      workerMode: true,
     );
   }
 }

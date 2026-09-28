@@ -297,17 +297,19 @@ void main() {
   // The worker's capture button
   // ===================================================================
 
-  group('capture button', () {
+  group('the manual shutter', () {
+    late FakeCameraPort port;
+
     Future<CaptureController> pumpScreen(
       WidgetTester tester, {
-      required bool requireReady,
       required RgbImage preview,
+      bool busy = false,
     }) async {
       final geometry = BadgeGeometry.parse(
         File('../measurement-engine/geometry/badge-v1.geometry.json')
             .readAsStringSync(),
       );
-      final port = FakeCameraPort(
+      port = FakeCameraPort(
         previewImages: <RgbImage>[preview],
         stillImage: preview,
       );
@@ -322,40 +324,71 @@ void main() {
       );
       await tester.runAsync(controller.start);
       addTearDown(() => tester.runAsync(controller.dispose));
+      tester.view.physicalSize = const Size(390 * 2, 844 * 2);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
           home: CaptureScreen(
             controller: controller,
-            requireReady: requireReady,
+            workerMode: true,
+            busy: busy,
           ),
         ),
       );
       return controller;
     }
 
-    FilledButton button(WidgetTester tester) =>
-        tester.widget<FilledButton>(find.byType(FilledButton));
+    ShutterButton shutter(WidgetTester tester) =>
+        tester.widget<ShutterButton>(find.byType(ShutterButton));
 
-    testWidgets('is disabled in worker mode until the badge is ready', (
+    testWidgets('is a large round button at the bottom centre', (tester) async {
+      await pumpScreen(tester, preview: RgbImage.filled(400, 300, 60, 60, 60));
+      final box = tester.getRect(find.byType(ShutterButton));
+      expect(box.width, greaterThanOrEqualTo(80));
+      expect(box.height, box.width);
+      expect(box.center.dx, closeTo(390 / 2, 1));
+      expect(box.center.dy, greaterThan(844 * 0.7));
+    });
+
+    testWidgets('is the worker\'s: available before detection says ready, '
+        'and nothing fires by itself', (tester) async {
+      final controller = await pumpScreen(
+        tester,
+        preview: RgbImage.filled(400, 300, 60, 60, 60),
+      );
+      expect(shutter(tester).working, isFalse);
+      await tester.pump(const Duration(seconds: 2));
+      expect(port.captureCount, 0, reason: 'no automatic capture');
+      expect(controller.state.outcome, isNull);
+    });
+
+    testWidgets('one tap takes one still, even when tapped twice', (
+      tester,
+    ) async {
+      await pumpScreen(tester, preview: RgbImage.filled(400, 300, 60, 60, 60));
+      await tester.tap(find.byType(ShutterButton));
+      await tester.tap(find.byType(ShutterButton));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 300)),
+      );
+      await tester.pump();
+      expect(port.captureCount, 1);
+    });
+
+    testWidgets('stays disabled while the last photo is being recorded', (
       tester,
     ) async {
       await pumpScreen(
         tester,
-        requireReady: true,
         preview: RgbImage.filled(400, 300, 60, 60, 60),
+        busy: true,
       );
-      expect(button(tester).onPressed, isNull);
-      expect(find.text('Capture'), findsOneWidget);
-    });
-
-    testWidgets('is always available in research mode', (tester) async {
-      // The M0C dataset needs deliberately bad captures.
-      await pumpScreen(
-        tester,
-        requireReady: false,
-        preview: RgbImage.filled(400, 300, 60, 60, 60),
-      );
-      expect(button(tester).onPressed, isNotNull);
+      expect(shutter(tester).working, isTrue);
+      await tester.tap(find.byType(ShutterButton));
+      await tester.pump();
+      expect(port.captureCount, 0);
+      expect(find.text('Analysing the photograph…'), findsOneWidget);
     });
   });
 

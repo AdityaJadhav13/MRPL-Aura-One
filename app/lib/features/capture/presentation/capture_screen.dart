@@ -1,8 +1,8 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/design/semantic_colors.dart';
-import '../../../core/design/tokens.dart';
 import '../application/capture_controller.dart';
 import '../domain/capture_outcome.dart';
 import 'guidance_copy.dart';
@@ -18,22 +18,25 @@ class CaptureScreen extends StatefulWidget {
   const CaptureScreen({
     required this.controller,
     this.preview,
-    this.requireReady = false,
+    this.workerMode = false,
+    this.busy = false,
     super.key,
   });
 
   final CaptureController controller;
 
-  /// Worker mode: the capture button is enabled only while the preview is
-  /// ready *and* stable. MEASUREMENT-INTEGRATION-02 §16–§17.
-  ///
-  /// Off in research mode, where the shutter is always available: the M0C
-  /// dataset needs deliberately blurred, glared and cropped captures, and a
-  /// shutter that refused them would make refusal impossible to study.
-  ///
-  /// Either way the still is re-checked after capture. An enabled button
-  /// means the preview looked acceptable, never that the photograph will be.
-  final bool requireReady;
+  /// Worker wording for the guidance under the shutter. It never gates the
+  /// shutter: the **worker** takes the photograph, whenever they judge the
+  /// DoseBand is in position. Live detection only advises — the ring turns
+  /// to the accent colour when the preview is ready and steady — and it
+  /// never fires the shutter itself. Whatever the preview said, the still is
+  /// re-checked in full after it is taken; a failed acquisition means Retake.
+  final bool workerMode;
+
+  /// The host is still handling the last photograph (saving it, recording
+  /// the result). The shutter stays disabled so one tap can never produce
+  /// two measurements.
+  final bool busy;
 
   /// The live preview widget, supplied by the caller so this screen can be
   /// rendered in tests without a camera.
@@ -89,7 +92,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
                     colours?.measurementAccent ??
                     Theme.of(context).colorScheme.primary,
                 onShutter: widget.controller.capture,
-                requireReady: widget.requireReady,
+                workerMode: widget.workerMode,
+                busy: widget.busy,
               ),
             ),
 
@@ -133,24 +137,26 @@ class _GuidancePanel extends StatelessWidget {
     required this.state,
     required this.accent,
     required this.onShutter,
-    required this.requireReady,
+    required this.workerMode,
+    required this.busy,
   });
 
   final CaptureUiState state;
   final Color accent;
   final Future<void> Function() onShutter;
-  final bool requireReady;
+  final bool workerMode;
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
     final guidance = state.state;
     final detail = guidance.detail;
-    // Ready AND stable over consecutive frames — the existing arming gate,
-    // used here to enable the button rather than to fire it.
-    final armed = state.arming?.isArmed ?? false;
+    // Ready AND stable over consecutive frames — advice only.
+    final ready = state.arming?.isArmed ?? false;
+    final working = state.isCapturing || busy;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
       color: Colors.black.withValues(alpha: 0.72),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -159,13 +165,13 @@ class _GuidancePanel extends StatelessWidget {
           Text(
             guidance.instruction,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: guidance.isReady ? accent : Colors.white,
               fontWeight: FontWeight.w600,
             ),
           ),
           if (detail != null) ...<Widget>[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               detail,
               textAlign: TextAlign.center,
@@ -173,37 +179,133 @@ class _GuidancePanel extends StatelessWidget {
                   ?.copyWith(color: Colors.white70),
             ),
           ],
-          const SizedBox(height: 18),
-          if (state.outcome != null) _OutcomeLine(outcome: state.outcome!),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: state.isCapturing || (requireReady && !(armed))
-                ? null
-                : onShutter,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(kMinTouchTarget),
-            ),
-            child: Text(
-              state.isCapturing
-                  ? 'Analysing the photograph…'
-                  : (requireReady ? 'Capture' : 'Take photo'),
+          if (state.outcome != null) ...<Widget>[
+            const SizedBox(height: 10),
+            _OutcomeLine(outcome: state.outcome!),
+          ],
+          const SizedBox(height: 16),
+          Center(
+            child: ShutterButton(
+              ready: ready,
+              working: working,
+              accent: accent,
+              onPressed: onShutter,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
-            // The shutter never overrides the measurement standard: the
-            // still is checked after it is taken, in either mode. §10, §52.
-            requireReady
-                ? (armed
-                      ? 'Ready. The photo is checked again after you capture.'
-                      : 'Capture becomes available when the badge is in '
-                            'position and steady.')
-                : 'You can take the photo at any time. It is still checked '
-                      'before it is used.',
+            working
+                ? 'Analysing the photograph…'
+                : workerMode
+                ? (ready
+                      ? 'In position. Tap the shutter to take the photo.'
+                      : 'Fit the DoseBand in the frame, hold steady, then tap '
+                            'the shutter.')
+                : 'You can take the photo at any time.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            // The shutter never overrides the measurement standard: the
+            // still is checked after it is taken. §10, §52.
+            'The photo is checked in full after you take it.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The manual shutter: a large round button, bottom centre.
+///
+/// Only the worker's tap takes the photograph. Disabled while a photo is
+/// being taken, analysed or recorded, and taps closer together than
+/// [debounce] are ignored, so one intention is one photograph.
+class ShutterButton extends StatefulWidget {
+  const ShutterButton({
+    required this.ready,
+    required this.working,
+    required this.accent,
+    required this.onPressed,
+    super.key,
+  });
+
+  /// The preview says the DoseBand is in position and steady (advice).
+  final bool ready;
+
+  /// A capture or its processing is under way: the shutter is disabled.
+  final bool working;
+
+  final Color accent;
+  final Future<void> Function() onPressed;
+
+  static const double size = 84;
+  static const Duration debounce = Duration(milliseconds: 800);
+
+  @override
+  State<ShutterButton> createState() => _ShutterButtonState();
+}
+
+class _ShutterButtonState extends State<ShutterButton> {
+  /// Monotonic, not the wall clock: time since the last accepted tap.
+  final Stopwatch _sinceLast = Stopwatch();
+
+  void _tap() {
+    if (widget.working) return;
+    if (_sinceLast.isRunning && _sinceLast.elapsed < ShutterButton.debounce) {
+      return;
+    }
+    _sinceLast
+      ..reset()
+      ..start();
+    HapticFeedback.mediumImpact();
+    widget.onPressed();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = !widget.working;
+    final ring = widget.ready ? widget.accent : Colors.white;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: widget.working
+          ? 'Analysing the photograph'
+          : 'Take the measurement photo',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: enabled ? _tap : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: ShutterButton.size,
+          height: ShutterButton.size,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: enabled ? ring : Colors.white38,
+              width: 5,
+            ),
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: enabled ? Colors.white : Colors.white24,
+            ),
+            child: widget.working
+                ? const Padding(
+                    padding: EdgeInsets.all(18),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: Colors.white,
+                    ),
+                  )
+                : const SizedBox.expand(),
+          ),
+        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -137,7 +138,14 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
 
       final geometry =
           _geometry ?? await GeometryAssets().load('badge-v1-research');
-      final port = CameraPortImpl(appVersion: appVersion);
+      // The highest resolution the device supports for the measurement
+      // still. Preview frames are sampled down twice as hard, so live
+      // guidance costs what it did at the previous preset.
+      final port = CameraPortImpl(
+        appVersion: appVersion,
+        resolution: ResolutionPreset.max,
+        previewDownscale: 8,
+      );
       final controller = CaptureController(
         port: port,
         geometry: geometry,
@@ -149,7 +157,9 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
         // A worker reading a worn badge in the operational workflow.
         dataDomain: DataDomain.field,
         // The worker presses Capture; nothing fires by itself. §16.
+        // Never automatic: the worker takes the photograph.
         autoCapture: false,
+        evaluateInBackground: true,
         context: () => MeasurementContext(
           batchId: badge.batchId,
           formulationId: badge.formulationId,
@@ -192,11 +202,11 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
     final controller = _controller;
     final outcome = controller?.state.outcome;
     if (controller == null || outcome == null || _handling) return;
-    _handling = true;
+    setState(() => _handling = true);
     try {
       await _handle(controller, outcome);
     } finally {
-      _handling = false;
+      if (mounted) setState(() => _handling = false);
     }
   }
 
@@ -428,7 +438,9 @@ class _WorkerCaptureScreenState extends ConsumerState<WorkerCaptureScreen>
     return CaptureScreen(
       controller: controller,
       preview: _port?.controller,
-      requireReady: true,
+      workerMode: true,
+      // Saving the photo and recording the result: no second tap.
+      busy: _handling,
     );
   }
 }
