@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:measurement/measurement.dart';
@@ -75,6 +76,7 @@ final class CaptureController extends ChangeNotifier {
     this.calibration = const NoCalibration(),
     MeasurementContext Function()? context,
     this.dataDomain = DataDomain.lab,
+    this.evaluateInBackground = false,
     AutoCaptureGate? gate,
   }) : _context = context ?? (() => MeasurementContext.none),
        _gate = gate ?? AutoCaptureGate(),
@@ -108,6 +110,14 @@ final class CaptureController extends ChangeNotifier {
 
   /// What turns an observation into a result. Only [NoCalibration] exists.
   final Calibration calibration;
+
+  /// Evaluate the still on a background isolate. The worker's final capture
+  /// uses the camera's maximum resolution, and the full engine pass on such
+  /// a still would otherwise freeze the screen while it reads "Analysing".
+  /// The code and the still are identical either way; only where it runs
+  /// differs. If an input cannot cross the isolate boundary, the same
+  /// evaluation runs here instead.
+  final bool evaluateInBackground;
 
   /// Where the photographs come from. `lab` for the bench workflow — printed
   /// targets and coupons; `field` for a worker reading their worn badge.
@@ -218,7 +228,22 @@ final class CaptureController extends ChangeNotifier {
 
     try {
       final still = await port.captureStill();
-      _state = _state.copyWith(outcome: _evaluate(still), isCapturing: false);
+      final input = _EvaluationInput(
+        geometry: geometry,
+        limits: limits,
+        referenceTargets: referenceTargets,
+        fitPatchIds: fitPatchIds,
+        holdoutPatchIds: holdoutPatchIds,
+        dataDomain: dataDomain,
+        calibration: calibration,
+        appVersion: appVersion,
+        context: _context(),
+        lastPreview: _lastPreview,
+      );
+      final outcome = evaluateInBackground
+          ? await _evaluateOffUiIsolate(input, still)
+          : _evaluateStill(input, still);
+      _state = _state.copyWith(outcome: outcome, isCapturing: false);
     } on CameraUnavailable catch (e) {
       _state = _state.copyWith(isCapturing: false, error: e.reason);
     } finally {
@@ -228,10 +253,205 @@ final class CaptureController extends ChangeNotifier {
     }
   }
 
-  CaptureOutcome _evaluate(CapturedStill still) {
-    MeasurementResult refusal(String code, String detail) => Refused(
-      status: ResultStatus.poorImage,
-      reasons: <ReasonCode>[ReasonCode(code, detail: detail)],
+  @override
+  Future<void> dispose() async {
+    await _subscription?.cancel();
+    await port.close();
+    super.dispose();
+  }
+}
+
+/// Everything the still's evaluation reads, as plain immutable data, so the
+/// evaluation can run on another isolate.
+@immutable
+final class _EvaluationInput {
+  const _EvaluationInput({
+    required this.geometry,
+    required this.limits,
+    required this.referenceTargets,
+    required this.fitPatchIds,
+    required this.holdoutPatchIds,
+    required this.dataDomain,
+    required this.calibration,
+    required this.appVersion,
+    required this.context,
+    required this.lastPreview,
+  });
+
+  final BadgeGeometry geometry;
+  final AcquisitionLimits limits;
+  final Map<String, LinearRgb> referenceTargets;
+  final List<String> fitPatchIds;
+  final List<String> holdoutPatchIds;
+  final DataDomain dataDomain;
+  final Calibration calibration;
+  final String appVersion;
+  final MeasurementContext context;
+  final GuidanceAssessment? lastPreview;
+}
+
+/// Runs [_evaluateStill] on a background isolate. Top-level, so the closure
+/// carries only [i] and [still] — never the controller or its listeners.
+Future<CaptureOutcome> _evaluateOffUiIsolate(
+  _EvaluationInput i,
+  CapturedStill still,
+) async {
+  try {
+    return await Isolate.run(() => _evaluateStill(i, still));
+  } on ArgumentError {
+    // Something in the input could not cross the boundary: evaluate the
+    // same still with the same code here.
+    return _evaluateStill(i, still);
+  }
+}
+
+/// Takes the still through every acquisition and optical check and, where
+/// they pass, through the calibration interface. Pure: same still, same
+/// inputs, same outcome, on whichever isolate it runs.
+CaptureOutcome _evaluateStill(_EvaluationInput i, CapturedStill still) {
+  final geometry = i.geometry;
+  final limits = i.limits;
+  final referenceTargets = i.referenceTargets;
+  final fitPatchIds = i.fitPatchIds;
+  final holdoutPatchIds = i.holdoutPatchIds;
+  final dataDomain = i.dataDomain;
+  final calibration = i.calibration;
+  final appVersion = i.appVersion;
+
+  MeasurementResult refusal(String code, String detail) => Refused(
+    status: ResultStatus.poorImage,
+    reasons: <ReasonCode>[ReasonCode(code, detail: detail)],
+    provenance: Provenance(
+      algorithmVersion: algorithmVersion,
+      geometryVersion: geometry.version,
+      calibrationModelId: null,
+      referenceProfileId: null,
+      appVersion: appVersion,
+      deviceModel: still.metadata.deviceModel,
+    ),
+  );
+
+  final quality = measureImageQuality(still.image);
+
+  // Re-assess the FINAL image against full-resolution limits. This is the
+  // authoritative check; the preview only ever advised.
+  final assessment = assessFrame(
+    frame: still.image,
+    geometry: geometry,
+    limits: limits,
+  );
+
+  CaptureEvidence evidence({Homography? homography}) => CaptureEvidence(
+    originalBytes: still.originalBytes,
+    still: still.image,
+    previewAssessment: i.lastPreview,
+    stillAssessment: assessment,
+    stillQuality: quality,
+    homography: homography,
+  );
+
+  AcquisitionQuality qualityOf({
+    ResearchObservation? observation,
+    GeometryValidation? geometryValidation,
+  }) => assessAcquisition(
+    still: assessment,
+    limits: limits,
+    geometry: geometry,
+    observation: observation,
+    geometryValidation: geometryValidation,
+  );
+
+  if (!assessment.state.isReady) {
+    return CaptureRefused(
+      quality: qualityOf(),
+      result: refusal(
+        'STILL_FAILED_ACQUISITION_CHECKS',
+        'the captured image did not meet acquisition requirements '
+            '(${assessment.state.name}); preview guidance is not a '
+            'substitute for checking the still',
+      ),
+      metadata: still.metadata,
+      assessment: assessment,
+      evidence: evidence(),
+    );
+  }
+
+  final detection = detectPrimaryFiducials(still.image, geometry);
+  if (!detection.isOk) {
+    return CaptureRefused(
+      quality: qualityOf(),
+      result: refusal(
+        'FIDUCIALS_NOT_FOUND_IN_STILL',
+        detection.detail ?? detection.rejection!.name,
+      ),
+      metadata: still.metadata,
+      assessment: assessment,
+      evidence: evidence(),
+    );
+  }
+
+  final correspondences = <Correspondence>[
+    for (final f in geometry.primaryFiducials)
+      Correspondence(f.centreMm, detection.primaries[f.id]!.centroid),
+  ];
+  final homography = estimateHomography(correspondences).homography;
+
+  final ResearchObservation observation;
+  try {
+    observation = observe(
+      image: still.image,
+      geometry: geometry,
+      correspondences: correspondences,
+      dataDomain: dataDomain,
+      referenceTargets: referenceTargets,
+      fitPatchIds: fitPatchIds,
+      holdoutPatchIds: holdoutPatchIds,
+    );
+  } on ObservationFailure catch (e) {
+    return CaptureRefused(
+      quality: qualityOf(),
+      result: refusal(e.reason.code, e.reason.detail ?? ''),
+      metadata: still.metadata,
+      assessment: assessment,
+      evidence: evidence(homography: homography),
+    );
+  }
+
+  // Deformation can only be assessed where the geometry carries markers
+  // withheld from the pose fit. Where it does not, it is not claimed.
+  //
+  // Computed and recorded, NOT gating: no residual limit that would turn a
+  // bent badge into a refusal has been established, and inventing one
+  // before physical captures exist would be tuning on nothing. G-07.
+  final geometryValidation =
+      geometry.supportsDeformationValidation && homography != null
+      ? validateGeometry(
+          geometry: geometry,
+          homography: homography,
+          detectedBlobs: detection.allBlobs,
+        )
+      : null;
+
+  final acquisition = qualityOf(
+    observation: observation,
+    geometryValidation: geometryValidation,
+  );
+
+  // Optics first, calibration second. If a measurement-critical check
+  // failed, the features exist but cannot be trusted, and no calibration
+  // is consulted — a correction that failed its withheld references is
+  // not a basis for any number. MEASUREMENT-INTEGRATION-02 §38, §48.
+  final failure = acquisition.primaryFailure;
+  final MeasurementResult result;
+  if (failure != null) {
+    result = Refused(
+      status: acquisition.refusalStatus!,
+      reasons: <ReasonCode>[
+        ReasonCode(
+          'QUALITY_${failure.id.toUpperCase()}',
+          detail: failure.reason,
+        ),
+      ],
       provenance: Provenance(
         algorithmVersion: algorithmVersion,
         geometryVersion: geometry.version,
@@ -241,163 +461,24 @@ final class CaptureController extends ChangeNotifier {
         deviceModel: still.metadata.deviceModel,
       ),
     );
-
-    final quality = measureImageQuality(still.image);
-
-    // Re-assess the FINAL image against full-resolution limits. This is the
-    // authoritative check; the preview only ever advised.
-    final assessment = assessFrame(
-      frame: still.image,
-      geometry: geometry,
-      limits: limits,
-    );
-
-    CaptureEvidence evidence({Homography? homography}) => CaptureEvidence(
-      originalBytes: still.originalBytes,
-      still: still.image,
-      previewAssessment: _lastPreview,
-      stillAssessment: assessment,
-      stillQuality: quality,
-      homography: homography,
-    );
-
-    AcquisitionQuality qualityOf({
-      ResearchObservation? observation,
-      GeometryValidation? geometryValidation,
-    }) => assessAcquisition(
-      still: assessment,
-      limits: limits,
-      geometry: geometry,
-      observation: observation,
-      geometryValidation: geometryValidation,
-    );
-
-    if (!assessment.state.isReady) {
-      return CaptureRefused(
-        quality: qualityOf(),
-        result: refusal(
-          'STILL_FAILED_ACQUISITION_CHECKS',
-          'the captured image did not meet acquisition requirements '
-              '(${assessment.state.name}); preview guidance is not a '
-              'substitute for checking the still',
-        ),
-        metadata: still.metadata,
-        assessment: assessment,
-        evidence: evidence(),
-      );
-    }
-
-    final detection = detectPrimaryFiducials(still.image, geometry);
-    if (!detection.isOk) {
-      return CaptureRefused(
-        quality: qualityOf(),
-        result: refusal(
-          'FIDUCIALS_NOT_FOUND_IN_STILL',
-          detection.detail ?? detection.rejection!.name,
-        ),
-        metadata: still.metadata,
-        assessment: assessment,
-        evidence: evidence(),
-      );
-    }
-
-    final correspondences = <Correspondence>[
-      for (final f in geometry.primaryFiducials)
-        Correspondence(f.centreMm, detection.primaries[f.id]!.centroid),
-    ];
-    final homography = estimateHomography(correspondences).homography;
-
-    final ResearchObservation observation;
-    try {
-      observation = observe(
-        image: still.image,
-        geometry: geometry,
-        correspondences: correspondences,
-        dataDomain: dataDomain,
-        referenceTargets: referenceTargets,
-        fitPatchIds: fitPatchIds,
-        holdoutPatchIds: holdoutPatchIds,
-      );
-    } on ObservationFailure catch (e) {
-      return CaptureRefused(
-        quality: qualityOf(),
-        result: refusal(e.reason.code, e.reason.detail ?? ''),
-        metadata: still.metadata,
-        assessment: assessment,
-        evidence: evidence(homography: homography),
-      );
-    }
-
-    // Deformation can only be assessed where the geometry carries markers
-    // withheld from the pose fit. Where it does not, it is not claimed.
-    //
-    // Computed and recorded, NOT gating: no residual limit that would turn a
-    // bent badge into a refusal has been established, and inventing one
-    // before physical captures exist would be tuning on nothing. G-07.
-    final geometryValidation =
-        geometry.supportsDeformationValidation && homography != null
-        ? validateGeometry(
-            geometry: geometry,
-            homography: homography,
-            detectedBlobs: detection.allBlobs,
-          )
-        : null;
-
-    final acquisition = qualityOf(
-      observation: observation,
-      geometryValidation: geometryValidation,
-    );
-
-    // Optics first, calibration second. If a measurement-critical check
-    // failed, the features exist but cannot be trusted, and no calibration
-    // is consulted — a correction that failed its withheld references is
-    // not a basis for any number. MEASUREMENT-INTEGRATION-02 §38, §48.
-    final failure = acquisition.primaryFailure;
-    final MeasurementResult result;
-    if (failure != null) {
-      result = Refused(
-        status: acquisition.refusalStatus!,
-        reasons: <ReasonCode>[
-          ReasonCode(
-            'QUALITY_${failure.id.toUpperCase()}',
-            detail: failure.reason,
-          ),
-        ],
-        provenance: Provenance(
-          algorithmVersion: algorithmVersion,
-          geometryVersion: geometry.version,
-          calibrationModelId: null,
-          referenceProfileId: null,
-          appVersion: appVersion,
-          deviceModel: still.metadata.deviceModel,
-        ),
-      );
-    } else {
-      // Through the calibration interface rather than a direct call, so a
-      // real model plugs in here without this class changing. Today the
-      // only implementation is NoCalibration, which refuses. G-05, §16.
-      result = calibration.interpret(
-        observation,
-        appVersion: appVersion,
-        deviceModel: still.metadata.deviceModel,
-        context: _context(),
-      );
-    }
-
-    return CaptureObserved(
-      observation: observation,
-      metadata: still.metadata,
-      geometryValidation: geometryValidation,
-      result: result,
-      evidence: evidence(homography: homography),
-      quality: acquisition,
+  } else {
+    // Through the calibration interface rather than a direct call, so a
+    // real model plugs in here without this class changing. Today the
+    // only implementation is NoCalibration, which refuses. G-05, §16.
+    result = calibration.interpret(
+      observation,
+      appVersion: appVersion,
+      deviceModel: still.metadata.deviceModel,
+      context: i.context,
     );
   }
 
-  @override
-  Future<void> dispose() async {
-    await _subscription?.cancel();
-    await port.close();
-    super.dispose();
-  }
+  return CaptureObserved(
+    observation: observation,
+    metadata: still.metadata,
+    geometryValidation: geometryValidation,
+    result: result,
+    evidence: evidence(homography: homography),
+    quality: acquisition,
+  );
 }

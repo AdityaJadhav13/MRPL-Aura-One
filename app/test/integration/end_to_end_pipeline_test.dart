@@ -185,6 +185,7 @@ CaptureController _controller(
   CameraPort port,
   BadgeGeometry geometry, {
   Calibration calibration = const NoCalibration(),
+  bool background = false,
 }) => CaptureController(
   port: port,
   geometry: geometry,
@@ -195,6 +196,7 @@ CaptureController _controller(
   previewDownscale: _downscale,
   calibration: calibration,
   autoCapture: false,
+  evaluateInBackground: background,
 );
 
 const _settings = ResearchSettings(
@@ -248,6 +250,43 @@ void main() {
   // =====================================================================
   // §53 — the full valid pipeline
   // =====================================================================
+
+  // The worker's final capture evaluates the still on a background isolate
+  // (it is taken at the camera's maximum resolution). Same still, same code:
+  // the outcome must be identical to evaluating it inline.
+  test('background evaluation gives the inline outcome', () async {
+    Future<CaptureObserved> run({required bool background}) async {
+      final pair = _pair(geometry);
+      final port = EncodedStillCamera(
+        stillBytes: pair.still,
+        preview: pair.preview,
+      );
+      final controller = _controller(port, geometry, background: background);
+      await controller.start();
+      await port.emit(6);
+      await controller.capture();
+      final outcome = controller.state.outcome;
+      await controller.dispose();
+      expect(outcome, isA<CaptureObserved>(), reason: '$outcome');
+      return outcome! as CaptureObserved;
+    }
+
+    final inline = await run(background: false);
+    final isolate = await run(background: true);
+    expect(isolate.result.status, inline.result.status);
+    expect(
+      isolate.observation.reprojectionRmsPx,
+      inline.observation.reprojectionRmsPx,
+    );
+    for (final id in inline.observation.samples.keys) {
+      final a = inline.observation.samples[id]!;
+      final b = isolate.observation.samples[id]!;
+      expect(b.usedSamples, a.usedSamples, reason: id);
+      expect(b.trimmedMeanLinear.r, a.trimmedMeanLinear.r, reason: id);
+      expect(b.trimmedMeanLinear.g, a.trimmedMeanLinear.g, reason: id);
+      expect(b.trimmedMeanLinear.b, a.trimmedMeanLinear.b, reason: id);
+    }
+  });
 
   group('a valid capture, end to end', () {
     late CaptureObserved observed;
