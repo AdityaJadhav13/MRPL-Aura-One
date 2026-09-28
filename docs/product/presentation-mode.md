@@ -46,15 +46,23 @@ The **presentation example** is a fixed 4.2 ± 0.9 ppm·h under model ID
    role.
 2. **Profile → Settings → Presentation controls**: switch on and choose the
    lowest level that works on the day.
-3. Home → **Scan new DoseBand**. Scan the real label, or at level 1 and above
-   tap **Use Presentation DoseBand**.
-4. **Photograph the DoseBand** → *DoseBand ready to use* → **Assign this
-   DoseBand** → Monitoring active.
+3. Home → **Scan new DoseBand** → point at the QR on the physical DoseBand.
+   - A production label (`DOSEBAND:1:<serial>`) is read directly.
+   - Today's printed prototype QR does not carry a serial. At level 1 or above
+     it is **mapped** to `DB-2609-0024`. The assignment records the mapping
+     and the raw payload, and the final read accepts only that same printed
+     code.
+   - If no QR reads at all: **Use Presentation DoseBand**.
+4. *DoseBand identified* (serial, status Available) → **Photograph the
+   DoseBand** → *DoseBand ready to use* → **Assign to me** → Home shows
+   *Monitoring active* with the serial and "Assigned to you". Restart the app
+   to show the assignment is kept.
 5. To skip the wait: Presentation controls → **Advance to final read**.
-   Alternatively, use Home → **Complete monitoring & scan**.
-6. **Scan assigned DoseBand** (or **Use Presentation DoseBand**) → camera →
-   analysing → result.
-7. History → the record → **View measurement details**.
+   Alternatively, use Home → **Final DoseBand read**.
+6. **Scan assigned DoseBand** → the same printed QR (another code is refused
+   as *Wrong DoseBand*) → camera → **manual shutter** → analysing → result.
+7. History → the record → **View measurement details**. The Identity section
+   shows the same DoseBand serial, the worker and the monitoring session.
 8. Before the next take: Presentation controls → **Reset presentation
    workflow**. Real records and archived photographs stay.
 
